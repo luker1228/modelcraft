@@ -742,6 +742,14 @@ export type DeleteProjectPayload = {
   success: Scalars['Boolean']['output'];
 };
 
+export type DeleteRlsPolicyError = ResourceNotFound;
+
+export type DeleteRlsPolicyPayload = {
+  __typename?: 'DeleteRlsPolicyPayload';
+  error?: Maybe<DeleteRlsPolicyError>;
+  success: Scalars['Boolean']['output'];
+};
+
 export type DeleteRoleError = CannotDeleteSystemRole | ResourceNotFound;
 
 export type DeleteRolePayload = {
@@ -1629,6 +1637,10 @@ export type Mutation = {
   deleteModel: DeleteModelPayload;
   deletePermissionRole: DeletePermissionRolePayload;
   deleteProject: DeleteProjectPayload;
+  /** Delete all RLS policies for a model */
+  deleteRlsPoliciesByModel: DeleteRlsPolicyPayload;
+  /** Delete a single RLS policy by ID */
+  deleteRlsPolicy: DeleteRlsPolicyPayload;
   deleteRole: DeleteRolePayload;
   /**
    * 将字段标记为废弃。
@@ -1687,6 +1699,8 @@ export type Mutation = {
   updatePermissionRole: UpdatePermissionRolePayload;
   updateProject: UpdateProjectPayload;
   updateProjectCluster: UpdateClusterPayload;
+  /** Create or update an RLS policy */
+  upsertRlsPolicy: UpsertRlsPolicyPayload;
   /**
    * 校验 RLS 表达式合法性
    * 用于 Policy 配置页面的实时校验
@@ -1879,6 +1893,16 @@ export type MutationDeletePermissionRoleArgs = {
 
 export type MutationDeleteProjectArgs = {
   slug: Scalars['String']['input'];
+};
+
+
+export type MutationDeleteRlsPoliciesByModelArgs = {
+  modelId: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteRlsPolicyArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -2091,6 +2115,12 @@ export type MutationUpdateProjectArgs = {
 export type MutationUpdateProjectClusterArgs = {
   input: UpdateClusterConnectionInput;
   projectSlug: Scalars['String']['input'];
+};
+
+
+export type MutationUpsertRlsPolicyArgs = {
+  input: RlsPolicyInput;
+  modelId: Scalars['ID']['input'];
 };
 
 
@@ -2308,6 +2338,8 @@ export type Query = {
   /** 获取当前项目 auth_schema */
   projectAuthSchema: ProjectAuthSchema;
   projects: Array<Project>;
+  /** List all RLS policies for a model */
+  rlsPolicies: Array<RlsPolicy>;
   rolePermissionsList: Array<PermissionDef>;
   roles: Array<Role>;
   userRoleAssignments: Array<UserRoleAssignment>;
@@ -2478,6 +2510,11 @@ export type QueryProjectArgs = {
 
 export type QueryProjectsArgs = {
   input?: InputMaybe<ListProjectsInput>;
+};
+
+
+export type QueryRlsPoliciesArgs = {
+  modelId: Scalars['ID']['input'];
 };
 
 
@@ -2760,6 +2797,38 @@ export type RevokeRolePayload = {
   __typename?: 'RevokeRolePayload';
   error?: Maybe<RevokeRoleError>;
   success: Scalars['Boolean']['output'];
+};
+
+export enum RlsAction {
+  Create = 'create',
+  Delete = 'delete',
+  Read = 'read',
+  Update = 'update'
+}
+
+export type RlsPolicy = {
+  __typename?: 'RlsPolicy';
+  action: RlsAction;
+  createdAt: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  policyName: Scalars['String']['output'];
+  role: Scalars['String']['output'];
+  updatedAt: Scalars['String']['output'];
+  usingExpr?: Maybe<Scalars['String']['output']>;
+  withCheckExpr?: Maybe<Scalars['String']['output']>;
+};
+
+export type RlsPolicyInput = {
+  action: RlsAction;
+  policyName: Scalars['String']['input'];
+  role: Scalars['String']['input'];
+  usingExpr?: InputMaybe<Scalars['String']['input']>;
+  withCheckExpr?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type RlsPolicyNotFound = Error & {
+  __typename?: 'RlsPolicyNotFound';
+  message: Scalars['String']['output'];
 };
 
 export type Role = {
@@ -3089,6 +3158,14 @@ export type UpdateRoleInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type UpsertRlsPolicyError = InvalidInput | ResourceNotFound;
+
+export type UpsertRlsPolicyPayload = {
+  __typename?: 'UpsertRlsPolicyPayload';
+  error?: Maybe<UpsertRlsPolicyError>;
+  policy?: Maybe<RlsPolicy>;
+};
+
 export type User = Node & {
   __typename?: 'User';
   createdAt: Scalars['String']['output'];
@@ -3231,115 +3308,6 @@ export type TestClusterConnectionMutation = { __typename?: 'Mutation', testDatab
       | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
      | null } };
 
-export type FindUsersQueryVariables = Exact<{
-  where?: InputMaybe<UserWhereInput>;
-  after?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-}>;
-
-
-export type FindUsersQuery = { __typename?: 'Query', findUsers: { __typename?: 'UserFindManyResult', nextCursor?: string | null, hasMore: boolean, reqId: string, items: Array<{ __typename?: 'EndUserPublic', id: string, username: string, isBuiltin: boolean, createdAt: any }> } };
-
-export type ListEndUsersQueryVariables = Exact<{
-  input?: InputMaybe<ListEndUsersInput>;
-}>;
-
-
-export type ListEndUsersQuery = { __typename?: 'Query', listEndUsers: { __typename?: 'ListEndUsersPayload', connection?: { __typename?: 'EndUserConnection', totalCount: number, nodes: Array<{ __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, isBuiltin: boolean, createdBy: string, createdAt: any, updatedAt: any }>, pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean, endCursor?: string | null } } | null, error?: { __typename: 'InvalidInput', message: string, suggestion?: string | null } | null } };
-
-export type EndUserProjectsQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type EndUserProjectsQuery = { __typename?: 'Query', endUserProjects: Array<{ __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string }> };
-
-export type MyProjectsQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type MyProjectsQuery = { __typename?: 'Query', myProjects: Array<{ __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string }> };
-
-export type CreateUserMutationVariables = Exact<{
-  input: CreateUserInput;
-}>;
-
-
-export type CreateUserMutation = { __typename?: 'Mutation', createUser: { __typename?: 'CreateUserPayload', user?: { __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, createdAt: any, updatedAt: any } | null, error?:
-      | { __typename: 'EndUserAlreadyExists', message: string }
-      | { __typename: 'EndUserPasswordTooWeak', message: string, suggestion?: string | null }
-      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
-     | null } };
-
-export type CreateEndUserMutationVariables = Exact<{
-  input: CreateEndUserInput;
-}>;
-
-
-export type CreateEndUserMutation = { __typename?: 'Mutation', createEndUser: { __typename?: 'CreateEndUserPayload', endUser?: { __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, isBuiltin: boolean, createdBy: string, createdAt: any, updatedAt: any } | null, error?:
-      | { __typename: 'EndUserAlreadyExists', message: string }
-      | { __typename: 'EndUserPasswordTooWeak', message: string, suggestion?: string | null }
-      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
-      | { __typename: 'ResourceNotFound' }
-     | null } };
-
-export type UpdateEndUserStatusMutationVariables = Exact<{
-  input: UpdateEndUserStatusInput;
-}>;
-
-
-export type UpdateEndUserStatusMutation = { __typename?: 'Mutation', updateEndUserStatus: { __typename?: 'UpdateEndUserStatusPayload', endUser?: { __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, updatedAt: any } | null, error?:
-      | { __typename: 'BuiltinUserCannotBeDisabled' }
-      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
-      | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
-     | null } };
-
-export type ResetEndUserPasswordMutationVariables = Exact<{
-  input: ResetEndUserPasswordInput;
-}>;
-
-
-export type ResetEndUserPasswordMutation = { __typename?: 'Mutation', resetEndUserPassword: { __typename?: 'ResetEndUserPasswordPayload', success: boolean, error?:
-      | { __typename: 'BuiltinUserCannotBeDisabled', message: string }
-      | { __typename: 'EndUserPasswordTooWeak', message: string, suggestion?: string | null }
-      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
-      | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
-     | null } };
-
-export type DeleteEndUserMutationVariables = Exact<{
-  input: DeleteEndUserInput;
-}>;
-
-
-export type DeleteEndUserMutation = { __typename?: 'Mutation', deleteEndUser: { __typename?: 'DeleteEndUserPayload', success: boolean, error?:
-      | { __typename: 'BuiltinUserCannotBeDeleted' }
-      | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
-     | null } };
-
-export type EndUserApiTokensQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type EndUserApiTokensQuery = { __typename?: 'Query', endUserAPITokens: Array<{ __typename?: 'EndUserAPIToken', id: string, name: string, createdAt: any, expiresAt?: any | null, lastUsedAt?: any | null }> };
-
-export type CreateEndUserApiTokenMutationVariables = Exact<{
-  name: Scalars['String']['input'];
-  expiresAt?: InputMaybe<Scalars['Time']['input']>;
-}>;
-
-
-export type CreateEndUserApiTokenMutation = { __typename?: 'Mutation', createEndUserAPIToken: { __typename?: 'CreateAPITokenPayload', plaintext?: string | null, token?: { __typename?: 'EndUserAPIToken', id: string, name: string, createdAt: any, expiresAt?: any | null } | null, error?:
-      | { __typename?: 'APITokenLimitReached', message: string, limit: number }
-      | { __typename?: 'APITokenNameConflict', message: string }
-      | { __typename?: 'InvalidInput', message: string }
-     | null } };
-
-export type RevokeEndUserApiTokenMutationVariables = Exact<{
-  id: Scalars['ID']['input'];
-}>;
-
-
-export type RevokeEndUserApiTokenMutation = { __typename?: 'Mutation', revokeEndUserAPIToken: { __typename?: 'RevokeAPITokenPayload', success?: boolean | null, error?:
-      | { __typename?: 'APITokenNotFound', message: string }
-      | { __typename?: 'InvalidInput', message: string }
-     | null } };
-
 export type GetEnumsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -3398,33 +3366,6 @@ export type GetModelEnumSourceFieldsQueryVariables = Exact<{
 
 
 export type GetModelEnumSourceFieldsQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, enum?: { __typename?: 'EnumDefinition', name: string } | null }> } | null } };
-
-export type ModelDatabaseCatalogEndUserQueryVariables = Exact<{
-  input?: InputMaybe<ModelDatabaseCatalogInput>;
-}>;
-
-
-export type ModelDatabaseCatalogEndUserQuery = { __typename?: 'Query', modelDatabaseCatalog: { __typename?: 'GetModelDatabaseCatalogPayload', data?: { __typename?: 'ModelDatabaseCatalogPayload', totalCount: number, page: number, pageSize: number, databases: Array<{ __typename?: 'DatabaseLite', name: string }> } | null, error?:
-      | { __typename: 'InvalidInput', message: string }
-      | { __typename: 'ResourceNotFound', message: string }
-     | null } };
-
-export type ModelCatalogEndUserQueryVariables = Exact<{
-  input: ModelQueryInput;
-}>;
-
-
-export type ModelCatalogEndUserQuery = { __typename?: 'Query', models: { __typename?: 'ModelListResult', hasNextPage: boolean, items: Array<{ __typename?: 'Model', id: string, name: string, title: string, databaseName: string }> } };
-
-export type GetModelRecordWorkspaceEndUserQueryVariables = Exact<{
-  id: Scalars['ID']['input'];
-}>;
-
-
-export type GetModelRecordWorkspaceEndUserQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, name: string, title: string, description: string, databaseName: string, createdVia: string, jsonSchema?: string | null, fields: Array<{ __typename?: 'Field', name: string, isDeprecated: boolean }> } | null, error?:
-      | { __typename: 'InvalidInput', message: string }
-      | { __typename: 'ResourceNotFound', message: string }
-     | null } };
 
 export type GetModelsQueryVariables = Exact<{
   input?: InputMaybe<ModelQueryInput>;
@@ -4070,6 +4011,13 @@ export type RemoveDataPermissionItemFromBundleMutationVariables = Exact<{
 
 export type RemoveDataPermissionItemFromBundleMutation = { __typename?: 'Mutation', removeDataPermissionItemFromBundle: { __typename?: 'RemoveDataPermissionItemFromBundlePayload', bundle?: { __typename?: 'EndUserPermissionBundle', id: string, slug: string, currentVersion: number, dataPermissionItems: Array<{ __typename?: 'EndUserBundleDataPermissionItem', id: string, bundleId: string, modelId: string, grantType: DataPermissionGrantType, preset?: EndUserPermissionPreset | null, customPermissionId?: string | null, sortOrder: number }> } | null, error?: { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType } | null } };
 
+export type ListEndUsersQueryVariables = Exact<{
+  input?: InputMaybe<ListEndUsersInput>;
+}>;
+
+
+export type ListEndUsersQuery = { __typename?: 'Query', listEndUsers: { __typename?: 'ListEndUsersPayload', connection?: { __typename?: 'EndUserConnection', totalCount: number, nodes: Array<{ __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, isBuiltin: boolean, createdBy: string, createdAt: any, updatedAt: any }>, pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean, endCursor?: string | null } } | null, error?: { __typename: 'InvalidInput', message: string, suggestion?: string | null } | null } };
+
 export type GetVirtualPresetsByModelQueryVariables = Exact<{
   modelId: Scalars['ID']['input'];
 }>;
@@ -4259,267 +4207,6 @@ export const mockTestClusterConnectionMutation = (resolver: GraphQLResponseResol
  * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
  * @see https://mswjs.io/docs/basics/response-resolver
  * @example
- * mockFindUsersQuery(
- *   ({ query, variables }) => {
- *     const { where, after, first } = variables;
- *     return HttpResponse.json({
- *       data: { findUsers }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockFindUsersQuery = (resolver: GraphQLResponseResolver<FindUsersQuery, FindUsersQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<FindUsersQuery, FindUsersQueryVariables>(
-    'FindUsers',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockListEndUsersQuery(
- *   ({ query, variables }) => {
- *     const { input } = variables;
- *     return HttpResponse.json({
- *       data: { listEndUsers }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockListEndUsersQuery = (resolver: GraphQLResponseResolver<ListEndUsersQuery, ListEndUsersQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<ListEndUsersQuery, ListEndUsersQueryVariables>(
-    'ListEndUsers',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockEndUserProjectsQuery(
- *   ({ query, variables }) => {
- *     return HttpResponse.json({
- *       data: { endUserProjects }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockEndUserProjectsQuery = (resolver: GraphQLResponseResolver<EndUserProjectsQuery, EndUserProjectsQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<EndUserProjectsQuery, EndUserProjectsQueryVariables>(
-    'EndUserProjects',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockMyProjectsQuery(
- *   ({ query, variables }) => {
- *     return HttpResponse.json({
- *       data: { myProjects }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockMyProjectsQuery = (resolver: GraphQLResponseResolver<MyProjectsQuery, MyProjectsQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<MyProjectsQuery, MyProjectsQueryVariables>(
-    'MyProjects',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockCreateUserMutation(
- *   ({ query, variables }) => {
- *     const { input } = variables;
- *     return HttpResponse.json({
- *       data: { createUser }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockCreateUserMutation = (resolver: GraphQLResponseResolver<CreateUserMutation, CreateUserMutationVariables>, options?: RequestHandlerOptions) =>
-  graphql.mutation<CreateUserMutation, CreateUserMutationVariables>(
-    'CreateUser',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockCreateEndUserMutation(
- *   ({ query, variables }) => {
- *     const { input } = variables;
- *     return HttpResponse.json({
- *       data: { createEndUser }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockCreateEndUserMutation = (resolver: GraphQLResponseResolver<CreateEndUserMutation, CreateEndUserMutationVariables>, options?: RequestHandlerOptions) =>
-  graphql.mutation<CreateEndUserMutation, CreateEndUserMutationVariables>(
-    'CreateEndUser',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockUpdateEndUserStatusMutation(
- *   ({ query, variables }) => {
- *     const { input } = variables;
- *     return HttpResponse.json({
- *       data: { updateEndUserStatus }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockUpdateEndUserStatusMutation = (resolver: GraphQLResponseResolver<UpdateEndUserStatusMutation, UpdateEndUserStatusMutationVariables>, options?: RequestHandlerOptions) =>
-  graphql.mutation<UpdateEndUserStatusMutation, UpdateEndUserStatusMutationVariables>(
-    'UpdateEndUserStatus',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockResetEndUserPasswordMutation(
- *   ({ query, variables }) => {
- *     const { input } = variables;
- *     return HttpResponse.json({
- *       data: { resetEndUserPassword }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockResetEndUserPasswordMutation = (resolver: GraphQLResponseResolver<ResetEndUserPasswordMutation, ResetEndUserPasswordMutationVariables>, options?: RequestHandlerOptions) =>
-  graphql.mutation<ResetEndUserPasswordMutation, ResetEndUserPasswordMutationVariables>(
-    'ResetEndUserPassword',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockDeleteEndUserMutation(
- *   ({ query, variables }) => {
- *     const { input } = variables;
- *     return HttpResponse.json({
- *       data: { deleteEndUser }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockDeleteEndUserMutation = (resolver: GraphQLResponseResolver<DeleteEndUserMutation, DeleteEndUserMutationVariables>, options?: RequestHandlerOptions) =>
-  graphql.mutation<DeleteEndUserMutation, DeleteEndUserMutationVariables>(
-    'DeleteEndUser',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockEndUserApiTokensQuery(
- *   ({ query, variables }) => {
- *     return HttpResponse.json({
- *       data: { endUserAPITokens }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockEndUserApiTokensQuery = (resolver: GraphQLResponseResolver<EndUserApiTokensQuery, EndUserApiTokensQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<EndUserApiTokensQuery, EndUserApiTokensQueryVariables>(
-    'EndUserAPITokens',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockCreateEndUserApiTokenMutation(
- *   ({ query, variables }) => {
- *     const { name, expiresAt } = variables;
- *     return HttpResponse.json({
- *       data: { createEndUserAPIToken }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockCreateEndUserApiTokenMutation = (resolver: GraphQLResponseResolver<CreateEndUserApiTokenMutation, CreateEndUserApiTokenMutationVariables>, options?: RequestHandlerOptions) =>
-  graphql.mutation<CreateEndUserApiTokenMutation, CreateEndUserApiTokenMutationVariables>(
-    'CreateEndUserAPIToken',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockRevokeEndUserApiTokenMutation(
- *   ({ query, variables }) => {
- *     const { id } = variables;
- *     return HttpResponse.json({
- *       data: { revokeEndUserAPIToken }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockRevokeEndUserApiTokenMutation = (resolver: GraphQLResponseResolver<RevokeEndUserApiTokenMutation, RevokeEndUserApiTokenMutationVariables>, options?: RequestHandlerOptions) =>
-  graphql.mutation<RevokeEndUserApiTokenMutation, RevokeEndUserApiTokenMutationVariables>(
-    'RevokeEndUserAPIToken',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
  * mockGetEnumsQuery(
  *   ({ query, variables }) => {
  *     return HttpResponse.json({
@@ -4664,72 +4351,6 @@ export const mockDeleteEnumMutation = (resolver: GraphQLResponseResolver<DeleteE
 export const mockGetModelEnumSourceFieldsQuery = (resolver: GraphQLResponseResolver<GetModelEnumSourceFieldsQuery, GetModelEnumSourceFieldsQueryVariables>, options?: RequestHandlerOptions) =>
   graphql.query<GetModelEnumSourceFieldsQuery, GetModelEnumSourceFieldsQueryVariables>(
     'GetModelEnumSourceFields',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockModelDatabaseCatalogEndUserQuery(
- *   ({ query, variables }) => {
- *     const { input } = variables;
- *     return HttpResponse.json({
- *       data: { modelDatabaseCatalog }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockModelDatabaseCatalogEndUserQuery = (resolver: GraphQLResponseResolver<ModelDatabaseCatalogEndUserQuery, ModelDatabaseCatalogEndUserQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<ModelDatabaseCatalogEndUserQuery, ModelDatabaseCatalogEndUserQueryVariables>(
-    'ModelDatabaseCatalogEndUser',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockModelCatalogEndUserQuery(
- *   ({ query, variables }) => {
- *     const { input } = variables;
- *     return HttpResponse.json({
- *       data: { models }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockModelCatalogEndUserQuery = (resolver: GraphQLResponseResolver<ModelCatalogEndUserQuery, ModelCatalogEndUserQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<ModelCatalogEndUserQuery, ModelCatalogEndUserQueryVariables>(
-    'ModelCatalogEndUser',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockGetModelRecordWorkspaceEndUserQuery(
- *   ({ query, variables }) => {
- *     const { id } = variables;
- *     return HttpResponse.json({
- *       data: { model }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockGetModelRecordWorkspaceEndUserQuery = (resolver: GraphQLResponseResolver<GetModelRecordWorkspaceEndUserQuery, GetModelRecordWorkspaceEndUserQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<GetModelRecordWorkspaceEndUserQuery, GetModelRecordWorkspaceEndUserQueryVariables>(
-    'GetModelRecordWorkspaceEndUser',
     resolver,
     options
   )
@@ -6372,6 +5993,28 @@ export const mockBindCustomItemToBundleMutation = (resolver: GraphQLResponseReso
 export const mockRemoveDataPermissionItemFromBundleMutation = (resolver: GraphQLResponseResolver<RemoveDataPermissionItemFromBundleMutation, RemoveDataPermissionItemFromBundleMutationVariables>, options?: RequestHandlerOptions) =>
   graphql.mutation<RemoveDataPermissionItemFromBundleMutation, RemoveDataPermissionItemFromBundleMutationVariables>(
     'RemoveDataPermissionItemFromBundle',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockListEndUsersQuery(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { listEndUsers }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockListEndUsersQuery = (resolver: GraphQLResponseResolver<ListEndUsersQuery, ListEndUsersQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<ListEndUsersQuery, ListEndUsersQueryVariables>(
+    'ListEndUsers',
     resolver,
     options
   )
