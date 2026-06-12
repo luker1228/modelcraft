@@ -36,6 +36,9 @@ type Resolver struct {
 	RLSPolicyAppService  *rls.ModelRLSPolicyAppService
 	AuthSchemaAppService *rls.AuthSchemaAppService
 
+	// RLS Policy V2
+	PolicyCRUDService *rls.PolicyCRUDService
+
 	// End-User
 	EndUserMgmtAppService *appEnduser.EndUserManagementAppService
 

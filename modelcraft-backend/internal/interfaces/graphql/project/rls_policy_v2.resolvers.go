@@ -7,25 +7,134 @@ package projectgraphql
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
+	appRLS "modelcraft/internal/app/rls"
+	domainRLS "modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 )
 
 // UpsertRlsPolicy is the resolver for the upsertRlsPolicy field.
 func (r *mutationResolver) UpsertRlsPolicy(ctx context.Context, modelID string, input generated.RlsPolicyInput) (*generated.UpsertRlsPolicyPayload, error) {
-	panic(fmt.Errorf("not implemented: UpsertRlsPolicy - upsertRlsPolicy"))
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var usingExpr domainRLS.JsonExpr
+	if input.UsingExpr != nil {
+		usingExpr = domainRLS.JsonExpr(*input.UsingExpr)
+	}
+	var withCheckExpr domainRLS.JsonExpr
+	if input.WithCheckExpr != nil {
+		withCheckExpr = domainRLS.JsonExpr(*input.WithCheckExpr)
+	}
+
+	policy, err := r.PolicyCRUDService.Upsert(ctx, orgName, projectSlug, appRLS.UpsertInput{
+		ModelID:       modelID,
+		PolicyName:    input.PolicyName,
+		Action:        domainRLS.Action(input.Action),
+		Role:          input.Role,
+		UsingExpr:     usingExpr,
+		WithCheckExpr: withCheckExpr,
+	})
+	if err != nil {
+		return &generated.UpsertRlsPolicyPayload{
+			Policy: nil,
+			Error:  &generated.InvalidInput{Message: err.Error()},
+		}, nil
+	}
+
+	return &generated.UpsertRlsPolicyPayload{
+		Policy: &generated.RlsPolicy{
+			ID:            fmt.Sprintf("%d", policy.ID),
+			PolicyName:    policy.PolicyName,
+			Action:        generated.RlsAction(policy.Action),
+			Role:          policy.Role,
+			UsingExpr:     stringPtr(string(policy.UsingExpr)),
+			WithCheckExpr: stringPtr(string(policy.WithCheckExpr)),
+			CreatedAt:     policy.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:     policy.UpdatedAt.Format(time.RFC3339),
+		},
+		Error: nil,
+	}, nil
 }
 
 // DeleteRlsPolicy is the resolver for the deleteRlsPolicy field.
 func (r *mutationResolver) DeleteRlsPolicy(ctx context.Context, id string) (*generated.DeleteRlsPolicyPayload, error) {
-	panic(fmt.Errorf("not implemented: DeleteRlsPolicy - deleteRlsPolicy"))
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	policyID, parseErr := strconv.ParseInt(id, 10, 64)
+	if parseErr != nil {
+		return &generated.DeleteRlsPolicyPayload{
+			Success: false,
+			Error:   &generated.ResourceNotFound{Message: "policy not found"},
+		}, nil
+	}
+
+	if err := r.PolicyCRUDService.Delete(ctx, orgName, projectSlug, policyID); err != nil {
+		return &generated.DeleteRlsPolicyPayload{
+			Success: false,
+			Error:   &generated.ResourceNotFound{Message: err.Error()},
+		}, nil
+	}
+
+	return &generated.DeleteRlsPolicyPayload{Success: true, Error: nil}, nil
 }
 
 // DeleteRlsPoliciesByModel is the resolver for the deleteRlsPoliciesByModel field.
 func (r *mutationResolver) DeleteRlsPoliciesByModel(ctx context.Context, modelID string) (*generated.DeleteRlsPolicyPayload, error) {
-	panic(fmt.Errorf("not implemented: DeleteRlsPoliciesByModel - deleteRlsPoliciesByModel"))
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := r.PolicyCRUDService.DeleteByModel(ctx, orgName, projectSlug, modelID); err != nil {
+		return &generated.DeleteRlsPolicyPayload{
+			Success: false,
+			Error:   &generated.ResourceNotFound{Message: err.Error()},
+		}, nil
+	}
+
+	return &generated.DeleteRlsPolicyPayload{Success: true, Error: nil}, nil
 }
 
 // RlsPolicies is the resolver for the rlsPolicies field.
 func (r *queryResolver) RlsPolicies(ctx context.Context, modelID string) ([]*generated.RlsPolicy, error) {
-	panic(fmt.Errorf("not implemented: RlsPolicies - rlsPolicies"))
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	policies, err := r.PolicyCRUDService.ListByModel(ctx, orgName, projectSlug, modelID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*generated.RlsPolicy, 0, len(policies))
+	for _, p := range policies {
+		result = append(result, &generated.RlsPolicy{
+			ID:            fmt.Sprintf("%d", p.ID),
+			PolicyName:    p.PolicyName,
+			Action:        generated.RlsAction(p.Action),
+			Role:          p.Role,
+			UsingExpr:     stringPtr(string(p.UsingExpr)),
+			WithCheckExpr: stringPtr(string(p.WithCheckExpr)),
+			CreatedAt:     p.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:     p.UpdatedAt.Format(time.RFC3339),
+		})
+	}
+	return result, nil
+}
+
+// stringPtr returns a pointer to the string, or nil if the string is empty.
+func stringPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }

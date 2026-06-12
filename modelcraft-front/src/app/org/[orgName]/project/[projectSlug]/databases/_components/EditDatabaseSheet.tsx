@@ -13,9 +13,8 @@ import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
 import { Label } from '@web/components/ui/label'
 import { Textarea } from '@web/components/ui/textarea'
+import { RadioGroup, RadioGroupItem } from '@web/components/ui/radio-group'
 import { Loader2 } from 'lucide-react'
-// TODO: 自建模式暂未开放，后续按需启用
-// import { RadioGroup, RadioGroupItem } from '@web/components/ui/radio-group'
 import {
   useUpdateModelDatabase,
   type ModelDatabase,
@@ -79,7 +78,6 @@ export function EditDatabaseSheet({ database, onClose }: EditDatabaseSheetProps)
           </div>
           <div className="flex flex-col gap-2">
             <Label>访问模式</Label>
-            {/* TODO: 自建模式暂未开放，后续按需启用
             <RadioGroup value={mode} onValueChange={(v) => setMode(v as DatabaseMode)}>
               <div className="flex items-start gap-3 rounded-md border border-border p-3">
                 <RadioGroupItem value="SELF_HOSTED" id="edit-mode-self" className="mt-0.5" />
@@ -96,17 +94,10 @@ export function EditDatabaseSheet({ database, onClose }: EditDatabaseSheetProps)
                   <label htmlFor="edit-mode-managed" className="cursor-pointer text-sm font-medium">
                     托管
                   </label>
-                  <p className="text-xs text-muted-foreground">只读，仅支持同步模型</p>
+                  <p className="text-xs text-muted-foreground">禁止写请求，仅支持同步现有表</p>
                 </div>
               </div>
             </RadioGroup>
-            */}
-            <div className="flex items-start gap-3 rounded-md border border-border bg-muted/30 p-3">
-              <div>
-                <p className="text-sm font-medium">托管</p>
-                <p className="text-xs text-muted-foreground">由 ModelCraft 托管，自动处理连接与凭据</p>
-              </div>
-            </div>
           </div>
         </div>
         <SheetFooter>

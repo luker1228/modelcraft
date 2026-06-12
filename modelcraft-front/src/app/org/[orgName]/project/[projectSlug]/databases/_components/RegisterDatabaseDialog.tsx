@@ -110,10 +110,10 @@ function DbRowForm({ row, options, onUpdate, onRemove }: DbRowFormProps) {
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-56 text-center leading-relaxed">
                 <p>
-                  <span className="font-medium">托管</span>：由 ModelCraft 托管，自动处理连接与凭据。
+                  <span className="font-medium">托管</span>：由 ModelCraft 托管，禁止写请求，仅同步现有表。
                 </p>
                 <p className="mt-1">
-                  <span className="font-medium">自建</span>：你自己部署的数据库，需手动配置连接信息。
+                  <span className="font-medium">自建</span>：你自己部署的数据库，可读写，支持新建和导入模型。
                 </p>
               </TooltipContent>
             </Tooltip>
