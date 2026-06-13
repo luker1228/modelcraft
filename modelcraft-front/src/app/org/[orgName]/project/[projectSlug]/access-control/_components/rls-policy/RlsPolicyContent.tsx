@@ -31,8 +31,8 @@ import {
   TableHeader,
   TableRow,
 } from '@web/components/ui/table'
-import { useAppStore } from '@web/stores'
 import { GET_MODELS } from '@/api-client/model'
+import { REGISTERED_DATABASES } from '@/api-client/cluster'
 import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 import { useQuery } from '@apollo/client'
 import { useRlsPolicyList } from '../../_hooks/rls-policy/useRlsPolicyList'
@@ -46,10 +46,16 @@ interface RlsPolicyContentProps {
 }
 
 export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps) {
-  const selectedProject = useAppStore((state) => state.selectedProject)
-  const databaseName = selectedProject?.databaseName ?? ''
-
+  const [selectedDatabaseName, setSelectedDatabaseName] = React.useState<string | null>(null)
   const [selectedModelId, setSelectedModelId] = React.useState<string | null>(null)
+
+  const client = useProjectScopedClient(projectSlug)
+  const { data: catalogData, loading: databasesLoading } = useQuery(REGISTERED_DATABASES, {
+    client,
+    variables: { input: { pageSize: 100 } },
+    skip: !projectSlug,
+  })
+  const databases: { name: string }[] = catalogData?.registeredDatabases?.data?.databases ?? []
   const [editorOpen, setEditorOpen] = React.useState(false)
   const [deleteTargetId, setDeleteTargetId] = React.useState<string | null>(null)
 
@@ -57,20 +63,17 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
     projectSlug,
     modelId: selectedModelId,
   })
-  const { upsertPolicy, deletePolicy, upserting, deleting } = useRlsPolicyManage({
+  const { upsertPolicy, deletePolicy, validateRlsExpression, upserting, deleting } = useRlsPolicyManage({
     projectSlug,
     modelId: selectedModelId ?? '',
   })
 
-  const client = useProjectScopedClient(projectSlug)
   const { data: modelsData, loading: modelsLoading } = useQuery(GET_MODELS, {
     client,
-    variables: { input: { databaseName } },
-    skip: !databaseName || !projectSlug,
+    variables: { input: { databaseName: selectedDatabaseName } },
+    skip: !selectedDatabaseName || !projectSlug,
   })
-  const models = (modelsData?.models?.edges ?? []).map(
-    (edge: { node: { id: string; name: string } }) => edge.node,
-  )
+  const models: { id: string; name: string }[] = modelsData?.models?.items ?? []
 
   const handleUpsert = async (data: {
     policyName: string
@@ -106,11 +109,31 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Select
-            value={selectedModelId ?? ''}
-            onValueChange={(v) => setSelectedModelId(v || null)}
+            value={selectedDatabaseName ?? ''}
+            onValueChange={(v) => {
+              setSelectedDatabaseName(v || null)
+              setSelectedModelId(null)
+            }}
           >
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder={
+                databasesLoading ? '加载中...' : '选择数据库...'
+              } />
+            </SelectTrigger>
+            <SelectContent>
+              {databases.map((db) => (
+                <SelectItem key={db.name} value={db.name}>{db.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={selectedModelId ?? ''}
+            onValueChange={(v) => setSelectedModelId(v || null)}
+            disabled={!selectedDatabaseName}
+          >
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder={
+                !selectedDatabaseName ? '请先选择数据库' :
                 modelsLoading ? '加载中...' : '选择模型...'
               } />
             </SelectTrigger>
@@ -132,7 +155,17 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
         </Button>
       </div>
 
-      {!selectedModelId && (
+      {!selectedDatabaseName && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <ShieldOff className="mb-3 size-9 text-muted-foreground/30" strokeWidth={1} />
+          <p className="text-sm font-semibold text-foreground">请先选择数据库</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            选择数据库和模型后查看和管理其 RLS 策略
+          </p>
+        </div>
+      )}
+
+      {selectedDatabaseName && !selectedModelId && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <ShieldOff className="mb-3 size-9 text-muted-foreground/30" strokeWidth={1} />
           <p className="text-sm font-semibold text-foreground">请选择一个模型</p>
@@ -220,6 +253,7 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
         open={editorOpen}
         onOpenChange={setEditorOpen}
         onSave={handleUpsert}
+        onDryRun={validateRlsExpression}
         saving={upserting}
       />
 

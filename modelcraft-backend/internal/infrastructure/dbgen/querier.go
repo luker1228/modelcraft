@@ -17,6 +17,7 @@ type Querier interface {
 	BindBelongsToFKIDToFields(ctx context.Context, arg BindBelongsToFKIDToFieldsParams) error
 	ClearBundleDataPermissionItems(ctx context.Context, bundleID string) error
 	CountFieldsByModelID(ctx context.Context, modelID string) (int64, error)
+	CountModelDatabaseCatalog(ctx context.Context, arg CountModelDatabaseCatalogParams) (int64, error)
 	CountModelDatabases(ctx context.Context, arg CountModelDatabasesParams) (int64, error)
 	CountModels(ctx context.Context, arg CountModelsParams) (int64, error)
 	CountUsersByOrg(ctx context.Context, orgName string) (int64, error)
@@ -163,6 +164,7 @@ type Querier interface {
 	ListEndUserPermissionsByProject(ctx context.Context, arg ListEndUserPermissionsByProjectParams) ([]EndUserDataPermission, error)
 	ListEndUserRolesByProject(ctx context.Context, arg ListEndUserRolesByProjectParams) ([]ProjectRole, error)
 	ListEnums(ctx context.Context, arg ListEnumsParams) ([]ModelEnum, error)
+	ListModelDatabaseCatalog(ctx context.Context, arg ListModelDatabaseCatalogParams) ([]string, error)
 	ListModelDatabases(ctx context.Context, arg ListModelDatabasesParams) ([]string, error)
 	ListModelDatabasesByProject(ctx context.Context, arg ListModelDatabasesByProjectParams) ([]ModelDatabase, error)
 	ListModelGroupsByProject(ctx context.Context, arg ListModelGroupsByProjectParams) ([]ModelGroup, error)

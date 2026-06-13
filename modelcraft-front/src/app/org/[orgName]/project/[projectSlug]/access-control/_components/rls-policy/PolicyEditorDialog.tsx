@@ -5,12 +5,12 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@web/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@web/components/ui/dialog'
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@web/components/ui/sheet'
 import { Input } from '@web/components/ui/input'
 import { Label } from '@web/components/ui/label'
 import {
@@ -20,8 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@web/components/ui/select'
-import { Textarea } from '@web/components/ui/textarea'
-import type { RlsAction } from '@/generated/graphql'
+import type { RlsAction, RlsExprType } from '@/generated/graphql'
+import { RlsExpressionEditor } from './RlsExpressionEditor'
+import {
+  getRlsExpressionType,
+  validateRlsExpressionSyntax,
+} from './rls-expression-utils'
 
 const ACTIONS: RlsAction[] = ['read', 'create', 'update', 'delete']
 
@@ -35,6 +39,10 @@ interface PolicyEditorDialogProps {
     usingExpr?: string
     withCheckExpr?: string
   }) => Promise<void>
+  onDryRun: (input: {
+    expression: string
+    exprType: RlsExprType
+  }) => Promise<{ success: boolean; message?: string }>
   saving: boolean
 }
 
@@ -42,6 +50,7 @@ export function PolicyEditorDialog({
   open,
   onOpenChange,
   onSave,
+  onDryRun,
   saving,
 }: PolicyEditorDialogProps) {
   const [policyName, setPolicyName] = React.useState('')
@@ -63,6 +72,11 @@ export function PolicyEditorDialog({
   const handleSave = async () => {
     if (!policyName.trim()) { toast.error('请输入策略名称'); return }
     if (!role.trim()) { toast.error('请输入角色'); return }
+    const usingSyntax = validateRlsExpressionSyntax(usingExpr)
+    if (!usingSyntax.valid) { toast.error(`Using Expr ${usingSyntax.message}`); return }
+    const checkSyntax = validateRlsExpressionSyntax(withCheckExpr)
+    if (!checkSyntax.valid) { toast.error(`Check Expr ${checkSyntax.message}`); return }
+
     await onSave({
       policyName: policyName.trim(),
       action,
@@ -73,12 +87,12 @@ export function PolicyEditorDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>添加策略</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="flex size-full flex-col overflow-hidden p-0 sm:w-[760px] sm:max-w-[760px]">
+        <SheetHeader className="border-b border-border px-6 py-4">
+          <SheetTitle className="text-base">添加策略</SheetTitle>
+        </SheetHeader>
+        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
           <div className="space-y-1.5">
             <Label>
               策略名称 <span className="text-destructive">*</span>
@@ -118,35 +132,29 @@ export function PolicyEditorDialog({
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Using Expr</Label>
-            <Textarea
-              value={usingExpr}
-              onChange={(e) => setUsingExpr(e.target.value)}
-              placeholder='例如：{"owner_id": {"equals": "{{user_id}}"}}'
-              rows={3}
-              className="font-mono text-xs"
-            />
-          </div>
+          <RlsExpressionEditor
+            label="Using Expr"
+            value={usingExpr}
+            onChange={setUsingExpr}
+            exprType={getRlsExpressionType(action, 'using')}
+            onDryRun={onDryRun}
+          />
 
-          <div className="space-y-1.5">
-            <Label>Check Expr</Label>
-            <Textarea
-              value={withCheckExpr}
-              onChange={(e) => setWithCheckExpr(e.target.value)}
-              placeholder='例如：{"owner_id": {"equals": "{{user_id}}"}}'
-              rows={3}
-              className="font-mono text-xs"
-            />
-          </div>
+          <RlsExpressionEditor
+            label="Check Expr"
+            value={withCheckExpr}
+            onChange={setWithCheckExpr}
+            exprType={getRlsExpressionType(action, 'check')}
+            onDryRun={onDryRun}
+          />
         </div>
-        <DialogFooter>
+        <SheetFooter className="border-t border-border px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
           <Button onClick={handleSave} disabled={saving} className="bg-primary text-primary-foreground hover:bg-primary/90">
             {saving ? <><Loader2 className="mr-2 size-4 animate-spin" />保存中...</> : '保存'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }

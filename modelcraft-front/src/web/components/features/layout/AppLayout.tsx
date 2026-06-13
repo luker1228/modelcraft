@@ -178,7 +178,7 @@ export function AppLayout({
       header: '设置',
       items: [
         { label: '组织设置', icon: '/icons/icon-settings.svg', href: `/org/${orgName}/settings/general` },
-        { label: 'API Token', icon: KeyRound, href: `/org/${orgName}/settings/api-tokens` },
+        { label: 'API Token', icon: KeyRound, href: `/org/${orgName}/api-tokens` },
       ],
     },
   ]

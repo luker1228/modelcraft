@@ -17,6 +17,22 @@ SELECT * FROM model_database
 WHERE org_name = ? AND project_slug = ? AND `model_database`.`deleted_at` = 0
 ORDER BY created_at ASC;
 
+-- name: ListModelDatabaseCatalog :many
+SELECT name FROM model_database
+WHERE org_name = ?
+  AND project_slug = ?
+  AND (sqlc.arg(search_filter) IS NULL OR name LIKE CONCAT('%', sqlc.arg(search), '%'))
+  AND `model_database`.`deleted_at` = 0
+ORDER BY name ASC
+LIMIT ? OFFSET ?;
+
+-- name: CountModelDatabaseCatalog :one
+SELECT COUNT(*) FROM model_database
+WHERE org_name = ?
+  AND project_slug = ?
+  AND (sqlc.arg(search_filter) IS NULL OR name LIKE CONCAT('%', sqlc.arg(search), '%'))
+  AND `model_database`.`deleted_at` = 0;
+
 -- name: UpdateModelDatabase :exec
 UPDATE model_database
 SET title = ?, description = ?, mode = ?, updated_at = NOW(3)

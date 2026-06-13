@@ -200,7 +200,7 @@ export function RegisterDatabaseDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>批量接管数据库</DialogTitle>
+          <DialogTitle>批量注册数据库</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3 py-2">
           {rawLoading ? (
@@ -211,7 +211,7 @@ export function RegisterDatabaseDialog({
             <>
               {rows.length === 0 && (
                 <p className="py-4 text-center text-sm text-muted-foreground">
-                  点击下方按钮添加要接管的数据库
+                  点击下方按钮添加要注册的数据库
                 </p>
               )}
               <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
@@ -226,7 +226,7 @@ export function RegisterDatabaseDialog({
                 ))}
               </div>
               {unregistered.length === 0 ? (
-                <p className="text-center text-sm text-muted-foreground">所有数据库已接管</p>
+                <p className="text-center text-sm text-muted-foreground">所有数据库已注册</p>
               ) : (
                 <Button
                   variant="outline"
@@ -247,7 +247,7 @@ export function RegisterDatabaseDialog({
           </Button>
           <Button onClick={handleSubmit} disabled={!canSubmit}>
             {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-            确认接管
+            确认注册
           </Button>
         </DialogFooter>
       </DialogContent>

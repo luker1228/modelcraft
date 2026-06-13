@@ -6,8 +6,8 @@ package projectgraphql
 
 import (
 	"context"
-	clusterApp "modelcraft/internal/app/cluster"
 	appmodeldesign "modelcraft/internal/app/modeldesign"
+	clusterApp "modelcraft/internal/app/cluster"
 	domainCluster "modelcraft/internal/domain/cluster"
 	"modelcraft/internal/interfaces/graphql/project/adapter"
 	"modelcraft/internal/interfaces/graphql/project/generated"
@@ -134,18 +134,18 @@ func (r *mutationResolver) TestDatabaseConnection(ctx context.Context, input gen
 	}, nil
 }
 
-// ModelDatabaseCatalog is the resolver for the modelDatabaseCatalog field.
-func (r *queryResolver) ModelDatabaseCatalog(ctx context.Context, input *generated.ModelDatabaseCatalogInput) (*generated.GetModelDatabaseCatalogPayload, error) {
+// RegisteredDatabases is the resolver for the registeredDatabases field.
+func (r *queryResolver) RegisteredDatabases(ctx context.Context, input *generated.RegisteredDatabasesInput) (*generated.GetRegisteredDatabasesPayload, error) {
 	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
 	if err != nil {
-		return &generated.GetModelDatabaseCatalogPayload{
+		return &generated.GetRegisteredDatabasesPayload{
 			Error: &generated.InvalidInput{Message: "organization context required"},
 		}, nil
 	}
 
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
-		return &generated.GetModelDatabaseCatalogPayload{
+		return &generated.GetRegisteredDatabasesPayload{
 			Error: &generated.InvalidInput{Message: "projectSlug not found in context"},
 		}, nil
 	}
@@ -181,7 +181,7 @@ func (r *queryResolver) ModelDatabaseCatalog(ctx context.Context, input *generat
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
 			switch bizErr.Info().GetCode() {
 			case bizerrors.ProjectNotFound.GetCode():
-				return &generated.GetModelDatabaseCatalogPayload{
+				return &generated.GetRegisteredDatabasesPayload{
 					Error: &generated.ResourceNotFound{Message: bizErr.Msg(), ResourceType: generated.ResourceTypeProject},
 				}, nil
 			case bizerrors.ParamInvalid.GetCode():
@@ -190,9 +190,9 @@ func (r *queryResolver) ModelDatabaseCatalog(ctx context.Context, input *generat
 					detail := bizErr.Detail()
 					gqlErr.Suggestion = &detail
 				}
-				return &generated.GetModelDatabaseCatalogPayload{Error: gqlErr}, nil
+				return &generated.GetRegisteredDatabasesPayload{Error: gqlErr}, nil
 			default:
-				return &generated.GetModelDatabaseCatalogPayload{
+				return &generated.GetRegisteredDatabasesPayload{
 					Error: &generated.InvalidInput{Message: bizErr.Msg()},
 				}, nil
 			}
@@ -209,8 +209,8 @@ func (r *queryResolver) ModelDatabaseCatalog(ctx context.Context, input *generat
 	pageSize32 := int32(pageSize)
 	totalCount32 := int32(totalCount)
 
-	return &generated.GetModelDatabaseCatalogPayload{
-		Data: &generated.ModelDatabaseCatalogPayload{
+	return &generated.GetRegisteredDatabasesPayload{
+		Data: &generated.RegisteredDatabasesPayload{
 			Databases:  items,
 			TotalCount: totalCount32,
 			Page:       page32,
@@ -387,3 +387,95 @@ func (r *queryResolver) ListTables(ctx context.Context, input generated.ListTabl
 	}
 	return result, nil
 }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *queryResolver) ModelDatabaseCatalog(ctx context.Context, input *generated.ModelDatabaseCatalogInput) (*generated.GetModelDatabaseCatalogPayload, error) {
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return &generated.GetModelDatabaseCatalogPayload{
+			Error: &generated.InvalidInput{Message: "organization context required"},
+		}, nil
+	}
+
+	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
+	if err != nil {
+		return &generated.GetModelDatabaseCatalogPayload{
+			Error: &generated.InvalidInput{Message: "projectSlug not found in context"},
+		}, nil
+	}
+
+	page := 1
+	pageSize := 20
+	search := ""
+
+	if input != nil && input.Page != nil && *input.Page > 0 {
+		page = int(*input.Page)
+	}
+	if input != nil && input.PageSize != nil && *input.PageSize > 0 {
+		pageSize = int(*input.PageSize)
+		if pageSize > 100 {
+			pageSize = 100
+		}
+	}
+	if input != nil && input.Search != nil {
+		search = *input.Search
+	}
+
+	databases, totalCount, err := r.ModelDesignService.QueryDatabaseCatalogWithCommand(
+		ctx,
+		appmodeldesign.DatabaseCatalogQueryCommand{
+			OrgName:     orgName,
+			ProjectSlug: projectSlug,
+			Search:      search,
+			Page:        page,
+			PageSize:    pageSize,
+		},
+	)
+	if err != nil {
+		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+			switch bizErr.Info().GetCode() {
+			case bizerrors.ProjectNotFound.GetCode():
+				return &generated.GetModelDatabaseCatalogPayload{
+					Error: &generated.ResourceNotFound{Message: bizErr.Msg(), ResourceType: generated.ResourceTypeProject},
+				}, nil
+			case bizerrors.ParamInvalid.GetCode():
+				gqlErr := &generated.InvalidInput{Message: bizErr.Msg()}
+				if bizErr.Detail() != "" {
+					detail := bizErr.Detail()
+					gqlErr.Suggestion = &detail
+				}
+				return &generated.GetModelDatabaseCatalogPayload{Error: gqlErr}, nil
+			default:
+				return &generated.GetModelDatabaseCatalogPayload{
+					Error: &generated.InvalidInput{Message: bizErr.Msg()},
+				}, nil
+			}
+		}
+		return nil, err
+	}
+
+	items := make([]*generated.DatabaseLite, len(databases))
+	for i, db := range databases {
+		items[i] = &generated.DatabaseLite{Name: db}
+	}
+
+	page32 := int32(page)
+	pageSize32 := int32(pageSize)
+	totalCount32 := int32(totalCount)
+
+	return &generated.GetModelDatabaseCatalogPayload{
+		Data: &generated.ModelDatabaseCatalogPayload{
+			Databases:  items,
+			TotalCount: totalCount32,
+			Page:       page32,
+			PageSize:   pageSize32,
+		},
+	}, nil
+}
+*/

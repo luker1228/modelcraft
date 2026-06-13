@@ -49,9 +49,9 @@ export const LIST_DATABASES = gql`
   }
 `
 
-export const DATABASE_CATALOG = gql`
-  query ModelDatabaseCatalog($input: ModelDatabaseCatalogInput) {
-    modelDatabaseCatalog(input: $input) {
+export const REGISTERED_DATABASES = gql`
+  query RegisteredDatabases($input: RegisteredDatabasesInput) {
+    registeredDatabases(input: $input) {
       data {
         databases {
           name

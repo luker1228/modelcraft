@@ -200,13 +200,13 @@ export default function DatabasesPage() {
         actions={
           <Button size="sm" onClick={() => setRegisterOpen(true)} className="gap-1.5">
             <Plus className="size-4" strokeWidth={1.5} />
-            接管数据库
+            注册数据库
           </Button>
         }
       />
 
       <p className="mb-5 text-sm text-muted-foreground">
-        接管此项目使用的 MySQL 数据库，设置访问模式
+        注册此项目使用的 MySQL 数据库，设置访问模式
       </p>
 
       <div className="overflow-hidden rounded-lg border border-border bg-card">
@@ -233,7 +233,7 @@ export default function DatabasesPage() {
                       colSpan={5}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
-                      暂无已接管的数据库，点击右上角"接管数据库"开始
+                      暂无已注册的数据库，点击右上角"注册数据库"开始
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -312,7 +312,7 @@ export default function DatabasesPage() {
                                 onClick={() => setUnregisterTarget(db)}
                               >
                                 <Trash2 className="mr-2 size-3.5" />
-                                取消接管
+                                取消注册
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -359,9 +359,9 @@ export default function DatabasesPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确定取消接管？</AlertDialogTitle>
+            <AlertDialogTitle>确定取消注册？</AlertDialogTitle>
             <AlertDialogDescription>
-              确定取消接管 {unregisterTarget?.title} 吗？已关联的模型将无法通过此入口访问数据库。
+              确定取消注册 {unregisterTarget?.title} 吗？已关联的模型将无法通过此入口访问数据库。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -375,7 +375,7 @@ export default function DatabasesPage() {
                 }
               }}
             >
-              确认取消接管
+              确认取消注册
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -7,8 +7,9 @@ import {
   UPSERT_RLS_POLICY,
   DELETE_RLS_POLICY,
   GET_RLS_POLICIES,
+  VALIDATE_RLS_EXPR,
 } from '@/api-client/rls-policy'
-import type { RlsAction } from '@/generated/graphql'
+import type { RlsAction, RlsExprType } from '@/generated/graphql'
 
 interface UseRlsPolicyManageProps {
   projectSlug: string
@@ -26,8 +27,13 @@ interface UpsertInput {
 interface UseRlsPolicyManageReturn {
   upsertPolicy: (input: UpsertInput) => Promise<{ success: boolean; errorMessage?: string }>
   deletePolicy: (id: string) => Promise<{ success: boolean; errorMessage?: string }>
+  validateRlsExpression: (input: {
+    expression: string
+    exprType: RlsExprType
+  }) => Promise<{ success: boolean; message?: string }>
   upserting: boolean
   deleting: boolean
+  validating: boolean
 }
 
 export function useRlsPolicyManage({ projectSlug, modelId }: UseRlsPolicyManageProps): UseRlsPolicyManageReturn {
@@ -35,6 +41,7 @@ export function useRlsPolicyManage({ projectSlug, modelId }: UseRlsPolicyManageP
 
   const [upsertMutation, { loading: upserting }] = useMutation(UPSERT_RLS_POLICY, { client })
   const [deleteMutation, { loading: deleting }] = useMutation(DELETE_RLS_POLICY, { client })
+  const [validateMutation, { loading: validating }] = useMutation(VALIDATE_RLS_EXPR, { client })
 
   const upsertPolicy = useCallback(
     async (input: UpsertInput) => {
@@ -77,5 +84,42 @@ export function useRlsPolicyManage({ projectSlug, modelId }: UseRlsPolicyManageP
     [deleteMutation, modelId],
   )
 
-  return { upsertPolicy, deletePolicy, upserting, deleting }
+  const validateRlsExpression = useCallback(
+    async (input: { expression: string; exprType: RlsExprType }) => {
+      const result = await validateMutation({
+        variables: {
+          input: {
+            modelId,
+            exprType: input.exprType,
+            expression: input.expression,
+          },
+        },
+      })
+
+      const payload = result.data?.validateRLSExpr
+      const error = payload?.error
+      if (error) {
+        return {
+          success: false,
+          message: error.suggestion ? `${error.message}：${error.suggestion}` : error.message,
+        }
+      }
+
+      const validation = payload?.result
+      if (!validation?.valid) {
+        const firstError = validation?.errors?.[0]
+        return {
+          success: false,
+          message: firstError
+            ? `${firstError.path ? `${firstError.path}: ` : ''}${firstError.message}`
+            : '表达式校验未通过',
+        }
+      }
+
+      return { success: true, message: 'Dry run 通过' }
+    },
+    [validateMutation, modelId],
+  )
+
+  return { upsertPolicy, deletePolicy, validateRlsExpression, upserting, deleting, validating }
 }

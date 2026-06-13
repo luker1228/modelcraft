@@ -54,3 +54,34 @@ export const DELETE_RLS_POLICY = gql`
     }
   }
 `
+
+export const VALIDATE_RLS_EXPR = gql`
+  mutation ValidateRlsExpr($input: ValidateRLSExprInput!) {
+    validateRLSExpr(input: $input) {
+      result {
+        valid
+        errors {
+          path
+          message
+          code
+        }
+      }
+      error {
+        __typename
+        ... on ResourceNotFound {
+          message
+        }
+        ... on InvalidRLSExpression {
+          message
+          suggestion
+          path
+        }
+        ... on InvalidAuthVariable {
+          message
+          suggestion
+          variable
+        }
+      }
+    }
+  }
+`

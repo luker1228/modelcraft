@@ -455,7 +455,8 @@ func (r *SqlModelDesignRepository) Query(
 	return models, int(total), nil
 }
 
-// ListDatabaseCatalog returns distinct database names for a project with pagination.
+// ListDatabaseCatalog returns registered (onboarded) database names for a project with pagination.
+// Queries the model_database table (已接管的数据库注册表), not the models table.
 func (r *SqlModelDesignRepository) ListDatabaseCatalog(
 	ctx context.Context,
 	orgName, projectSlug, search string,
@@ -472,7 +473,7 @@ func (r *SqlModelDesignRepository) ListDatabaseCatalog(
 	offset = int32((page - 1) * pageSize)
 
 	searchFilter, searchArg := nullableTrickArgs(search)
-	rows, err := r.q.ListModelDatabases(ctx, dbgen.ListModelDatabasesParams{
+	rows, err := r.q.ListModelDatabaseCatalog(ctx, dbgen.ListModelDatabaseCatalogParams{
 		OrgName:      orgName,
 		ProjectSlug:  projectSlug,
 		SearchFilter: searchFilter,
@@ -484,7 +485,7 @@ func (r *SqlModelDesignRepository) ListDatabaseCatalog(
 		return nil, 0, err
 	}
 
-	total, err := r.q.CountModelDatabases(ctx, dbgen.CountModelDatabasesParams{
+	total, err := r.q.CountModelDatabaseCatalog(ctx, dbgen.CountModelDatabaseCatalogParams{
 		OrgName:      orgName,
 		ProjectSlug:  projectSlug,
 		SearchFilter: searchFilter,

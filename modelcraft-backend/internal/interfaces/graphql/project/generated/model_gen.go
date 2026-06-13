@@ -147,10 +147,6 @@ type ListProjectEndUserRoleUsersError interface {
 	IsListProjectEndUserRoleUsersError()
 }
 
-type ModelDatabaseCatalogError interface {
-	IsModelDatabaseCatalogError()
-}
-
 type MoveModelToGroupError interface {
 	IsMoveModelToGroupError()
 }
@@ -162,6 +158,10 @@ type Node interface {
 
 type RegisterModelDatabaseResult interface {
 	IsRegisterModelDatabaseResult()
+}
+
+type RegisteredDatabasesError interface {
+	IsRegisteredDatabasesError()
 }
 
 type RemoveDataPermissionItemFromBundleError interface {
@@ -1146,14 +1146,14 @@ type GetEnumPayload struct {
 	Error GetEnumError    `json:"error,omitempty"`
 }
 
-type GetModelDatabaseCatalogPayload struct {
-	Data  *ModelDatabaseCatalogPayload `json:"data,omitempty"`
-	Error ModelDatabaseCatalogError    `json:"error,omitempty"`
-}
-
 type GetModelPayload struct {
 	Model *Model        `json:"model,omitempty"`
 	Error GetModelError `json:"error,omitempty"`
+}
+
+type GetRegisteredDatabasesPayload struct {
+	Data  *RegisteredDatabasesPayload `json:"data,omitempty"`
+	Error RegisteredDatabasesError    `json:"error,omitempty"`
 }
 
 type GroupAlreadyExists struct {
@@ -1226,7 +1226,7 @@ type InvalidInput struct {
 
 func (InvalidInput) IsUpdateClusterError() {}
 
-func (InvalidInput) IsModelDatabaseCatalogError() {}
+func (InvalidInput) IsRegisteredDatabasesError() {}
 
 func (InvalidInput) IsRegisterModelDatabaseResult() {}
 
@@ -1398,19 +1398,6 @@ type ModelDatabase struct {
 }
 
 func (ModelDatabase) IsRegisterModelDatabaseResult() {}
-
-type ModelDatabaseCatalogInput struct {
-	Search   *string `json:"search,omitempty"`
-	Page     *int32  `json:"page,omitempty"`
-	PageSize *int32  `json:"pageSize,omitempty"`
-}
-
-type ModelDatabaseCatalogPayload struct {
-	Databases  []*DatabaseLite `json:"databases"`
-	TotalCount int32           `json:"totalCount"`
-	Page       int32           `json:"page"`
-	PageSize   int32           `json:"pageSize"`
-}
 
 type ModelDatabaseSyncFailedTable struct {
 	TableName string `json:"tableName"`
@@ -1587,6 +1574,19 @@ type RegisterModelDatabaseInput struct {
 	Mode        DatabaseMode `json:"mode"`
 }
 
+type RegisteredDatabasesInput struct {
+	Search   *string `json:"search,omitempty"`
+	Page     *int32  `json:"page,omitempty"`
+	PageSize *int32  `json:"pageSize,omitempty"`
+}
+
+type RegisteredDatabasesPayload struct {
+	Databases  []*DatabaseLite `json:"databases"`
+	TotalCount int32           `json:"totalCount"`
+	Page       int32           `json:"page"`
+	PageSize   int32           `json:"pageSize"`
+}
+
 type RemoveDataPermissionItemFromBundleInput struct {
 	BundleID string `json:"bundleId"`
 	ModelID  string `json:"modelId"`
@@ -1665,7 +1665,7 @@ func (ResourceNotFound) IsDeleteClusterError() {}
 
 func (ResourceNotFound) IsTestConnectionError() {}
 
-func (ResourceNotFound) IsModelDatabaseCatalogError() {}
+func (ResourceNotFound) IsRegisteredDatabasesError() {}
 
 func (ResourceNotFound) IsRegisterModelDatabaseResult() {}
 

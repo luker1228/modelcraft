@@ -12,6 +12,33 @@ import (
 	"time"
 )
 
+const countModelDatabaseCatalog = `-- name: CountModelDatabaseCatalog :one
+SELECT COUNT(*) FROM model_database
+WHERE org_name = ?
+  AND project_slug = ?
+  AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
+  AND ` + "`" + `model_database` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+`
+
+type CountModelDatabaseCatalogParams struct {
+	OrgName      string
+	ProjectSlug  string
+	SearchFilter interface{}
+	Search       interface{}
+}
+
+func (q *Queries) CountModelDatabaseCatalog(ctx context.Context, arg CountModelDatabaseCatalogParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countModelDatabaseCatalog,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.SearchFilter,
+		arg.Search,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createModelDatabase = `-- name: CreateModelDatabase :exec
 INSERT INTO model_database (id, org_name, project_slug, cluster_id, name, title, description, mode, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
@@ -281,6 +308,55 @@ func (q *Queries) GetModelDatabaseSyncJobByID(ctx context.Context, arg GetModelD
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const listModelDatabaseCatalog = `-- name: ListModelDatabaseCatalog :many
+SELECT name FROM model_database
+WHERE org_name = ?
+  AND project_slug = ?
+  AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
+  AND ` + "`" + `model_database` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+ORDER BY name ASC
+LIMIT ? OFFSET ?
+`
+
+type ListModelDatabaseCatalogParams struct {
+	OrgName      string
+	ProjectSlug  string
+	SearchFilter interface{}
+	Search       interface{}
+	Limit        int32
+	Offset       int32
+}
+
+func (q *Queries) ListModelDatabaseCatalog(ctx context.Context, arg ListModelDatabaseCatalogParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listModelDatabaseCatalog,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.SearchFilter,
+		arg.Search,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		items = append(items, name)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listModelDatabasesByProject = `-- name: ListModelDatabasesByProject :many

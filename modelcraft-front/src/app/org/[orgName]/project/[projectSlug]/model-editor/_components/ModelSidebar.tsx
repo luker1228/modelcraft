@@ -135,7 +135,7 @@ export function ModelSidebar({
                 ) : state.selectedDatabase ? (
                   <span className="truncate font-medium text-foreground">{state.selectedDatabase}</span>
                 ) : !hasDatabases ? (
-                  <span>接管数据库</span>
+                  <span>注册数据库</span>
                 ) : (
                   <span>选择数据库</span>
                 )}
@@ -148,12 +148,12 @@ export function ModelSidebar({
               <div className="p-3">
                 <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-4 text-center">
                   <Database className="mx-auto mb-2 size-4 text-muted-foreground" />
-                  <p className="text-sm font-medium text-foreground">暂无已接管数据库</p>
+                  <p className="text-sm font-medium text-foreground">暂无已注册数据库</p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    先去数据库管理页接管数据库，再回来创建和管理模型。
+                    先去数据库管理页注册数据库，再回来创建和管理模型。
                   </p>
                   <Button asChild size="sm" className="mt-3 h-8 w-full">
-                    <Link href={databaseManagementPath}>去接管数据库</Link>
+                    <Link href={databaseManagementPath}>去注册数据库</Link>
                   </Button>
                 </div>
               </div>
@@ -358,10 +358,10 @@ export function ModelSidebar({
                 <Database className="mb-3 size-8 opacity-20" />
                 <p className="text-sm font-medium text-foreground">当前项目还没有可用数据库</p>
                 <p className="mt-1 max-w-[180px] text-xs leading-5 text-muted-foreground">
-                  先完成数据库接管，模型编辑器才会出现可选择的数据库。
+                  先完成数据库注册，模型编辑器才会出现可选择的数据库。
                 </p>
                 <Button asChild size="sm" className="mt-4">
-                  <Link href={databaseManagementPath}>去接管数据库</Link>
+                  <Link href={databaseManagementPath}>去注册数据库</Link>
                 </Button>
               </div>
             )}

@@ -1,6 +1,5 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
 import { useRequireAuth } from '@web/hooks/auth/use-auth'
 import { AppLayout } from '@web/components/features/layout/AppLayout'
 import { PageLayout, PageHeader } from '@web/components/features/layout'
@@ -11,7 +10,6 @@ export default function SettingsLayout({
   children: React.ReactNode
 }) {
   const { isLoading } = useRequireAuth()
-  const pathname = usePathname()
 
   if (isLoading) {
     return (
@@ -21,15 +19,11 @@ export default function SettingsLayout({
     )
   }
 
-  const title = pathname?.endsWith('/settings/api-tokens')
-    ? 'API Token'
-    : '组织设置'
-
   return (
-    <AppLayout pageTitle={title}>
+    <AppLayout pageTitle="组织设置">
       <PageLayout maxWidth="5xl">
         <PageHeader
-          title={title}
+          title="组织设置"
           spacing="compact"
         />
 
