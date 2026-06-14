@@ -6,6 +6,8 @@ import (
 	"modelcraft/internal/domain/project"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/pkg/bizerrors"
+	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/logfacade"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -91,7 +93,8 @@ func newTestService(mockRepo *MockProjectRepository) *ProjectAppService {
 
 type captureCreateEndUserRoleQuerier struct {
 	dbgen.Querier
-	params *dbgen.CreateEndUserRoleParams
+	params           *dbgen.CreateEndUserRoleParams
+	assignmentParams *dbgen.AssignRoleToUserParams
 }
 
 func (q *captureCreateEndUserRoleQuerier) CreateEndUserRole(
@@ -99,6 +102,14 @@ func (q *captureCreateEndUserRoleQuerier) CreateEndUserRole(
 	arg dbgen.CreateEndUserRoleParams,
 ) error {
 	q.params = &arg
+	return nil
+}
+
+func (q *captureCreateEndUserRoleQuerier) AssignRoleToUser(
+	_ context.Context,
+	arg dbgen.AssignRoleToUserParams,
+) error {
+	q.assignmentParams = &arg
 	return nil
 }
 
@@ -136,11 +147,11 @@ func TestProjectAppService_CreateProject_AlreadyExists(t *testing.T) {
 }
 
 func TestProjectAppService_ProvisionAdminRoleCreatesProtectedAdminRole(t *testing.T) {
-	ctx := context.Background()
+	ctx := ctxutils.SetTenantUserID(context.Background(), "creator-user")
 	service := newTestService(new(MockProjectRepository))
 	querier := &captureCreateEndUserRoleQuerier{}
 
-	err := service.provisionAdminRole(ctx, querier, "luke_a02b", "test", nil)
+	err := service.provisionAdminRole(ctx, querier, "luke_a02b", "test", logfacade.GetLogger(ctx))
 	assert.NoError(t, err)
 
 	if assert.NotNil(t, querier.params) {
@@ -150,6 +161,12 @@ func TestProjectAppService_ProvisionAdminRoleCreatesProtectedAdminRole(t *testin
 		assert.Equal(t, sql.NullString{}, querier.params.Description)
 		assert.False(t, querier.params.IsImplicit)
 		assert.True(t, querier.params.IsProtected)
+	}
+
+	if assert.NotNil(t, querier.assignmentParams) {
+		assert.Equal(t, "creator-user", querier.assignmentParams.UserID)
+		assert.Equal(t, "luke_a02b", querier.assignmentParams.OrgName)
+		assert.NotEmpty(t, querier.assignmentParams.RoleID)
 	}
 }
 

@@ -1234,13 +1234,14 @@ func TestModelDesignAppService_RemoveFieldSync_ProtectedSystemModelDenied(t *tes
 	mockModelRepo.AssertNotCalled(t, "BulkDeleteFields", mock.Anything, mock.Anything)
 }
 
-func TestModelDesignAppService_UpdateModelMeta_ImportedModelDenied(t *testing.T) {
+func TestModelDesignAppService_UpdateModelMeta_ReadOnlyModelDenied(t *testing.T) {
 	ctx := newTestContext()
 	mockModelRepo := new(MockModelRepository)
 	service := newTestService(mockModelRepo, nil, nil)
 
 	importedModel := newTestModel("model-imported", "project-1", "customer_orders", "db_1")
 	importedModel.CreatedVia = modeldesign.ModelCreationSourceImported
+	importedModel.IsReadOnly = true
 	mockModelRepo.On("GetByID", ctx, "model-imported", mock.Anything).Return(importedModel, nil)
 
 	newTitle := "Updated"
@@ -1253,7 +1254,7 @@ func TestModelDesignAppService_UpdateModelMeta_ImportedModelDenied(t *testing.T)
 	mockModelRepo.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
 }
 
-func TestModelDesignAppService_AddFieldSync_ImportedModelDenied(t *testing.T) {
+func TestModelDesignAppService_AddFieldSync_ReadOnlyModelDenied(t *testing.T) {
 	ctx := newTestContext()
 	mockModelRepo := new(MockModelRepository)
 	mockDeployRepo := new(MockDeployRepo)
@@ -1261,6 +1262,7 @@ func TestModelDesignAppService_AddFieldSync_ImportedModelDenied(t *testing.T) {
 
 	importedModel := newTestModel("model-imported", "project-1", "customer_orders", "db_1")
 	importedModel.CreatedVia = modeldesign.ModelCreationSourceImported
+	importedModel.IsReadOnly = true
 	loc := importedModel.GetModelLocator()
 	newField := newTestField("model-imported", "extra_col", loc)
 
@@ -1279,13 +1281,14 @@ func TestModelDesignAppService_AddFieldSync_ImportedModelDenied(t *testing.T) {
 	mockDeployRepo.AssertNotCalled(t, "DeployModelToAddFields", mock.Anything, mock.Anything, mock.Anything)
 }
 
-func TestModelDesignAppService_UpdateFieldSync_ImportedModelDenied(t *testing.T) {
+func TestModelDesignAppService_UpdateFieldSync_ReadOnlyModelDenied(t *testing.T) {
 	ctx := newTestContext()
 	mockModelRepo := new(MockModelRepository)
 	svc := NewModelDesignAppService(ModelDesignAppServiceDeps{ModelRepo: mockModelRepo})
 
 	importedModel := newTestModel("model-imported", "project-1", "customer_orders", "db_1")
 	importedModel.CreatedVia = modeldesign.ModelCreationSourceImported
+	importedModel.IsReadOnly = true
 	mockModelRepo.On("GetByID", ctx, "model-imported", mock.Anything).Return(importedModel, nil)
 
 	newTitle := "new-title"
@@ -1298,13 +1301,14 @@ func TestModelDesignAppService_UpdateFieldSync_ImportedModelDenied(t *testing.T)
 	mockModelRepo.AssertNotCalled(t, "GetFieldByModelID", mock.Anything, mock.Anything, mock.Anything)
 }
 
-func TestModelDesignAppService_RemoveFieldSync_ImportedModelDenied(t *testing.T) {
+func TestModelDesignAppService_RemoveFieldSync_ReadOnlyModelDenied(t *testing.T) {
 	ctx := newTestContext()
 	mockModelRepo := new(MockModelRepository)
 	svc := NewModelDesignAppService(ModelDesignAppServiceDeps{ModelRepo: mockModelRepo})
 
 	importedModel := newTestModel("model-imported", "project-1", "customer_orders", "db_1")
 	importedModel.CreatedVia = modeldesign.ModelCreationSourceImported
+	importedModel.IsReadOnly = true
 	mockModelRepo.On("GetByID", ctx, "model-imported", mock.Anything).Return(importedModel, nil)
 
 	err := svc.RemoveFieldSync(ctx, RemoveFieldCommand{ModelID: "model-imported", FieldName: "name"})
@@ -1316,7 +1320,7 @@ func TestModelDesignAppService_RemoveFieldSync_ImportedModelDenied(t *testing.T)
 	mockModelRepo.AssertNotCalled(t, "UpdateFieldsStatus", mock.Anything, mock.Anything)
 }
 
-func TestModelDesignAppService_DeleteModelSync_ImportedModelDenied(t *testing.T) {
+func TestModelDesignAppService_DeleteModelSync_ReadOnlyModelDenied(t *testing.T) {
 	ctx := newTestContext()
 	mockModelRepo := new(MockModelRepository)
 	mockDeployRepo := new(MockDeployRepo)
@@ -1324,6 +1328,7 @@ func TestModelDesignAppService_DeleteModelSync_ImportedModelDenied(t *testing.T)
 
 	importedModel := newTestModel("model-imported", "project-1", "customer_orders", "db_1")
 	importedModel.CreatedVia = modeldesign.ModelCreationSourceImported
+	importedModel.IsReadOnly = true
 	mockModelRepo.On("GetByID", ctx, "model-imported", mock.Anything).Return(importedModel, nil)
 
 	err := service.DeleteModelSync(ctx, "model-imported", "project-1", true)

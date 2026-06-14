@@ -33,7 +33,7 @@ import (
 	orggraphql "modelcraft/internal/interfaces/graphql/org"
 	projectgraphql "modelcraft/internal/interfaces/graphql/project"
 
-	runtimeHandler "modelcraft/internal/interfaces/runtime"
+	runtime "modelcraft/internal/interfaces/runtime"
 
 	appOrg "modelcraft/internal/app/organization"
 	appPermission "modelcraft/internal/app/permission"
@@ -666,7 +666,7 @@ func loadRSAPublicKey(cfg *config.Config) (*rsa.PublicKey, error) {
 
 // RuntimeHandlers holds the handler needed for the model runtime GraphQL API.
 type RuntimeHandlers struct {
-	ModelRuntimeHandler *runtimeHandler.ModelRuntimeHandler
+	ModelRuntimeHandler *runtime.ModelRuntimeHandler
 }
 
 // CreateRuntimeHandlers initialises repository, application service, and handler
@@ -683,7 +683,7 @@ func CreateRuntimeHandlers(loggingDB dbgen.Querier) *RuntimeHandlers {
 	rlsMatchingSvc := rls.NewPolicyMatchingService(policyRepo, rlsUsingCompiler, rlsCheckEvaluator)
 	runtimeRLSResolver := runtime.NewRLSResolver(logfacade.GetLogger(context.Background()), rlsMatchingSvc)
 	graphqlAppService := modelruntime.NewGraphqlAppService(modelRuntimeRepo, lfkRepo, permService, runtimeRLSResolver)
-	handler := runtimeHandler.NewModelRuntimeHandler(graphqlAppService)
+	handler := runtime.NewModelRuntimeHandler(graphqlAppService)
 	return &RuntimeHandlers{ModelRuntimeHandler: handler}
 }
 
