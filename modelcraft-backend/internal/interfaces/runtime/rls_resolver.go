@@ -4,6 +4,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"modelcraft/internal/domain/modelruntime"
 	"modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/http/middleware"
 	"modelcraft/pkg/logfacade"
@@ -12,7 +13,7 @@ import (
 // MatchingService 匹配引擎接口（app/rls.PolicyMatchingService 实现）
 type MatchingService interface {
 	ResolveUsing(ctx context.Context, orgName, projectSlug, modelID string, action rls.Action, userCtx *rls.UserContext) (string, []interface{}, error)
-	ResolveCheck(ctx context.Context, orgName, projectSlug, modelID string, action rls.Action, userCtx *rls.UserContext) (string, []interface{}, error)
+	ValidateCheck(ctx context.Context, orgName, projectSlug, modelID string, action rls.Action, input map[string]any, userCtx *rls.UserContext) error
 }
 
 // RLSResolver resolves RLS policies using the multi-policy matching engine.
@@ -78,14 +79,9 @@ func (r *RLSResolver) Resolve(ctx context.Context, action rls.Action, modelID st
 			return &ResolveResult{ShouldApply: true, DenyAll: true}, nil
 		}
 
-		// Resolve CHECK expression (for create/update)
-		checkSQL, checkParams, _ := r.matchingSvc.ResolveCheck(ctx, rctx.OrgName, rctx.ProjectSlug, modelID, action, userCtx)
-
 		return &ResolveResult{
 			UsingSQL:    usingSQL,
 			UsingParams: usingParams,
-			CheckSQL:    checkSQL,
-			CheckParams: checkParams,
 			ShouldApply: true,
 		}, nil
 	}
@@ -95,44 +91,30 @@ func (r *RLSResolver) Resolve(ctx context.Context, action rls.Action, modelID st
 	return &ResolveResult{ShouldApply: true, DenyAll: true}, nil
 }
 
+func (r *RLSResolver) ValidateInput(ctx context.Context, modelID string, action modelruntime.Action, input map[string]any) error {
+	userCtx := middleware.GetUserContext(ctx)
+	if userCtx == nil {
+		userCtx = &rls.UserContext{}
+	}
+	rctx, ok := getRuntimeContext(ctx)
+	if !ok {
+		return fmt.Errorf("RLS CHECK violation: runtime context missing")
+	}
+	domainAction := rls.ActionCreate
+	if action == modelruntime.ActionUpdate {
+		domainAction = rls.ActionUpdate
+	}
+	return r.matchingSvc.ValidateCheck(ctx, rctx.OrgName, rctx.ProjectSlug, modelID, domainAction, input, userCtx)
+}
+
 // ValidateInsert validates an insert operation against the RLS check expression.
-func (r *RLSResolver) ValidateInsert(ctx context.Context, modelID string, _ map[string]interface{}) error {
-	result, err := r.Resolve(ctx, rls.ActionCreate, modelID)
-	if err != nil {
-		return err
-	}
-	if result.DenyAll {
-		return fmt.Errorf("RLS CHECK violation: INSERT not allowed")
-	}
-	if !result.ShouldApply {
-		return nil // Developer, no RLS
-	}
-
-	if result.CheckSQL == "1=0" {
-		return fmt.Errorf("RLS CHECK violation: INSERT not allowed (no check policy)")
-	}
-
-	return nil
+func (r *RLSResolver) ValidateInsert(ctx context.Context, modelID string, input map[string]interface{}) error {
+	return r.ValidateInput(ctx, modelID, modelruntime.ActionInsert, input)
 }
 
 // ValidateUpdate validates an update operation against the RLS check expression.
-func (r *RLSResolver) ValidateUpdate(ctx context.Context, modelID string, _ map[string]interface{}) error {
-	result, err := r.Resolve(ctx, rls.ActionUpdate, modelID)
-	if err != nil {
-		return err
-	}
-	if result.DenyAll {
-		return fmt.Errorf("RLS CHECK violation: UPDATE not allowed")
-	}
-	if !result.ShouldApply {
-		return nil
-	}
-
-	if result.CheckSQL == "1=0" {
-		return fmt.Errorf("RLS CHECK violation: UPDATE not allowed (no check policy)")
-	}
-
-	return nil
+func (r *RLSResolver) ValidateUpdate(ctx context.Context, modelID string, input map[string]interface{}) error {
+	return r.ValidateInput(ctx, modelID, modelruntime.ActionUpdate, input)
 }
 
 // getRuntimeContext retrieves the runtime context from context.

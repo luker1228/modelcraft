@@ -6,6 +6,10 @@ import (
 	"github.com/graph-gophers/dataloader/v7"
 )
 
+type RLSPolicyGuard interface {
+	ValidateInput(ctx context.Context, modelID string, action Action, input map[string]any) error
+}
+
 // graphqlRequestContext 持有单次 GraphQL 请求的可变状态。
 //
 // 生命周期：与一次 graphql.Do 调用相同，通过 context.WithValue 注入。
@@ -30,6 +34,8 @@ type graphqlRequestContext struct {
 	// EndUserPerms 是当前 EndUser 在本次请求目标 model 上的权限快照。
 	// nil 表示请求来自 tenant admin，跳过所有权限检查。
 	EndUserPerms *ResolvedModelPermissions
+	// RLSPolicyGuard 在 create/update 前校验本次写入输入。
+	RLSPolicyGuard RLSPolicyGuard
 }
 
 // graphqlRequestContextKey 是 graphqlRequestContext 在 context 中的 key 类型。
@@ -69,6 +75,16 @@ func WithGraphqlRequestContext(
 func getGraphqlRequestContext(ctx context.Context) (*graphqlRequestContext, bool) {
 	rctx, ok := ctx.Value(graphqlRequestContextKey{}).(*graphqlRequestContext)
 	return rctx, ok
+}
+
+func WithRLSPolicyGuard(ctx context.Context, guard RLSPolicyGuard) context.Context {
+	rctx, ok := getGraphqlRequestContext(ctx)
+	if !ok || rctx == nil {
+		return ctx
+	}
+	next := *rctx
+	next.RLSPolicyGuard = guard
+	return context.WithValue(ctx, graphqlRequestContextKey{}, &next)
 }
 
 // getOrCreateLoader 懒初始化并返回指定关系的 dataloader 实例。

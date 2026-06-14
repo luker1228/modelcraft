@@ -676,8 +676,13 @@ func CreateRuntimeHandlers(loggingDB dbgen.Querier) *RuntimeHandlers {
 	lfkRepo := repository.NewSqlLogicalForeignKeyRepository(loggingDB)
 	permRepo := repository.NewSqlEndUserDataPermissionRepository(loggingDB)
 	modelDesignRepo := repository.NewSqlModelDesignRepository(loggingDB)
+	policyRepo := rlsRepo.NewSqlPolicyRepository(loggingDB)
 	permService := modelruntime.NewEndUserPermissionService(permRepo, modelDesignRepo)
-	graphqlAppService := modelruntime.NewGraphqlAppService(modelRuntimeRepo, lfkRepo, permService)
+	rlsUsingCompiler := rls.NewPolicyExpressionSQLCompiler()
+	rlsCheckEvaluator := rls.NewPolicyExpressionInputEvaluator()
+	rlsMatchingSvc := rls.NewPolicyMatchingService(policyRepo, rlsUsingCompiler, rlsCheckEvaluator)
+	runtimeRLSResolver := runtime.NewRLSResolver(logfacade.GetLogger(context.Background()), rlsMatchingSvc)
+	graphqlAppService := modelruntime.NewGraphqlAppService(modelRuntimeRepo, lfkRepo, permService, runtimeRLSResolver)
 	handler := runtimeHandler.NewModelRuntimeHandler(graphqlAppService)
 	return &RuntimeHandlers{ModelRuntimeHandler: handler}
 }

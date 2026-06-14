@@ -1644,6 +1644,15 @@ func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interf
 	if err := enforceOwnerOnCreate(rctx, m.model.Fields, input.Data); err != nil {
 		return nil, err
 	}
+	if rctx.RLSPolicyGuard != nil {
+		modelID := m.model.ID
+		if modelID == "" {
+			modelID = m.model.Name
+		}
+		if err := rctx.RLSPolicyGuard.ValidateInput(p.Context, modelID, ActionInsert, input.Data); err != nil {
+			return nil, err
+		}
+	}
 
 	input.Id = cast.ToString(input.Data[FieldID])
 
@@ -1728,6 +1737,15 @@ func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interf
 				input.Data[field.Name] = ownerID
 				break
 			}
+		}
+	}
+	if rctx.RLSPolicyGuard != nil {
+		modelID := m.model.ID
+		if modelID == "" {
+			modelID = m.model.Name
+		}
+		if err := rctx.RLSPolicyGuard.ValidateInput(p.Context, modelID, ActionUpdate, input.Data); err != nil {
+			return nil, err
 		}
 	}
 	if rf := BuildRowFilter(
@@ -1887,6 +1905,15 @@ func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (inter
 		if err := enforceOwnerOnCreate(rctx, m.model.Fields, dataItem); err != nil {
 			return nil, err
 		}
+		if rctx.RLSPolicyGuard != nil {
+			modelID := m.model.ID
+			if modelID == "" {
+				modelID = m.model.Name
+			}
+			if err := rctx.RLSPolicyGuard.ValidateInput(p.Context, modelID, ActionInsert, dataItem); err != nil {
+				return nil, err
+			}
+		}
 	}
 	result, err := rctx.ClientRepo.CreateMany(p.Context, input)
 	if err != nil {
@@ -1950,6 +1977,15 @@ func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (inter
 				input.Data[field.Name] = ownerID
 				break
 			}
+		}
+	}
+	if rctx.RLSPolicyGuard != nil {
+		modelID := m.model.ID
+		if modelID == "" {
+			modelID = m.model.Name
+		}
+		if err := rctx.RLSPolicyGuard.ValidateInput(p.Context, modelID, ActionUpdate, input.Data); err != nil {
+			return nil, err
 		}
 	}
 	if rf := BuildRowFilter(

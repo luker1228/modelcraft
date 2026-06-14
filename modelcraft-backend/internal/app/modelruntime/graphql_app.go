@@ -23,6 +23,11 @@ type GraphqlAppService struct {
 	modelRepo            modelruntime.ModelRepository
 	graphqlSchemaManager *modelruntime.GraphqlSchemaManager
 	permService          modelruntime.EndUserPermissionService
+	rlsGuard             RuntimeRLSPolicyGuard
+}
+
+type RuntimeRLSPolicyGuard interface {
+	ValidateInput(ctx context.Context, modelID string, action modelruntime.Action, input map[string]any) error
 }
 
 // GetSchema 获取或构建 GraphQL Schema。
@@ -114,6 +119,9 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 	reqCtx := modelruntime.WithGraphqlRequestContext(
 		ctx, clientRepo, orgName, projectSlug, endUserID, endUserAdminID, endUserPerms,
 	)
+	if s.rlsGuard != nil {
+		reqCtx = modelruntime.WithRLSPolicyGuard(reqCtx, s.rlsGuard)
+	}
 
 	// 执行GraphQL查询
 	result := graphql.Do(graphql.Params{
@@ -164,11 +172,13 @@ func NewGraphqlAppService(
 	modelRepo modelruntime.ModelRepository,
 	lfkRepo modeldesign.LogicalForeignKeyRepository,
 	permService modelruntime.EndUserPermissionService,
+	rlsGuard RuntimeRLSPolicyGuard,
 ) *GraphqlAppService {
 	schemaManager := modelruntime.NewGraphqlSchemaManager(modelRepo, lfkRepo)
 	return &GraphqlAppService{
 		modelRepo:            modelRepo,
 		graphqlSchemaManager: schemaManager,
 		permService:          permService,
+		rlsGuard:             rlsGuard,
 	}
 }

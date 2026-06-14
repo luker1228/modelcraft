@@ -2,6 +2,7 @@ package modelruntime
 
 import (
 	"context"
+	"fmt"
 	"modelcraft/internal/domain/modeldesign"
 	"testing"
 
@@ -31,6 +32,12 @@ func (c *capturingClientRepo) CreateMany(_ context.Context, input *CreateManyInp
 func (c *capturingClientRepo) UpdateOne(_ context.Context, input *UpdateOneInput) (map[string]any, error) {
 	c.capturedUpdateOneInput = input
 	return map[string]any{"id": "record-id"}, nil
+}
+
+type denyingRLSPolicyGuard struct{}
+
+func (g denyingRLSPolicyGuard) ValidateInput(_ context.Context, _ string, _ Action, _ map[string]any) error {
+	return fmt.Errorf("RLS CHECK violation: input rejected")
 }
 
 // taskModelWithOwner is a RuntimeModel that has an END_USER_REF "owner" field.
@@ -239,6 +246,50 @@ func TestEndUserRefOwnerInjection_UpdateOne_ViaRealResolver(t *testing.T) {
 			"tenant admin may supply owner explicitly when no EndUser identity is present",
 		)
 	})
+}
+
+func TestRLSInputCheck_CreateOne_DeniesBeforeRepoCall(t *testing.T) {
+	repo := &capturingClientRepo{}
+	schema := buildSchemaFor(t, taskModelWithOwner())
+	ctx := WithGraphqlRequestContext(
+		context.Background(), repo, "org-1", "project-1", "u_123", "",
+		&ResolvedModelPermissions{Insert: ActionPermission{Allowed: true}},
+	)
+	ctx = WithRLSPolicyGuard(ctx, denyingRLSPolicyGuard{})
+
+	result := graphql.Do(graphql.Params{
+		Schema:  *schema,
+		Context: ctx,
+		RequestString: `mutation {
+			create(data: { title: "hello", owner: "u_123" }) { id }
+		}`,
+	})
+
+	require.NotEmpty(t, result.Errors)
+	require.Contains(t, result.Errors[0].Message, "RLS CHECK violation")
+	require.Nil(t, repo.capturedCreateInput)
+}
+
+func TestRLSInputCheck_UpdateOne_DeniesBeforeRepoCall(t *testing.T) {
+	repo := &capturingClientRepo{}
+	schema := buildSchemaFor(t, taskModelWithOwner())
+	ctx := WithGraphqlRequestContext(
+		context.Background(), repo, "org-1", "project-1", "u_123", "",
+		&ResolvedModelPermissions{Update: ActionPermission{Allowed: true}},
+	)
+	ctx = WithRLSPolicyGuard(ctx, denyingRLSPolicyGuard{})
+
+	result := graphql.Do(graphql.Params{
+		Schema:  *schema,
+		Context: ctx,
+		RequestString: `mutation {
+			update(where: { id: "record-id" }, data: { title: "renamed" }) { success }
+		}`,
+	})
+
+	require.NotEmpty(t, result.Errors)
+	require.Contains(t, result.Errors[0].Message, "RLS CHECK violation")
+	require.Nil(t, repo.capturedUpdateOneInput)
 }
 
 // ─── Owner SELF-scope enforcement (IsSelf=true) ──────────────────────────────
