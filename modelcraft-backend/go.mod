@@ -30,6 +30,7 @@ require (
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/google/cel-go v0.28.1
 	github.com/graph-gophers/dataloader/v7 v7.1.3
 	github.com/joho/godotenv v1.5.1
 	github.com/mozillazg/go-pinyin v0.21.0
@@ -39,6 +40,7 @@ require (
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/vektah/gqlparser/v2 v2.5.31
 	golang.org/x/sync v0.20.0
+	google.golang.org/genproto/googleapis/api v0.0.0-20260610212136-7ab31c22f7ad
 )
 
 require (
@@ -55,7 +57,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
-	github.com/google/cel-go v0.28.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -79,7 +80,6 @@ require (
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.52.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260610212136-7ab31c22f7ad // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260610212136-7ab31c22f7ad // indirect
 )
 
