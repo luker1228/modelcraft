@@ -9,6 +9,7 @@ import (
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/database/dml"
 	"modelcraft/internal/infrastructure/repository"
+	"modelcraft/internal/interfaces/http/middleware"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/ctxutils"
@@ -23,12 +24,7 @@ type GraphqlAppService struct {
 	modelRepo            modelruntime.ModelRepository
 	graphqlSchemaManager *modelruntime.GraphqlSchemaManager
 	permService          modelruntime.EndUserPermissionService
-	rlsGuard             RuntimeRLSPolicyGuard
-}
-
-type RuntimeRLSPolicyGuard interface {
-	ValidateInput(ctx context.Context, modelID string, action modelruntime.Action, input map[string]any) error
-	ResolveUsingFilter(ctx context.Context, modelID string, action modelruntime.Action) (*modelruntime.RawSQLFilter, error)
+	snapshotBuilder      *RLSSnapshotBuilder
 }
 
 // GetSchema 获取或构建 GraphQL Schema。
@@ -79,6 +75,20 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 		return nil, err
 	}
 
+	// Load model once — modelID needed by snapshot builder and permission resolution
+	model, err := s.modelRepo.GetByName(ctx, modelLocator)
+	if err != nil {
+		logger.Errorf(ctx, "get model fail: %v", err)
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
+		}
+		return nil, fmt.Errorf("获取模型失败 %s", modelLocator.GetFullPath())
+	}
+	modelID := model.ID
+	if modelID == "" {
+		modelID = model.Name
+	}
+
 	gschema, err := s.GetSchema(ctx, orgName, modelLocator)
 	if err != nil {
 		return nil, err
@@ -92,13 +102,10 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 		logger.Errorf(ctx, "get client sql db fail: %v", err)
 		return nil, fmt.Errorf("获取客户端数据库失败 %s", databaseName)
 	}
-	clientRepo := dml.NewClientDB(clientSqlDB)
+	// Wrap with RLS intercept layer
+	clientRepo := dml.NewRLSInterceptDB(dml.NewClientDB(clientSqlDB))
 
-	// 提取 endUserID。
-	// Runtime 只认 ctxutils 注入的身份上下文：
-	// - end-user（非管理员）: X-User-Type=end_user + X-Is-Admin=false → 走权限检查
-	// - end-user（管理员）:   X-User-Type=end_user + X-Is-Admin=true  → 跳过权限检查（与 tenant admin 等同）
-	// - tenant admin: 无 end-user 身份（endUserID 为空）
+	// 提取 endUserID
 	endUserID := ""
 	if ctxutils.IsEndUser(ctx) && !ctxutils.GetIsAdminFromContext(ctx) {
 		if uid, err := ctxutils.GetUserIDFromContext(ctx); err == nil {
@@ -106,23 +113,34 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 		}
 	}
 
-	// 解析 end-user 权限快照。
-	// 仅普通 end-user 请求需要查权限（endUserID != ""），管理员和 tenant admin 跳过，perms 保持 nil。
+	// 解析 end-user 权限快照
 	var endUserPerms *modelruntime.ResolvedModelPermissions
 	if endUserID != "" {
-		endUserPerms, err = s.resolveEndUserPerms(ctx, orgName, projectSlug, endUserID, modelLocator)
+		endUserPerms, err = s.permService.Resolve(ctx, orgName, projectSlug, endUserID, modelID)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// Build RLS snapshot at entry
+	identity := middleware.GetEndUserIdentity(ctx)
+	isDeveloper := identity == nil || identity.IsDeveloper()
+	userCtx := middleware.GetUserContext(ctx)
+	snap, err := s.snapshotBuilder.Build(ctx, orgName, projectSlug, modelID, isDeveloper, userCtx)
+	if err != nil {
+		return nil, err
+	}
+	if snap != nil && snap.DenyAll {
+		return nil, bizerrors.NewError(bizerrors.PermissionDenied, "RLS: no matching policy")
+	}
+	if snap != nil {
+		ctx = modelruntime.WithRLSSnapshot(ctx, snap)
 	}
 
 	endUserAdminID, _ := ctxutils.GetTenantUserIDFromContext(ctx)
 	reqCtx := modelruntime.WithGraphqlRequestContext(
 		ctx, clientRepo, orgName, projectSlug, endUserID, endUserAdminID, endUserPerms,
 	)
-	if s.rlsGuard != nil {
-		reqCtx = modelruntime.WithRLSPolicyGuard(reqCtx, s.rlsGuard)
-	}
 
 	// 执行GraphQL查询
 	result := graphql.Do(graphql.Params{
@@ -140,46 +158,18 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 	return result, nil
 }
 
-// resolveEndUserPerms 获取 end-user 权限快照。
-// 调用方负责在 endUserID 为空时跳过此方法。
-// 需要 model.ID，因此单独加载 model（GetSchema 内部缓存 schema，此处只取 ID）。
-func (s *GraphqlAppService) resolveEndUserPerms(
-	ctx context.Context,
-	orgName, projectSlug, endUserID string,
-	modelLocator *modeldesign.ModelLocator,
-) (*modelruntime.ResolvedModelPermissions, error) {
-	logger := logfacade.GetLogger(ctx)
-	model, err := s.modelRepo.GetByName(ctx, modelLocator)
-	if err != nil {
-		logger.Errorf(ctx, "get model for permission resolve fail: %v", err)
-		if shared.IsNotFoundError(err) {
-			return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
-		}
-		return nil, fmt.Errorf("获取模型失败 %s", modelLocator.GetFullPath())
-	}
-	if model == nil {
-		return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
-	}
-	perms, err := s.permService.Resolve(ctx, orgName, projectSlug, endUserID, model.ID)
-	if err != nil {
-		logger.Errorf(ctx, "resolve end-user permissions fail: %v", err)
-		return nil, fmt.Errorf("解析权限失败")
-	}
-	return perms, nil
-}
-
 // NewGraphqlAppService 创建graphql应用服务
 func NewGraphqlAppService(
 	modelRepo modelruntime.ModelRepository,
 	lfkRepo modeldesign.LogicalForeignKeyRepository,
 	permService modelruntime.EndUserPermissionService,
-	rlsGuard RuntimeRLSPolicyGuard,
+	snapshotBuilder *RLSSnapshotBuilder,
 ) *GraphqlAppService {
 	schemaManager := modelruntime.NewGraphqlSchemaManager(modelRepo, lfkRepo)
 	return &GraphqlAppService{
 		modelRepo:            modelRepo,
 		graphqlSchemaManager: schemaManager,
 		permService:          permService,
-		rlsGuard:             rlsGuard,
+		snapshotBuilder:      snapshotBuilder,
 	}
 }

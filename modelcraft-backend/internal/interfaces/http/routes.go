@@ -491,6 +491,7 @@ func SetupEndUserOrgGraphQLRoutesOnChi(
 	cfg *config.Config,
 	jwtConfig *middleware.JWTAuthConfig,
 ) {
+	rlsContextMW := httpmiddleware.NewRLSContextMiddleware().Middleware
 	orgResolver := &orggraphql.Resolver{
 		ProjectAppService:      handlers.ProjectAppService,
 		ClusterAppService:      handlers.ClusterAppService,
@@ -508,6 +509,7 @@ func SetupEndUserOrgGraphQLRoutesOnChi(
 	}
 
 	router.Route("/end-user/graphql/org/{orgName}", func(r chi.Router) {
+		r.Use(rlsContextMW)
 		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
 		r.Use(middleware.ChiGraphQLActionMiddleware())
@@ -525,6 +527,7 @@ func SetupEndUserProjectGraphQLRoutesOnChi(
 	cfg *config.Config,
 	jwtConfig *middleware.JWTAuthConfig,
 ) {
+	rlsContextMW := httpmiddleware.NewRLSContextMiddleware().Middleware
 	typeMapper := domainModelDesign.NewMySQLTypeMapper()
 	schemaComparisonService := domainModelDesign.NewMySQLSchemaComparisonService(typeMapper)
 	deployRepo := ddl.NewDeploymentService(handlers.ClusterManager)
@@ -566,6 +569,7 @@ func SetupEndUserProjectGraphQLRoutesOnChi(
 	}
 
 	router.Route("/end-user/graphql/org/{orgName}/project/{projectSlug}", func(r chi.Router) {
+		r.Use(rlsContextMW)
 		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
 		r.Use(middleware.ChiGraphQLProjectMiddleware())
@@ -681,8 +685,8 @@ func CreateRuntimeHandlers(loggingDB dbgen.Querier) *RuntimeHandlers {
 	rlsUsingCompiler := rls.NewPolicyExpressionSQLCompiler()
 	rlsCheckEvaluator := rls.NewPolicyExpressionInputEvaluator()
 	rlsMatchingSvc := rls.NewPolicyMatchingService(policyRepo, rlsUsingCompiler, rlsCheckEvaluator)
-	runtimeRLSResolver := runtime.NewRLSResolver(logfacade.GetLogger(context.Background()), rlsMatchingSvc)
-	graphqlAppService := modelruntime.NewGraphqlAppService(modelRuntimeRepo, lfkRepo, permService, runtimeRLSResolver)
+	snapshotBuilder := modelruntime.NewRLSSnapshotBuilder(rlsMatchingSvc)
+	graphqlAppService := modelruntime.NewGraphqlAppService(modelRuntimeRepo, lfkRepo, permService, snapshotBuilder)
 	handler := runtime.NewModelRuntimeHandler(graphqlAppService)
 	return &RuntimeHandlers{ModelRuntimeHandler: handler}
 }
@@ -730,7 +734,7 @@ func SetupRuntimeGraphQLRoutesOnChi(
 		patMW = func(next http.Handler) http.Handler { return next }
 	}
 	endUserRuntimeMW := func(next http.Handler) http.Handler {
-		return patMW(jwtMW(orgMW(cacheMW(next))))
+		return httpmiddleware.NewRLSContextMiddleware().Middleware(patMW(jwtMW(orgMW(cacheMW(next)))))
 	}
 
 	runtimePath := "/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}"
@@ -738,6 +742,7 @@ func SetupRuntimeGraphQLRoutesOnChi(
 	router.With(runtimeMW).Post(runtimePath, handlers.ModelRuntimeHandler.HandleQuery)
 
 	// End-user runtime routes — PAT Bearer token or gateway-injected JWT.
+	// Also accepts X-MC-Auth-* headers for RLS context injection.
 	endUserRuntimePath := "/end-user/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}"
 	router.With(endUserRuntimeMW).Get(endUserRuntimePath, handlers.ModelRuntimeHandler.HandlePlayground)
 	router.With(endUserRuntimeMW).Post(endUserRuntimePath, handlers.ModelRuntimeHandler.HandleQuery)
