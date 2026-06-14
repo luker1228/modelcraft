@@ -40,6 +40,10 @@ func (g denyingRLSPolicyGuard) ValidateInput(_ context.Context, _ string, _ Acti
 	return fmt.Errorf("RLS CHECK violation: input rejected")
 }
 
+func (g denyingRLSPolicyGuard) ResolveUsingFilter(_ context.Context, _ string, _ Action) (*RawSQLFilter, error) {
+	return nil, nil
+}
+
 // taskModelWithOwner is a RuntimeModel that has an END_USER_REF "owner" field.
 func taskModelWithOwner() *RuntimeModel {
 	return &RuntimeModel{

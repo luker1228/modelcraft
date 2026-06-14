@@ -8,6 +8,7 @@ import (
 
 type RLSPolicyGuard interface {
 	ValidateInput(ctx context.Context, modelID string, action Action, input map[string]any) error
+	ResolveUsingFilter(ctx context.Context, modelID string, action Action) (*RawSQLFilter, error)
 }
 
 // graphqlRequestContext 持有单次 GraphQL 请求的可变状态。

@@ -107,6 +107,29 @@ func (r *RLSResolver) ValidateInput(ctx context.Context, modelID string, action 
 	return r.matchingSvc.ValidateCheck(ctx, rctx.OrgName, rctx.ProjectSlug, modelID, domainAction, input, userCtx)
 }
 
+func (r *RLSResolver) ResolveUsingFilter(ctx context.Context, modelID string, action modelruntime.Action) (*modelruntime.RawSQLFilter, error) {
+	domainAction := rls.ActionRead
+	switch action {
+	case modelruntime.ActionUpdate:
+		domainAction = rls.ActionUpdate
+	case modelruntime.ActionDelete:
+		domainAction = rls.ActionDelete
+	}
+	userCtx := middleware.GetUserContext(ctx)
+	if userCtx == nil {
+		userCtx = &rls.UserContext{}
+	}
+	rctx, ok := getRuntimeContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("RLS USING violation: runtime context missing")
+	}
+	sql, params, err := r.matchingSvc.ResolveUsing(ctx, rctx.OrgName, rctx.ProjectSlug, modelID, domainAction, userCtx)
+	if err != nil {
+		return nil, err
+	}
+	return &modelruntime.RawSQLFilter{SQL: sql, Params: params}, nil
+}
+
 // ValidateInsert validates an insert operation against the RLS check expression.
 func (r *RLSResolver) ValidateInsert(ctx context.Context, modelID string, input map[string]interface{}) error {
 	return r.ValidateInput(ctx, modelID, modelruntime.ActionInsert, input)

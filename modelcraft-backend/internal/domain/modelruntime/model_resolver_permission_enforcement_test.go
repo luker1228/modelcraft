@@ -17,25 +17,33 @@ import (
 // row-filter injection can be verified independently of a real database.
 type fullCapturingRepo struct {
 	mockClientDatabaseRepository
-	capturedFindManyWhere     map[string]any
-	capturedListByCursorWhere map[string]any
-	capturedListByPageWhere   map[string]any
-	capturedFindUniqueWhere   map[string]any
-	capturedFindFirstWhere    map[string]any
-	capturedUpdateOneWhere    map[string]any
-	capturedDeleteOneWhere    map[string]any
-	capturedUpdateManyWhere   map[string]any
-	capturedDeleteManyWhere   map[string]any
+	capturedFindManyWhere          map[string]any
+	capturedFindManyRawFilters     []RawSQLFilter
+	capturedListByCursorWhere      map[string]any
+	capturedListByCursorRawFilters []RawSQLFilter
+	capturedListByPageWhere        map[string]any
+	capturedFindUniqueWhere        map[string]any
+	capturedFindFirstWhere         map[string]any
+	capturedUpdateOneWhere         map[string]any
+	capturedUpdateOneRawFilters    []RawSQLFilter
+	capturedDeleteOneWhere         map[string]any
+	capturedDeleteOneRawFilters    []RawSQLFilter
+	capturedUpdateManyWhere        map[string]any
+	capturedUpdateManyRawFilters   []RawSQLFilter
+	capturedDeleteManyWhere        map[string]any
+	capturedDeleteManyRawFilters   []RawSQLFilter
 }
 
 func (r *fullCapturingRepo) FindMany(_ context.Context, input *FindManyInput) ([]map[string]any, error) {
 	r.capturedFindManyWhere = input.Where
+	r.capturedFindManyRawFilters = input.RawFilters
 	r.capturedListByPageWhere = input.Where
 	return []map[string]any{}, nil
 }
 
 func (r *fullCapturingRepo) ListByCursor(_ context.Context, input *ListByCursorInput) ([]map[string]any, error) {
 	r.capturedListByCursorWhere = input.Where
+	r.capturedListByCursorRawFilters = input.RawFilters
 	return []map[string]any{}, nil
 }
 
@@ -51,22 +59,36 @@ func (r *fullCapturingRepo) FindFirst(_ context.Context, input *FindFirstInput) 
 
 func (r *fullCapturingRepo) UpdateOne(_ context.Context, input *UpdateOneInput) (map[string]any, error) {
 	r.capturedUpdateOneWhere = input.Where
+	r.capturedUpdateOneRawFilters = input.RawFilters
 	return map[string]any{"id": "x"}, nil
 }
 
 func (r *fullCapturingRepo) DeleteOne(_ context.Context, input *DeleteOneInput) (map[string]any, error) {
 	r.capturedDeleteOneWhere = input.Where
+	r.capturedDeleteOneRawFilters = input.RawFilters
 	return map[string]any{"id": "x"}, nil
 }
 
 func (r *fullCapturingRepo) UpdateMany(_ context.Context, input *UpdateManyInput) (any, error) {
 	r.capturedUpdateManyWhere = input.Where
+	r.capturedUpdateManyRawFilters = input.RawFilters
 	return map[string]any{"count": 1}, nil
 }
 
 func (r *fullCapturingRepo) DeleteMany(_ context.Context, input *DeleteManyInput) (any, error) {
 	r.capturedDeleteManyWhere = input.Where
+	r.capturedDeleteManyRawFilters = input.RawFilters
 	return map[string]any{"count": 1}, nil
+}
+
+type allowingRLSUsingGuard struct{}
+
+func (g allowingRLSUsingGuard) ValidateInput(_ context.Context, _ string, _ Action, _ map[string]any) error {
+	return nil
+}
+
+func (g allowingRLSUsingGuard) ResolveUsingFilter(_ context.Context, _ string, _ Action) (*RawSQLFilter, error) {
+	return &RawSQLFilter{SQL: "owner_id = ?", Params: []any{"u_123"}}, nil
 }
 
 // ─── helper: taskModelWithoutOwner ───────────────────────────────────────────
@@ -120,6 +142,27 @@ func allScopePerm() *ResolvedModelPermissions {
 		Update: ActionPermission{Allowed: true, IsSelf: false},
 		Delete: ActionPermission{Allowed: true, IsSelf: false},
 	}
+}
+
+func TestRLSUsingFilter_FindMany_AttachesRawFilter(t *testing.T) {
+	repo := &fullCapturingRepo{}
+	schema := buildSchemaFor(t, taskModelWithoutOwner())
+	ctx := WithGraphqlRequestContext(context.Background(), repo, "org-1", "project-1", "u_123", "",
+		&ResolvedModelPermissions{Select: ActionPermission{Allowed: true}},
+	)
+	ctx = WithRLSPolicyGuard(ctx, allowingRLSUsingGuard{})
+
+	result := graphql.Do(graphql.Params{
+		Schema:  *schema,
+		Context: ctx,
+		RequestString: `query {
+			findMany(where: { title: { equals: "draft" } }) { items { id title } }
+		}`,
+	})
+
+	require.Empty(t, result.Errors)
+	require.Len(t, repo.capturedFindManyRawFilters, 1)
+	require.Equal(t, "owner_id = ?", repo.capturedFindManyRawFilters[0].SQL)
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────

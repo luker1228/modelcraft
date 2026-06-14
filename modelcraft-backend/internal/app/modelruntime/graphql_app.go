@@ -28,6 +28,7 @@ type GraphqlAppService struct {
 
 type RuntimeRLSPolicyGuard interface {
 	ValidateInput(ctx context.Context, modelID string, action modelruntime.Action, input map[string]any) error
+	ResolveUsingFilter(ctx context.Context, modelID string, action modelruntime.Action) (*modelruntime.RawSQLFilter, error)
 }
 
 // GetSchema 获取或构建 GraphQL Schema。
