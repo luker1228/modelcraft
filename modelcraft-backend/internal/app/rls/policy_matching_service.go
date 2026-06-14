@@ -97,6 +97,27 @@ func (s *PolicyMatchingService) ValidateCheck(
 	return fmt.Errorf("RLS CHECK violation: no matching input check policy passed")
 }
 
+// GetCheckExpr returns the first non-empty raw CHECK expression string for the given action.
+// Returns ("", nil) if no matching policy or no CHECK expression exists.
+func (s *PolicyMatchingService) GetCheckExpr(
+	ctx context.Context, orgName, projectSlug, modelID string,
+	action rls.Action, userCtx *rls.UserContext,
+) (string, error) {
+	policies, err := s.repo.ListByAction(ctx, orgName, projectSlug, modelID, action, userCtx.Roles)
+	if err != nil {
+		return "", err
+	}
+	if len(policies) == 0 {
+		return "", nil
+	}
+	for _, p := range policies {
+		if p.WithCheckExpr != "" {
+			return string(p.WithCheckExpr), nil
+		}
+	}
+	return "", nil
+}
+
 // ResolveCheck is deprecated during the CEL transition. New write paths should use ValidateCheck.
 // ResolveCheck 匹配策略并 OR 合并 withCheck 表达式
 func (s *PolicyMatchingService) ResolveCheck(
