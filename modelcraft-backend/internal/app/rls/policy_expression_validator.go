@@ -216,7 +216,7 @@ func (v *PolicyExpressionValidator) validateSelect(
 		if !authSchema.IsValidRef(fields[0]) {
 			return []PolicyExpressionError{{
 				Path:    root + "." + fields[0],
-				Message: fmt.Sprintf("Unknown auth variable '%s'. Declare it in project auth_schema first.", fields[0]),
+				Message: fmt.Sprintf("Unknown auth variable '%s'. Supported variables: auth.userid, auth.username, auth.roles.", fields[0]),
 				Code:    "UNKNOWN_AUTH_VAR",
 			}}
 		}

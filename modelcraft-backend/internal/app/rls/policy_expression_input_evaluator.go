@@ -73,15 +73,15 @@ func (e *PolicyExpressionInputEvaluator) ValidateInput(
 func buildAuthEvalContext(userCtx *domainrls.UserContext) map[string]any {
 	if userCtx == nil {
 		return map[string]any{
-			"user_id":   "",
-			"user_name": "",
-			"roles":     []string{},
+			"userid":   "",
+			"username": "",
+			"roles":    []string{},
 		}
 	}
 	return map[string]any{
-		"user_id":   userCtx.UserID,
-		"user_name": userCtx.UserName,
-		"roles":     userCtx.Roles,
+		"userid":   userCtx.UserID,
+		"username": userCtx.UserName,
+		"roles":    userCtx.Roles,
 	}
 }
 

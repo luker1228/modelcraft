@@ -57,14 +57,8 @@ func (s *ModelRLSPolicyAppService) SetPolicy(ctx context.Context, orgName, proje
 			"Model has no owner field (EndUserRef), cannot set RLS policy")
 	}
 
-	// 3. 获取 AuthSchema 用于校验
-	authSchema, err := s.authSchemaRepo.GetByProjectID(ctx, orgName, projectSlug)
-	if err != nil {
-		return nil, err
-	}
-	if authSchema == nil {
-		authSchema = &rls.AuthSchema{ProjectID: projectSlug}
-	}
+	// 3. 使用固定 auth 上下文校验 CEL 表达式，避免编辑器协议与 runtime header 漂移。
+	authSchema := rls.DefaultAuthContext()
 
 	// 4. 校验五件套表达式
 	exprs := map[rls.ExprType]rls.JsonExpr{
@@ -139,12 +133,7 @@ func (s *ModelRLSPolicyAppService) ValidateExpr(ctx context.Context, orgName, pr
 		}}
 	}
 
-	authSchema, _ := s.authSchemaRepo.GetByProjectID(ctx, orgName, projectSlug)
-	if authSchema == nil {
-		authSchema = &rls.AuthSchema{ProjectID: projectSlug}
-	}
-
-	return s.validator.Validate(ctx, expr, exprType, model, authSchema)
+	return s.validator.Validate(ctx, expr, exprType, model, rls.DefaultAuthContext())
 }
 
 func (s *ModelRLSPolicyAppService) DryRunExpr(

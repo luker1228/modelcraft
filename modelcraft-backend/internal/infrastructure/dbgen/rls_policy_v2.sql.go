@@ -7,7 +7,7 @@ package dbgen
 
 import (
 	"context"
-	"encoding/json"
+	"database/sql"
 	"strings"
 )
 
@@ -201,8 +201,8 @@ type UpsertPolicyParams struct {
 	PolicyName    string
 	Action        ModelRlsPoliciesAction
 	Role          string
-	UsingExpr     *json.RawMessage
-	WithCheckExpr *json.RawMessage
+	UsingExpr     sql.NullString
+	WithCheckExpr sql.NullString
 }
 
 func (q *Queries) UpsertPolicy(ctx context.Context, arg UpsertPolicyParams) error {

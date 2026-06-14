@@ -24,14 +24,9 @@ import {
 } from '@web/components/ui/select'
 import { Skeleton } from '@web/components/ui/skeleton'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@web/components/ui/table'
-import { GET_MODELS } from '@/api-client/model'
+import { GET_MODEL, GET_MODELS_BY_DATABASE } from '@/api-client/model'
 import { REGISTERED_DATABASES } from '@/api-client/cluster'
 import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 import { useQuery } from '@apollo/client'
@@ -39,15 +34,56 @@ import { useRlsPolicyList } from '../../_hooks/rls-policy/useRlsPolicyList'
 import { useRlsPolicyManage } from '../../_hooks/rls-policy/useRlsPolicyManage'
 import { PolicyEditorDialog } from './PolicyEditorDialog'
 import type { RlsAction } from '@/generated/graphql'
+import { FIXED_RLS_AUTH_VARIABLES } from './rls-expression-utils'
 
 interface RlsPolicyContentProps {
   orgName: string
   projectSlug: string
 }
 
+interface RlsPolicySelectionState {
+  databaseName: string | null
+  modelId: string | null
+}
+
+function getRlsPolicySelectionKey(orgName: string, projectSlug: string): string {
+  return `modelcraft:access-control:rls-policy:${orgName}:${projectSlug}`
+}
+
+function readRlsPolicySelection(orgName: string, projectSlug: string): RlsPolicySelectionState {
+  if (typeof window === 'undefined') return { databaseName: null, modelId: null }
+
+  try {
+    const raw = window.localStorage.getItem(getRlsPolicySelectionKey(orgName, projectSlug))
+    if (!raw) return { databaseName: null, modelId: null }
+
+    const parsed = JSON.parse(raw) as Partial<RlsPolicySelectionState>
+    return {
+      databaseName: typeof parsed.databaseName === 'string' ? parsed.databaseName : null,
+      modelId: typeof parsed.modelId === 'string' ? parsed.modelId : null,
+    }
+  } catch {
+    return { databaseName: null, modelId: null }
+  }
+}
+
+function writeRlsPolicySelection(
+  orgName: string,
+  projectSlug: string,
+  selection: RlsPolicySelectionState,
+): void {
+  if (typeof window === 'undefined') return
+
+  window.localStorage.setItem(
+    getRlsPolicySelectionKey(orgName, projectSlug),
+    JSON.stringify(selection),
+  )
+}
+
 export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps) {
   const [selectedDatabaseName, setSelectedDatabaseName] = React.useState<string | null>(null)
   const [selectedModelId, setSelectedModelId] = React.useState<string | null>(null)
+  const [selectionLoaded, setSelectionLoaded] = React.useState(false)
 
   const client = useProjectScopedClient(projectSlug)
   const { data: catalogData, loading: databasesLoading } = useQuery(REGISTERED_DATABASES, {
@@ -55,7 +91,10 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
     variables: { input: { pageSize: 100 } },
     skip: !projectSlug,
   })
-  const databases: { name: string }[] = catalogData?.registeredDatabases?.data?.databases ?? []
+  const databases = React.useMemo(
+    () => (catalogData?.registeredDatabases?.data?.databases ?? []) as Array<{ name: string }>,
+    [catalogData?.registeredDatabases?.data?.databases],
+  )
   const [editorOpen, setEditorOpen] = React.useState(false)
   const [deleteTargetId, setDeleteTargetId] = React.useState<string | null>(null)
 
@@ -68,12 +107,71 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
     modelId: selectedModelId ?? '',
   })
 
-  const { data: modelsData, loading: modelsLoading } = useQuery(GET_MODELS, {
+  React.useEffect(() => {
+    const selection = readRlsPolicySelection(orgName, projectSlug)
+    setSelectedDatabaseName(selection.databaseName)
+    setSelectedModelId(selection.modelId)
+    setSelectionLoaded(true)
+  }, [orgName, projectSlug])
+
+  React.useEffect(() => {
+    if (!selectionLoaded) return
+    writeRlsPolicySelection(orgName, projectSlug, {
+      databaseName: selectedDatabaseName,
+      modelId: selectedModelId,
+    })
+  }, [orgName, projectSlug, selectedDatabaseName, selectedModelId, selectionLoaded])
+
+  const { data: modelsData, loading: modelsLoading } = useQuery(GET_MODELS_BY_DATABASE, {
     client,
     variables: { input: { databaseName: selectedDatabaseName } },
     skip: !selectedDatabaseName || !projectSlug,
   })
-  const models: { id: string; name: string }[] = modelsData?.models?.items ?? []
+  const { data: selectedModelData } = useQuery(GET_MODEL, {
+    client,
+    variables: { id: selectedModelId },
+    skip: !selectedModelId,
+  })
+  const models = React.useMemo(
+    () =>
+      (modelsData?.models?.items ?? []) as Array<{
+        id: string
+        name: string
+        title?: string | null
+      }>,
+    [modelsData?.models?.items],
+  )
+  const selectedModel = React.useMemo(
+    () =>
+      (selectedModelData?.model?.model ?? null) as null | {
+        id: string
+        name: string
+        title?: string | null
+        fields?: Array<{ name: string; title?: string | null }>
+      },
+    [selectedModelData?.model?.model],
+  )
+  const selectedModelExists = React.useMemo(
+    () => models.some((model) => model.id === selectedModelId),
+    [models, selectedModelId],
+  )
+
+  React.useEffect(() => {
+    if (!selectedDatabaseName || databases.length === 0) return
+    if (databases.some((db) => db.name === selectedDatabaseName)) return
+    setSelectedDatabaseName(null)
+    setSelectedModelId(null)
+  }, [databases, selectedDatabaseName])
+
+  React.useEffect(() => {
+    if (!selectedDatabaseName) return
+    if (models.length === 0) return
+    if (selectedModelId && selectedModelExists) return
+    if (selectedModelId && !selectedModelExists) {
+      setSelectedModelId(null)
+    }
+  }, [models, selectedDatabaseName, selectedModelExists, selectedModelId])
+  const docsHref = `/org/${orgName}/project/${projectSlug}/access-control/examples`
 
   const handleUpsert = async (data: {
     policyName: string
@@ -255,6 +353,9 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
         onSave={handleUpsert}
         onDryRun={validateRlsExpression}
         saving={upserting}
+        modelFields={selectedModel?.fields ?? []}
+        authVariables={FIXED_RLS_AUTH_VARIABLES}
+        docsHref={docsHref}
       />
 
       <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => { if (!open) setDeleteTargetId(null) }}>

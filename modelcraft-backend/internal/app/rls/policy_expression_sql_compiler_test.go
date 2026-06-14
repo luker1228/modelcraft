@@ -13,7 +13,7 @@ func TestPolicyExpressionSQLCompiler_CompilesEqualityAndIn(t *testing.T) {
 	compiler := NewPolicyExpressionSQLCompiler()
 	compiled, err := compiler.CompileUsing(
 		context.Background(),
-		`row.owner_id == auth.user_id && row.status in ["draft", "pending"]`,
+		`row.owner_id == auth.userid && row.status in ["draft", "pending"]`,
 		&domainrls.UserContext{UserID: "u_123"},
 	)
 	require.NoError(t, err)
@@ -25,7 +25,7 @@ func TestPolicyExpressionSQLCompiler_CompilesOrAndNot(t *testing.T) {
 	compiler := NewPolicyExpressionSQLCompiler()
 	compiled, err := compiler.CompileUsing(
 		context.Background(),
-		`row.owner_id == auth.user_id || !(row.status == "archived")`,
+		`row.owner_id == auth.userid || !(row.status == "archived")`,
 		&domainrls.UserContext{UserID: "u_123"},
 	)
 	require.NoError(t, err)
@@ -37,7 +37,7 @@ func TestPolicyExpressionSQLCompiler_RejectsInputRoot(t *testing.T) {
 	compiler := NewPolicyExpressionSQLCompiler()
 	_, err := compiler.CompileUsing(
 		context.Background(),
-		`input.owner_id == auth.user_id`,
+		`input.owner_id == auth.userid`,
 		&domainrls.UserContext{UserID: "u_123"},
 	)
 	require.ErrorContains(t, err, "input is not allowed")

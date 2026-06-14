@@ -24,7 +24,7 @@ func (s testModelSchema) GetFieldNames() []string {
 type testAuthSchema struct{ refs map[string]bool }
 
 func (s testAuthSchema) IsValidRef(name string) bool {
-	return name == "uid" || name == "user_id" || s.refs[name]
+	return name == "userid" || name == "username" || name == "roles" || name == "uid" || name == "user_id" || s.refs[name]
 }
 
 func TestPolicyExpressionValidator_UsingAcceptsRowAndAuth(t *testing.T) {
@@ -32,7 +32,7 @@ func TestPolicyExpressionValidator_UsingAcceptsRowAndAuth(t *testing.T) {
 	errs := validator.ValidateCEL(
 		context.Background(),
 		PolicyExpressionModeUsing,
-		`row.owner_id == auth.user_id && row.status in ["draft", "pending"]`,
+		`row.owner_id == auth.userid && row.status in ["draft", "pending"]`,
 		testModelSchema{fields: map[string]bool{"owner_id": true, "status": true}},
 		testAuthSchema{refs: map[string]bool{}},
 	)
@@ -44,7 +44,7 @@ func TestPolicyExpressionValidator_RejectsWrongRootForMode(t *testing.T) {
 	errs := validator.ValidateCEL(
 		context.Background(),
 		PolicyExpressionModeUsing,
-		`input.owner_id == auth.user_id`,
+		`input.owner_id == auth.userid`,
 		testModelSchema{fields: map[string]bool{"owner_id": true}},
 		testAuthSchema{refs: map[string]bool{}},
 	)
@@ -57,7 +57,7 @@ func TestPolicyExpressionValidator_RejectsUnknownField(t *testing.T) {
 	errs := validator.ValidateCEL(
 		context.Background(),
 		PolicyExpressionModeCheck,
-		`input.missing == auth.user_id`,
+		`input.missing == auth.userid`,
 		testModelSchema{fields: map[string]bool{"owner_id": true}},
 		testAuthSchema{refs: map[string]bool{}},
 	)

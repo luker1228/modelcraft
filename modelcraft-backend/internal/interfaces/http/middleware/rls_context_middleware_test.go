@@ -18,9 +18,9 @@ func TestRLSContextMiddleware_AllHeaders(t *testing.T) {
 	handler := mw.Middleware(next)
 
 	req := httptest.NewRequest("POST", "/api/data", nil)
-	req.Header.Set("X-MC-User-ID", "user_123")
-	req.Header.Set("X-MC-User-Name", "zhangsan")
-	req.Header.Set("X-MC-User-Roles", "admin, manager")
+	req.Header.Set("X-MC-Auth-Userid", "user_123")
+	req.Header.Set("X-MC-Auth-Username", "zhangsan")
+	req.Header.Set("X-MC-Auth-Roles", "admin, manager")
 
 	handler.ServeHTTP(httptest.NewRecorder(), req)
 
@@ -73,7 +73,7 @@ func TestRLSContextMiddleware_EmptyRoles(t *testing.T) {
 	handler := mw.Middleware(next)
 
 	req := httptest.NewRequest("POST", "/api/data", nil)
-	req.Header.Set("X-MC-User-Roles", "  , ,  ")
+	req.Header.Set("X-MC-Auth-Roles", "  , ,  ")
 	handler.ServeHTTP(httptest.NewRecorder(), req)
 
 	uc := GetUserContext(capturedCtx)

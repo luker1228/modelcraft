@@ -811,9 +811,9 @@ type ModelRlsPolicy struct {
 	// 匹配角色（空=默认策略）
 	Role string
 	// USING 表达式（read/update/delete）
-	UsingExpr *json.RawMessage
+	UsingExpr sql.NullString
 	// WITH CHECK 表达式（create/update）
-	WithCheckExpr *json.RawMessage
+	WithCheckExpr sql.NullString
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }

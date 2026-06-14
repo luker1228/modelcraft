@@ -22,9 +22,9 @@ CREATE TABLE model_rls_policies (
     action          ENUM('read', 'create', 'update', 'delete') NOT NULL COMMENT '操作类型',
     role            VARCHAR(255) NOT NULL DEFAULT '' COMMENT '匹配角色（空=默认策略）',
 
-    -- 表达式（Prisma 风格 JSON）
-    using_expr      JSON COMMENT 'USING 表达式（read/update/delete）',
-    with_check_expr JSON COMMENT 'WITH CHECK 表达式（create/update）',
+    -- 表达式（CEL / legacy JSON 文本）
+    using_expr      TEXT NULL COMMENT 'USING 表达式（read/update/delete）',
+    with_check_expr TEXT NULL COMMENT 'WITH CHECK 表达式（create/update）',
 
     created_at      DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at      DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),

@@ -2,7 +2,7 @@ package rls
 
 import (
 	"context"
-	"encoding/json"
+	"database/sql"
 	"modelcraft/internal/domain/rls"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/dbgenwrap"
@@ -54,12 +54,11 @@ func (r *SqlPolicyRepository) ListByAction(
 			UpdatedAt:   row.UpdatedAt,
 		}
 
-		// Convert *json.RawMessage → JsonExpr
-		if row.UsingExpr != nil {
-			p.UsingExpr = rls.JsonExpr(*row.UsingExpr)
+		if row.UsingExpr.Valid {
+			p.UsingExpr = rls.JsonExpr(row.UsingExpr.String)
 		}
-		if row.WithCheckExpr != nil {
-			p.WithCheckExpr = rls.JsonExpr(*row.WithCheckExpr)
+		if row.WithCheckExpr.Valid {
+			p.WithCheckExpr = rls.JsonExpr(row.WithCheckExpr.String)
 		}
 
 		policies = append(policies, p)
@@ -95,12 +94,11 @@ func (r *SqlPolicyRepository) ListByModel(
 			UpdatedAt:   row.UpdatedAt,
 		}
 
-		// Convert *json.RawMessage -> JsonExpr
-		if row.UsingExpr != nil {
-			p.UsingExpr = rls.JsonExpr(*row.UsingExpr)
+		if row.UsingExpr.Valid {
+			p.UsingExpr = rls.JsonExpr(row.UsingExpr.String)
 		}
-		if row.WithCheckExpr != nil {
-			p.WithCheckExpr = rls.JsonExpr(*row.WithCheckExpr)
+		if row.WithCheckExpr.Valid {
+			p.WithCheckExpr = rls.JsonExpr(row.WithCheckExpr.String)
 		}
 
 		policies = append(policies, p)
@@ -111,18 +109,6 @@ func (r *SqlPolicyRepository) ListByModel(
 
 // Upsert 创建或更新策略
 func (r *SqlPolicyRepository) Upsert(ctx context.Context, orgName, projectSlug string, policy *rls.Policy) error {
-	// Convert JsonExpr -> *json.RawMessage
-	var usingExpr *json.RawMessage
-	if policy.UsingExpr != "" {
-		raw := json.RawMessage(policy.UsingExpr)
-		usingExpr = &raw
-	}
-	var withCheckExpr *json.RawMessage
-	if policy.WithCheckExpr != "" {
-		raw := json.RawMessage(policy.WithCheckExpr)
-		withCheckExpr = &raw
-	}
-
 	err := r.q.UpsertPolicy(ctx, dbgen.UpsertPolicyParams{
 		OrgName:       orgName,
 		ProjectSlug:   projectSlug,
@@ -130,10 +116,17 @@ func (r *SqlPolicyRepository) Upsert(ctx context.Context, orgName, projectSlug s
 		PolicyName:    policy.PolicyName,
 		Action:        dbgen.ModelRlsPoliciesAction(policy.Action),
 		Role:          policy.Role,
-		UsingExpr:     usingExpr,
-		WithCheckExpr: withCheckExpr,
+		UsingExpr:     toNullString(policy.UsingExpr),
+		WithCheckExpr: toNullString(policy.WithCheckExpr),
 	})
 	return sqlerr.WrapSQLError(err)
+}
+
+func toNullString(expr rls.JsonExpr) sql.NullString {
+	if expr == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: string(expr), Valid: true}
 }
 
 // Delete 删除指定策略

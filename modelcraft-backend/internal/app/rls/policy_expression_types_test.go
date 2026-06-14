@@ -19,6 +19,6 @@ func TestPolicyExpressionModeAllowedRoot(t *testing.T) {
 func TestIsLegacyJSONExpression(t *testing.T) {
 	require.True(t, IsLegacyJSONExpression(`{"owner_id":{"equals":"{{user_id}}"}}`))
 	require.True(t, IsLegacyJSONExpression(`true`))
-	require.False(t, IsLegacyJSONExpression(`row.owner_id == auth.user_id`))
-	require.False(t, IsLegacyJSONExpression(` input.owner_id == auth.user_id `))
+	require.False(t, IsLegacyJSONExpression(`row.owner_id == auth.userid`))
+	require.False(t, IsLegacyJSONExpression(` input.owner_id == auth.userid `))
 }

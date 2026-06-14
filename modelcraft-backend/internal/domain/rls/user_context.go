@@ -26,9 +26,9 @@ func (uc *UserContext) HasRole(role string) bool {
 // ResolveVariable 解析表达式变量
 func (uc *UserContext) ResolveVariable(name string) string {
 	switch name {
-	case "uid", "user_id":
+	case "userid", "uid", "user_id":
 		return uc.UserID
-	case "user_name":
+	case "username", "user_name":
 		return uc.UserName
 	default:
 		return ""

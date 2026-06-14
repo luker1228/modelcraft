@@ -178,7 +178,7 @@ func TestResolveUsing_WithCELExpression(t *testing.T) {
 		PolicyName:  "owner_read",
 		Action:      rls.ActionRead,
 		Role:        "user",
-		UsingExpr:   `row.owner_id == auth.user_id`,
+		UsingExpr:   `row.owner_id == auth.userid`,
 	}}}
 	svc := NewPolicyMatchingService(repo, NewPolicyExpressionSQLCompiler(), NewPolicyExpressionInputEvaluator())
 
@@ -207,7 +207,7 @@ func TestValidateCheck_WithCELExpression(t *testing.T) {
 		PolicyName:    "owner_create",
 		Action:        rls.ActionCreate,
 		Role:          "user",
-		WithCheckExpr: `input.owner_id == auth.user_id`,
+		WithCheckExpr: `input.owner_id == auth.userid`,
 	}}}
 	svc := NewPolicyMatchingService(repo, NewPolicyExpressionSQLCompiler(), NewPolicyExpressionInputEvaluator())
 

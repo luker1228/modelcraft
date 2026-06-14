@@ -23,6 +23,7 @@ import {
 import type { RlsAction, RlsExprType } from '@/generated/graphql'
 import { RlsExpressionEditor } from './RlsExpressionEditor'
 import {
+  buildRlsExpressionHelp,
   getRlsExpressionType,
   shouldShowRlsCheckExpression,
   shouldShowRlsUsingExpression,
@@ -46,6 +47,9 @@ interface PolicyEditorDialogProps {
     exprType: RlsExprType
   }) => Promise<{ success: boolean; message?: string }>
   saving: boolean
+  modelFields?: Array<{ name: string; title?: string | null }>
+  authVariables?: Array<{ name: string; source?: string | null; type?: string | null }>
+  docsHref?: string
 }
 
 export function PolicyEditorDialog({
@@ -54,6 +58,9 @@ export function PolicyEditorDialog({
   onSave,
   onDryRun,
   saving,
+  modelFields = [],
+  authVariables = [],
+  docsHref,
 }: PolicyEditorDialogProps) {
   const [policyName, setPolicyName] = React.useState('')
   const [action, setAction] = React.useState<RlsAction>('read')
@@ -62,6 +69,8 @@ export function PolicyEditorDialog({
   const [withCheckExpr, setWithCheckExpr] = React.useState('')
   const showUsingExpr = shouldShowRlsUsingExpression(action)
   const showCheckExpr = shouldShowRlsCheckExpression(action)
+  const usingHelp = React.useMemo(() => buildRlsExpressionHelp('using', modelFields), [modelFields])
+  const checkHelp = React.useMemo(() => buildRlsExpressionHelp('check', modelFields), [modelFields])
 
   React.useEffect(() => {
     if (open) {
@@ -143,7 +152,13 @@ export function PolicyEditorDialog({
           {showUsingExpr && (
             <RlsExpressionEditor
               label="Using Filter"
-              placeholder="例如：row.owner_id == auth.user_id"
+              placeholder={usingHelp.placeholder}
+              example={usingHelp.example}
+              availableFields={usingHelp.availableFields}
+              modelFields={modelFields}
+              authVariables={authVariables}
+              rootLabel={usingHelp.rootLabel}
+              docsHref={docsHref}
               value={usingExpr}
               onChange={setUsingExpr}
               exprType={getRlsExpressionType(action, 'using')}
@@ -154,7 +169,13 @@ export function PolicyEditorDialog({
           {showCheckExpr && (
             <RlsExpressionEditor
               label="Input Check"
-              placeholder="例如：input.owner_id == auth.user_id"
+              placeholder={checkHelp.placeholder}
+              example={checkHelp.example}
+              availableFields={checkHelp.availableFields}
+              modelFields={modelFields}
+              authVariables={authVariables}
+              rootLabel={checkHelp.rootLabel}
+              docsHref={docsHref}
               value={withCheckExpr}
               onChange={setWithCheckExpr}
               exprType={getRlsExpressionType(action, 'check')}
