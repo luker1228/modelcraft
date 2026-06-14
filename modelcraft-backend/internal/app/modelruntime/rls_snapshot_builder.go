@@ -2,11 +2,10 @@ package modelruntime
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"modelcraft/internal/domain/modelruntime"
 	"modelcraft/internal/domain/rls"
-	"modelcraft/internal/interfaces/http/middleware"
-	"modelcraft/pkg/logfacade"
 
 	"github.com/google/cel-go/cel"
 )
@@ -26,13 +25,12 @@ type PolicyResolver interface {
 
 // RLSSnapshotBuilder builds RLSPolicySnapshot at request entry.
 type RLSSnapshotBuilder struct {
-	logger    logfacade.Logger
 	policySvc PolicyResolver
 	celEnv    *cel.Env
 }
 
 // NewRLSSnapshotBuilder creates a new RLSSnapshotBuilder.
-func NewRLSSnapshotBuilder(logger logfacade.Logger, policySvc PolicyResolver) *RLSSnapshotBuilder {
+func NewRLSSnapshotBuilder(policySvc PolicyResolver) *RLSSnapshotBuilder {
 	env, err := cel.NewEnv(
 		cel.Variable("input", cel.MapType(cel.StringType, cel.DynType)),
 		cel.Variable("auth", cel.MapType(cel.StringType, cel.DynType)),
@@ -41,7 +39,6 @@ func NewRLSSnapshotBuilder(logger logfacade.Logger, policySvc PolicyResolver) *R
 		panic(fmt.Sprintf("failed to create CEL environment: %v", err))
 	}
 	return &RLSSnapshotBuilder{
-		logger:    logger,
 		policySvc: policySvc,
 		celEnv:    env,
 	}
@@ -53,14 +50,14 @@ func NewRLSSnapshotBuilder(logger logfacade.Logger, policySvc PolicyResolver) *R
 func (b *RLSSnapshotBuilder) Build(
 	ctx context.Context,
 	orgName, projectSlug, modelID string,
+	isDeveloper bool,
+	userCtx *rls.UserContext,
 ) (*modelruntime.RLSPolicySnapshot, error) {
 	// Developer JWT — no RLS
-	identity := middleware.GetEndUserIdentity(ctx)
-	if identity == nil || identity.IsDeveloper() {
+	if isDeveloper {
 		return nil, nil //nolint:nilnil
 	}
 
-	userCtx := middleware.GetUserContext(ctx)
 	if userCtx == nil {
 		userCtx = &rls.UserContext{}
 	}
@@ -117,8 +114,11 @@ func (b *RLSSnapshotBuilder) resolveUSING(
 ) (*modelruntime.RawSQLFilter, error) {
 	sql, params, err := b.policySvc.ResolveUsing(ctx, orgName, projectSlug, modelID, action, userCtx)
 	if err != nil {
-		// No matching policy for this action — that's ok, just no filter
-		return nil, nil //nolint:nilnil
+		// No matching policy for this action — no filter needed
+		if errors.Is(err, rls.ErrNoMatchingPolicy) {
+			return nil, nil //nolint:nilnil
+		}
+		return nil, err
 	}
 	if sql == "" || sql == "1=1" {
 		return nil, nil //nolint:nilnil
@@ -134,7 +134,7 @@ func (b *RLSSnapshotBuilder) compileCHECK(
 ) (*modelruntime.CheckProgram, error) {
 	expr, err := b.policySvc.GetCheckExpr(ctx, orgName, projectSlug, modelID, action, userCtx)
 	if err != nil {
-		return nil, nil //nolint:nilnil // no matching policy — no CHECK needed
+		return nil, nil //nolint:nilnil
 	}
 	if expr == "" {
 		return nil, nil //nolint:nilnil

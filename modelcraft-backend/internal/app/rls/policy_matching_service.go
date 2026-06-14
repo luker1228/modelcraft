@@ -43,7 +43,7 @@ func (s *PolicyMatchingService) ResolveUsing(
 	}
 
 	if len(policies) == 0 {
-		return "", nil, fmt.Errorf("RLS deny: no matching policy for action=%s, roles=%v", action, userCtx.Roles)
+		return "", nil, fmt.Errorf("%w: action=%s, roles=%v", rls.ErrNoMatchingPolicy, action, userCtx.Roles)
 	}
 
 	var orClauses []string

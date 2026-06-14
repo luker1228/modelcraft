@@ -1,6 +1,12 @@
 package rls
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+// ErrNoMatchingPolicy is returned when no RLS policy matches the request.
+var ErrNoMatchingPolicy = errors.New("RLS deny: no matching policy")
 
 // Action 操作类型
 type Action string
