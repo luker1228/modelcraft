@@ -26,7 +26,8 @@ func (m *mockPolicyRepo) ListByAction(ctx context.Context, orgName, projectSlug,
 }
 
 func TestMatch_MultipleRoles_OrMerge(t *testing.T) {
-	compiler := NewPolicyCompiler()
+	compiler := NewPolicyExpressionSQLCompiler()
+	evaluator := NewPolicyExpressionInputEvaluator()
 	repo := &mockPolicyRepo{policies: []*rls.Policy{
 		{
 			OrgName: "my-org", ProjectSlug: "my-proj", ModelID: "model-1",
@@ -39,7 +40,7 @@ func TestMatch_MultipleRoles_OrMerge(t *testing.T) {
 			UsingExpr: `{"tenant_id": {"equals": "{{user_id}}"}}`,
 		},
 	}}
-	svc := NewPolicyMatchingService(repo, compiler)
+	svc := NewPolicyMatchingService(repo, compiler, evaluator)
 
 	ctx := context.Background()
 	userCtx := &rls.UserContext{UserID: "123", Roles: []string{"admin", "user"}}
@@ -60,7 +61,8 @@ func TestMatch_MultipleRoles_OrMerge(t *testing.T) {
 }
 
 func TestMatch_NoMatchingPolicies_DenyAll(t *testing.T) {
-	compiler := NewPolicyCompiler()
+	compiler := NewPolicyExpressionSQLCompiler()
+	evaluator := NewPolicyExpressionInputEvaluator()
 	repo := &mockPolicyRepo{policies: []*rls.Policy{
 		{
 			OrgName: "my-org", ProjectSlug: "my-proj", ModelID: "model-1",
@@ -68,7 +70,7 @@ func TestMatch_NoMatchingPolicies_DenyAll(t *testing.T) {
 			UsingExpr: `true`,
 		},
 	}}
-	svc := NewPolicyMatchingService(repo, compiler)
+	svc := NewPolicyMatchingService(repo, compiler, evaluator)
 
 	ctx := context.Background()
 	userCtx := &rls.UserContext{Roles: []string{"user"}}
@@ -80,7 +82,8 @@ func TestMatch_NoMatchingPolicies_DenyAll(t *testing.T) {
 }
 
 func TestMatch_EmptyRole_MatchesDefault(t *testing.T) {
-	compiler := NewPolicyCompiler()
+	compiler := NewPolicyExpressionSQLCompiler()
+	evaluator := NewPolicyExpressionInputEvaluator()
 	repo := &mockPolicyRepo{policies: []*rls.Policy{
 		{
 			OrgName: "my-org", ProjectSlug: "my-proj", ModelID: "model-1",
@@ -88,7 +91,7 @@ func TestMatch_EmptyRole_MatchesDefault(t *testing.T) {
 			UsingExpr: `{"public": {"equals": true}}`,
 		},
 	}}
-	svc := NewPolicyMatchingService(repo, compiler)
+	svc := NewPolicyMatchingService(repo, compiler, evaluator)
 
 	ctx := context.Background()
 	// empty roles
@@ -109,7 +112,8 @@ func TestMatch_EmptyRole_MatchesDefault(t *testing.T) {
 }
 
 func TestResolveCheck_WithCheck(t *testing.T) {
-	compiler := NewPolicyCompiler()
+	compiler := NewPolicyExpressionSQLCompiler()
+	evaluator := NewPolicyExpressionInputEvaluator()
 	repo := &mockPolicyRepo{policies: []*rls.Policy{
 		{
 			OrgName: "my-org", ProjectSlug: "my-proj", ModelID: "model-1",
@@ -117,7 +121,7 @@ func TestResolveCheck_WithCheck(t *testing.T) {
 			WithCheckExpr: `{"owner_id": {"equals": "{{user_id}}"}}`,
 		},
 	}}
-	svc := NewPolicyMatchingService(repo, compiler)
+	svc := NewPolicyMatchingService(repo, compiler, evaluator)
 
 	ctx := context.Background()
 	userCtx := &rls.UserContext{UserID: "456", Roles: []string{"user"}}
@@ -137,7 +141,8 @@ func TestResolveCheck_WithCheck(t *testing.T) {
 }
 
 func TestResolveCheck_NoCheckExpr_Deny(t *testing.T) {
-	compiler := NewPolicyCompiler()
+	compiler := NewPolicyExpressionSQLCompiler()
+	evaluator := NewPolicyExpressionInputEvaluator()
 	repo := &mockPolicyRepo{policies: []*rls.Policy{
 		{
 			OrgName: "my-org", ProjectSlug: "my-proj", ModelID: "model-1",
@@ -145,7 +150,7 @@ func TestResolveCheck_NoCheckExpr_Deny(t *testing.T) {
 			WithCheckExpr: "", // empty
 		},
 	}}
-	svc := NewPolicyMatchingService(repo, compiler)
+	svc := NewPolicyMatchingService(repo, compiler, evaluator)
 
 	ctx := context.Background()
 	userCtx := &rls.UserContext{Roles: []string{"user"}}
@@ -161,5 +166,56 @@ func TestResolveCheck_NoCheckExpr_Deny(t *testing.T) {
 	}
 	if len(params) != 0 {
 		t.Errorf("expected 0 params, got %d", len(params))
+	}
+}
+
+func TestResolveUsing_WithCELExpression(t *testing.T) {
+	ctx := context.Background()
+	repo := &mockPolicyRepo{policies: []*rls.Policy{{
+		OrgName:     "my-org",
+		ProjectSlug: "my-proj",
+		ModelID:     "model-1",
+		PolicyName:  "owner_read",
+		Action:      rls.ActionRead,
+		Role:        "user",
+		UsingExpr:   `row.owner_id == auth.user_id`,
+	}}}
+	svc := NewPolicyMatchingService(repo, NewPolicyExpressionSQLCompiler(), NewPolicyExpressionInputEvaluator())
+
+	sql, params, err := svc.ResolveUsing(ctx, "my-org", "my-proj", "model-1", rls.ActionRead, &rls.UserContext{
+		UserID: "u_123",
+		Roles:  []string{"user"},
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sql != "(owner_id = ?)" {
+		t.Fatalf("expected CEL SQL, got %q", sql)
+	}
+	if len(params) != 1 || params[0] != "u_123" {
+		t.Fatalf("expected params [u_123], got %v", params)
+	}
+}
+
+func TestValidateCheck_WithCELExpression(t *testing.T) {
+	ctx := context.Background()
+	repo := &mockPolicyRepo{policies: []*rls.Policy{{
+		OrgName:       "my-org",
+		ProjectSlug:   "my-proj",
+		ModelID:       "model-1",
+		PolicyName:    "owner_create",
+		Action:        rls.ActionCreate,
+		Role:          "user",
+		WithCheckExpr: `input.owner_id == auth.user_id`,
+	}}}
+	svc := NewPolicyMatchingService(repo, NewPolicyExpressionSQLCompiler(), NewPolicyExpressionInputEvaluator())
+
+	err := svc.ValidateCheck(ctx, "my-org", "my-proj", "model-1", rls.ActionCreate,
+		map[string]any{"owner_id": "u_123"},
+		&rls.UserContext{UserID: "u_123", Roles: []string{"user"}},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

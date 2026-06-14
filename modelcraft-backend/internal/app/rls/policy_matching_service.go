@@ -12,15 +12,24 @@ type PolicyRepository interface {
 	ListByAction(ctx context.Context, orgName, projectSlug, modelID string, action rls.Action, roles []string) ([]*rls.Policy, error)
 }
 
+type usingCompiler interface {
+	CompileUsing(ctx context.Context, expr string, userCtx *rls.UserContext) (*rls.CompiledPolicy, error)
+}
+
+type inputCheckEvaluator interface {
+	ValidateInput(ctx context.Context, expr string, input map[string]any, userCtx *rls.UserContext) error
+}
+
 // PolicyMatchingService 策略匹配 + OR 合并引擎
 type PolicyMatchingService struct {
-	repo     PolicyRepository
-	compiler rls.PolicyCompiler
+	repo           PolicyRepository
+	usingCompiler  usingCompiler
+	checkEvaluator inputCheckEvaluator
 }
 
 // NewPolicyMatchingService 创建 PolicyMatchingService
-func NewPolicyMatchingService(repo PolicyRepository, compiler rls.PolicyCompiler) *PolicyMatchingService {
-	return &PolicyMatchingService{repo: repo, compiler: compiler}
+func NewPolicyMatchingService(repo PolicyRepository, usingCompiler usingCompiler, checkEvaluator inputCheckEvaluator) *PolicyMatchingService {
+	return &PolicyMatchingService{repo: repo, usingCompiler: usingCompiler, checkEvaluator: checkEvaluator}
 }
 
 // ResolveUsing 匹配策略并 OR 合并 using 表达式
@@ -42,15 +51,11 @@ func (s *PolicyMatchingService) ResolveUsing(
 
 	for _, p := range policies {
 		expr := p.UsingExpr
-		if action == rls.ActionCreate {
-			expr = p.WithCheckExpr
-		}
-
 		if expr == "" {
 			continue
 		}
 
-		compiled, err := s.compiler.Compile(ctx, expr, userCtx)
+		compiled, err := s.usingCompiler.CompileUsing(ctx, string(expr), userCtx)
 		if err != nil {
 			return "", nil, fmt.Errorf("compile policy %q: %w", p.PolicyName, err)
 		}
@@ -65,6 +70,34 @@ func (s *PolicyMatchingService) ResolveUsing(
 	return strings.Join(orClauses, " OR "), allParams, nil
 }
 
+func (s *PolicyMatchingService) ValidateCheck(
+	ctx context.Context,
+	orgName, projectSlug, modelID string,
+	action rls.Action,
+	input map[string]any,
+	userCtx *rls.UserContext,
+) error {
+	policies, err := s.repo.ListByAction(ctx, orgName, projectSlug, modelID, action, userCtx.Roles)
+	if err != nil {
+		return err
+	}
+	if len(policies) == 0 {
+		return fmt.Errorf("RLS deny: no matching policy for action=%s", action)
+	}
+
+	for _, p := range policies {
+		if p.WithCheckExpr == "" {
+			continue
+		}
+		if err := s.checkEvaluator.ValidateInput(ctx, string(p.WithCheckExpr), input, userCtx); err == nil {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("RLS CHECK violation: no matching input check policy passed")
+}
+
+// ResolveCheck is deprecated during the CEL transition. New write paths should use ValidateCheck.
 // ResolveCheck 匹配策略并 OR 合并 withCheck 表达式
 func (s *PolicyMatchingService) ResolveCheck(
 	ctx context.Context, orgName, projectSlug, modelID string,
@@ -88,7 +121,7 @@ func (s *PolicyMatchingService) ResolveCheck(
 			continue
 		}
 
-		compiled, err := s.compiler.Compile(ctx, expr, userCtx)
+		compiled, err := s.usingCompiler.CompileUsing(ctx, string(expr), userCtx)
 		if err != nil {
 			return "", nil, fmt.Errorf("compile check expression for policy %q: %w", p.PolicyName, err)
 		}
@@ -110,4 +143,5 @@ var _ MatchingService = (*PolicyMatchingService)(nil)
 type MatchingService interface {
 	ResolveUsing(ctx context.Context, orgName, projectSlug, modelID string, action rls.Action, userCtx *rls.UserContext) (string, []interface{}, error)
 	ResolveCheck(ctx context.Context, orgName, projectSlug, modelID string, action rls.Action, userCtx *rls.UserContext) (string, []interface{}, error)
+	ValidateCheck(ctx context.Context, orgName, projectSlug, modelID string, action rls.Action, input map[string]any, userCtx *rls.UserContext) error
 }

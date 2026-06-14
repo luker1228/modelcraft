@@ -240,8 +240,9 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	// Create RLS related services (V2: multi-policy matching)
 	policyRepo := rlsRepo.NewSqlPolicyRepository(dbgen.New(loggingDB))
 	authSchemaRepo := rlsRepo.NewSqlAuthSchemaRepository(dbgen.New(loggingDB))
-	rlsPolicyCompiler := rls.NewPolicyCompiler()
-	rlsMatchingSvc := rls.NewPolicyMatchingService(policyRepo, rlsPolicyCompiler)
+	rlsUsingCompiler := rls.NewPolicyExpressionSQLCompiler()
+	rlsCheckEvaluator := rls.NewPolicyExpressionInputEvaluator()
+	rlsMatchingSvc := rls.NewPolicyMatchingService(policyRepo, rlsUsingCompiler, rlsCheckEvaluator)
 	_ = rlsMatchingSvc // Wired into RLSResolver when runtime handler integration completes
 	authSchemaAppService := rls.NewAuthSchemaAppService(authSchemaRepo, projectRepository)
 
