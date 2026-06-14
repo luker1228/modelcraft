@@ -30,6 +30,7 @@ interface UseRlsPolicyManageReturn {
   validateRlsExpression: (input: {
     expression: string
     exprType: RlsExprType
+    sampleInput?: string
   }) => Promise<{ success: boolean; message?: string }>
   upserting: boolean
   deleting: boolean
@@ -85,13 +86,14 @@ export function useRlsPolicyManage({ projectSlug, modelId }: UseRlsPolicyManageP
   )
 
   const validateRlsExpression = useCallback(
-    async (input: { expression: string; exprType: RlsExprType }) => {
+    async (input: { expression: string; exprType: RlsExprType; sampleInput?: string }) => {
       const result = await validateMutation({
         variables: {
           input: {
             modelId,
             exprType: input.exprType,
             expression: input.expression,
+            sampleInput: input.sampleInput ?? null,
           },
         },
       })
@@ -113,6 +115,22 @@ export function useRlsPolicyManage({ projectSlug, modelId }: UseRlsPolicyManageP
           message: firstError
             ? `${firstError.path ? `${firstError.path}: ` : ''}${firstError.message}`
             : '表达式校验未通过',
+        }
+      }
+
+      const dryRun = payload?.dryRun
+      if (dryRun?.sql) {
+        const rawParams: unknown[] = Array.isArray(dryRun.params) ? [...dryRun.params] : []
+        const dryRunParams = rawParams.filter((param): param is string => typeof param === 'string')
+        return {
+          success: true,
+          message: `${dryRun.sql}${dryRunParams.length ? ` | params: ${dryRunParams.join(', ')}` : ''}`,
+        }
+      }
+      if (typeof dryRun?.result === 'boolean') {
+        return {
+          success: dryRun.result,
+          message: dryRun.result ? 'Input Check 返回 true' : 'Input Check 返回 false',
         }
       }
 

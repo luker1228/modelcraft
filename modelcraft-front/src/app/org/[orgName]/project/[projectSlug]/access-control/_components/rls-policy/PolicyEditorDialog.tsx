@@ -24,6 +24,8 @@ import type { RlsAction, RlsExprType } from '@/generated/graphql'
 import { RlsExpressionEditor } from './RlsExpressionEditor'
 import {
   getRlsExpressionType,
+  shouldShowRlsCheckExpression,
+  shouldShowRlsUsingExpression,
   validateRlsExpressionSyntax,
 } from './rls-expression-utils'
 
@@ -58,6 +60,8 @@ export function PolicyEditorDialog({
   const [role, setRole] = React.useState('')
   const [usingExpr, setUsingExpr] = React.useState('')
   const [withCheckExpr, setWithCheckExpr] = React.useState('')
+  const showUsingExpr = shouldShowRlsUsingExpression(action)
+  const showCheckExpr = shouldShowRlsCheckExpression(action)
 
   React.useEffect(() => {
     if (open) {
@@ -72,17 +76,21 @@ export function PolicyEditorDialog({
   const handleSave = async () => {
     if (!policyName.trim()) { toast.error('请输入策略名称'); return }
     if (!role.trim()) { toast.error('请输入角色'); return }
-    const usingSyntax = validateRlsExpressionSyntax(usingExpr)
-    if (!usingSyntax.valid) { toast.error(`Using Expr ${usingSyntax.message}`); return }
-    const checkSyntax = validateRlsExpressionSyntax(withCheckExpr)
-    if (!checkSyntax.valid) { toast.error(`Check Expr ${checkSyntax.message}`); return }
+    if (showUsingExpr) {
+      const usingSyntax = validateRlsExpressionSyntax(usingExpr)
+      if (!usingSyntax.valid) { toast.error(`Using Filter ${usingSyntax.message}`); return }
+    }
+    if (showCheckExpr) {
+      const checkSyntax = validateRlsExpressionSyntax(withCheckExpr)
+      if (!checkSyntax.valid) { toast.error(`Input Check ${checkSyntax.message}`); return }
+    }
 
     await onSave({
       policyName: policyName.trim(),
       action,
       role: role.trim(),
-      usingExpr: usingExpr.trim() || undefined,
-      withCheckExpr: withCheckExpr.trim() || undefined,
+      usingExpr: showUsingExpr ? usingExpr.trim() || undefined : undefined,
+      withCheckExpr: showCheckExpr ? withCheckExpr.trim() || undefined : undefined,
     })
   }
 
@@ -132,21 +140,27 @@ export function PolicyEditorDialog({
             </div>
           </div>
 
-          <RlsExpressionEditor
-            label="Using Expr"
-            value={usingExpr}
-            onChange={setUsingExpr}
-            exprType={getRlsExpressionType(action, 'using')}
-            onDryRun={onDryRun}
-          />
+          {showUsingExpr && (
+            <RlsExpressionEditor
+              label="Using Filter"
+              placeholder="例如：row.owner_id == auth.user_id"
+              value={usingExpr}
+              onChange={setUsingExpr}
+              exprType={getRlsExpressionType(action, 'using')}
+              onDryRun={onDryRun}
+            />
+          )}
 
-          <RlsExpressionEditor
-            label="Check Expr"
-            value={withCheckExpr}
-            onChange={setWithCheckExpr}
-            exprType={getRlsExpressionType(action, 'check')}
-            onDryRun={onDryRun}
-          />
+          {showCheckExpr && (
+            <RlsExpressionEditor
+              label="Input Check"
+              placeholder="例如：input.owner_id == auth.user_id"
+              value={withCheckExpr}
+              onChange={setWithCheckExpr}
+              exprType={getRlsExpressionType(action, 'check')}
+              onDryRun={onDryRun}
+            />
+          )}
         </div>
         <SheetFooter className="border-t border-border px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>

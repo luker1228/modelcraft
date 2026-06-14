@@ -10,27 +10,28 @@ export function validateRlsExpressionSyntax(value: string): SyntaxResult {
   const trimmed = value.trim()
   if (!trimmed) return { valid: true, empty: true }
 
-  try {
-    const parsed: unknown = JSON.parse(trimmed)
-    const isObject = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
-    const isBoolean = typeof parsed === 'boolean'
-
-    if (isObject || isBoolean) {
-      return { valid: true, empty: false }
-    }
-
+  if (trimmed.startsWith('{')) {
     return {
       valid: false,
       empty: false,
-      message: '表达式必须是 JSON 对象或布尔常量',
-    }
-  } catch (error) {
-    return {
-      valid: false,
-      empty: false,
-      message: error instanceof Error ? `JSON 语法错误：${error.message}` : 'JSON 语法错误',
+      message: '请输入 CEL 表达式，例如 row.owner_id == auth.user_id',
     }
   }
+
+  if (trimmed === 'true' || trimmed === 'false') {
+    return { valid: true, empty: false }
+  }
+
+  const hasAllowedRoot = /\b(row|input|auth)\.[A-Za-z_][A-Za-z0-9_]*/.test(trimmed)
+  if (!hasAllowedRoot) {
+    return {
+      valid: false,
+      empty: false,
+      message: '表达式需要引用 row、input 或 auth',
+    }
+  }
+
+  return { valid: true, empty: false }
 }
 
 export function getRlsExpressionType(action: RlsAction, kind: RlsExpressionKind): RlsExprType {
@@ -41,4 +42,12 @@ export function getRlsExpressionType(action: RlsAction, kind: RlsExpressionKind)
   if (action === 'update') return 'UPDATE_PREDICATE'
   if (action === 'delete') return 'DELETE_PREDICATE'
   return 'SELECT_PREDICATE'
+}
+
+export function shouldShowRlsUsingExpression(action: RlsAction): boolean {
+  return action === 'read' || action === 'update' || action === 'delete'
+}
+
+export function shouldShowRlsCheckExpression(action: RlsAction): boolean {
+  return action === 'create' || action === 'update'
 }

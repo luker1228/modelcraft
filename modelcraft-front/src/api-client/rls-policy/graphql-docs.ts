@@ -82,6 +82,11 @@ export const VALIDATE_RLS_EXPR = gql`
           variable
         }
       }
+      dryRun {
+        sql
+        params
+        result
+      }
     }
   }
 `

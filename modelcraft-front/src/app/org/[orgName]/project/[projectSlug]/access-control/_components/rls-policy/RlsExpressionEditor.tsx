@@ -15,14 +15,16 @@ interface DryRunResult {
 
 interface RlsExpressionEditorProps {
   label: string
+  placeholder: string
   value: string
   onChange: (value: string) => void
   exprType: RlsExprType
-  onDryRun?: (input: { expression: string; exprType: RlsExprType }) => Promise<DryRunResult>
+  onDryRun?: (input: { expression: string; exprType: RlsExprType; sampleInput?: string }) => Promise<DryRunResult>
 }
 
 export function RlsExpressionEditor({
   label,
+  placeholder,
   value,
   onChange,
   exprType,
@@ -71,7 +73,7 @@ export function RlsExpressionEditor({
     return {
       tone: 'success' as const,
       icon: <CheckCircle2 className="size-3.5" strokeWidth={1.5} />,
-      text: 'JSON 语法通过',
+      text: 'CEL 语法初步通过',
     }
   })()
 
@@ -98,7 +100,7 @@ export function RlsExpressionEditor({
       <Textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder='例如：{"owner_id": {"equals": "{{user_id}}"}}'
+        placeholder={placeholder}
         rows={6}
         className="min-h-[150px] font-mono text-xs leading-5"
       />
