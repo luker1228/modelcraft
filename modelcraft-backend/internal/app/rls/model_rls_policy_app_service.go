@@ -2,6 +2,7 @@ package rls
 
 import (
 	"context"
+	"fmt"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/rls"
 	"modelcraft/pkg/bizerrors"
@@ -144,4 +145,56 @@ func (s *ModelRLSPolicyAppService) ValidateExpr(ctx context.Context, orgName, pr
 	}
 
 	return s.validator.Validate(ctx, expr, exprType, model, authSchema)
+}
+
+func (s *ModelRLSPolicyAppService) DryRunExpr(
+	ctx context.Context,
+	orgName, projectSlug, modelID string,
+	exprType rls.ExprType,
+	expression string,
+	sampleInput map[string]any,
+	userCtx *rls.UserContext,
+) PolicyExpressionDryRunResult {
+	validationErrors := s.ValidateExpr(ctx, orgName, projectSlug, modelID, exprType, rls.JsonExpr(expression))
+	if len(validationErrors) > 0 {
+		result := PolicyExpressionDryRunResult{Valid: false}
+		for _, err := range validationErrors {
+			result.Errors = append(result.Errors, PolicyExpressionError{
+				Path:    err.Path,
+				Message: err.Message,
+				Code:    err.Code,
+			})
+		}
+		return result
+	}
+
+	result := PolicyExpressionDryRunResult{Valid: true}
+	if exprType.IsPredicate() {
+		compiled, err := NewPolicyExpressionSQLCompiler().CompileUsing(ctx, expression, userCtx)
+		if err != nil {
+			result.Valid = false
+			result.Errors = []PolicyExpressionError{{
+				Message: err.Error(),
+				Code:    "DRY_RUN_FAILED",
+			}}
+			return result
+		}
+		result.SQL = compiled.SQL
+		result.Params = compiled.Params
+		return result
+	}
+
+	if sampleInput == nil {
+		sampleInput = map[string]any{}
+	}
+	err := NewPolicyExpressionInputEvaluator().ValidateInput(ctx, expression, sampleInput, userCtx)
+	checkResult := err == nil
+	result.Result = &checkResult
+	if err != nil {
+		result.Errors = []PolicyExpressionError{{
+			Message: fmt.Sprintf("%v", err),
+			Code:    "DRY_RUN_FAILED",
+		}}
+	}
+	return result
 }

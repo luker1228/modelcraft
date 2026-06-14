@@ -1562,6 +1562,12 @@ type RLSCheckViolation struct {
 func (RLSCheckViolation) IsError()                {}
 func (this RLSCheckViolation) GetMessage() string { return this.Message }
 
+type RLSExprDryRun struct {
+	SQL    *string  `json:"sql,omitempty"`
+	Params []string `json:"params,omitempty"`
+	Result *bool    `json:"result,omitempty"`
+}
+
 type RawDatabase struct {
 	Name         string `json:"name"`
 	IsRegistered bool   `json:"isRegistered"`
@@ -2042,11 +2048,14 @@ type ValidateRLSExprInput struct {
 	ExprType RLSExprType `json:"exprType"`
 	// 表达式 JSON 字符串
 	Expression string `json:"expression"`
+	// check 表达式 dry run 时使用的示例输入 JSON
+	SampleInput *string `json:"sampleInput,omitempty"`
 }
 
 type ValidateRLSExprPayload struct {
 	Result *ValidationResult    `json:"result"`
 	Error  ValidateRLSExprError `json:"error,omitempty"`
+	DryRun *RLSExprDryRun       `json:"dryRun,omitempty"`
 }
 
 type ValidationConfig struct {

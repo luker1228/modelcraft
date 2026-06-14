@@ -6,9 +6,12 @@ package projectgraphql
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	appRLS "modelcraft/internal/app/rls"
 	domainRLS "modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/graphql/project/generated"
+	"modelcraft/internal/interfaces/http/middleware"
 	"modelcraft/pkg/bizerrors"
 )
 
@@ -73,11 +76,49 @@ func (r *mutationResolver) ValidateRLSExpr(ctx context.Context, input generated.
 		})
 	}
 
+	var sampleInput map[string]any
+	if input.SampleInput != nil && *input.SampleInput != "" {
+		if err := json.Unmarshal([]byte(*input.SampleInput), &sampleInput); err != nil {
+			graphqlErrors = append(graphqlErrors, &generated.ValidationError{
+				Path:    "sampleInput",
+				Message: err.Error(),
+				Code:    "INVALID_SAMPLE_INPUT",
+			})
+		}
+	}
+
+	dryRunResult := r.RLSPolicyAppService.DryRunExpr(
+		ctx,
+		orgName,
+		projectSlug,
+		input.ModelID,
+		domainRLS.ExprType(exprType),
+		input.Expression,
+		sampleInput,
+		middleware.GetUserContext(ctx),
+	)
+
+	var dryRun *generated.RLSExprDryRun
+	if dryRunResult.Valid {
+		dryRun = &generated.RLSExprDryRun{
+			SQL:    stringPtrIfNotEmpty(dryRunResult.SQL),
+			Result: dryRunResult.Result,
+		}
+		if len(dryRunResult.Params) > 0 {
+			params := make([]string, 0, len(dryRunResult.Params))
+			for _, param := range dryRunResult.Params {
+				params = append(params, fmt.Sprint(param))
+			}
+			dryRun.Params = params
+		}
+	}
+
 	return &generated.ValidateRLSExprPayload{
 		Result: &generated.ValidationResult{
-			Valid:  len(validationErrors) == 0,
+			Valid:  len(graphqlErrors) == 0,
 			Errors: graphqlErrors,
 		},
+		DryRun: dryRun,
 	}, nil
 }
 

@@ -935,6 +935,12 @@ type ComplexityRoot struct {
 		Operation func(childComplexity int) int
 	}
 
+	RLSExprDryRun struct {
+		Params func(childComplexity int) int
+		Result func(childComplexity int) int
+		SQL    func(childComplexity int) int
+	}
+
 	RawDatabase struct {
 		IsRegistered func(childComplexity int) int
 		Name         func(childComplexity int) int
@@ -1131,6 +1137,7 @@ type ComplexityRoot struct {
 	}
 
 	ValidateRLSExprPayload struct {
+		DryRun func(childComplexity int) int
 		Error  func(childComplexity int) int
 		Result func(childComplexity int) int
 	}
@@ -4850,6 +4857,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.RLSCheckViolation.Operation(childComplexity), true
 
+	case "RLSExprDryRun.params":
+		if e.complexity.RLSExprDryRun.Params == nil {
+			break
+		}
+
+		return e.complexity.RLSExprDryRun.Params(childComplexity), true
+	case "RLSExprDryRun.result":
+		if e.complexity.RLSExprDryRun.Result == nil {
+			break
+		}
+
+		return e.complexity.RLSExprDryRun.Result(childComplexity), true
+	case "RLSExprDryRun.sql":
+		if e.complexity.RLSExprDryRun.SQL == nil {
+			break
+		}
+
+		return e.complexity.RLSExprDryRun.SQL(childComplexity), true
+
 	case "RawDatabase.isRegistered":
 		if e.complexity.RawDatabase.IsRegistered == nil {
 			break
@@ -5425,6 +5451,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.UserRoleAlreadyAssigned.Message(childComplexity), true
 
+	case "ValidateRLSExprPayload.dryRun":
+		if e.complexity.ValidateRLSExprPayload.DryRun == nil {
+			break
+		}
+
+		return e.complexity.ValidateRLSExprPayload.DryRun(childComplexity), true
 	case "ValidateRLSExprPayload.error":
 		if e.complexity.ValidateRLSExprPayload.Error == nil {
 			break
@@ -7968,6 +8000,13 @@ type SetModelRLSPolicyPayload {
 type ValidateRLSExprPayload {
   result: ValidationResult!
   error: ValidateRLSExprError
+  dryRun: RLSExprDryRun
+}
+
+type RLSExprDryRun {
+  sql: String
+  params: [String!]
+  result: Boolean
 }
 
 type SetProjectAuthSchemaPayload {
@@ -8026,6 +8065,11 @@ input ValidateRLSExprInput {
   表达式 JSON 字符串
   """
   expression: String!
+
+  """
+  check 表达式 dry run 时使用的示例输入 JSON
+  """
+  sampleInput: String
 }
 
 input AuthVariableInput {
@@ -25649,6 +25693,8 @@ func (ec *executionContext) fieldContext_Mutation_validateRLSExpr(ctx context.Co
 				return ec.fieldContext_ValidateRLSExprPayload_result(ctx, field)
 			case "error":
 				return ec.fieldContext_ValidateRLSExprPayload_error(ctx, field)
+			case "dryRun":
+				return ec.fieldContext_ValidateRLSExprPayload_dryRun(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ValidateRLSExprPayload", field.Name)
 		},
@@ -29027,6 +29073,93 @@ func (ec *executionContext) fieldContext_RLSCheckViolation_operation(_ context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _RLSExprDryRun_sql(ctx context.Context, field graphql.CollectedField, obj *RLSExprDryRun) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RLSExprDryRun_sql,
+		func(ctx context.Context) (any, error) {
+			return obj.SQL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RLSExprDryRun_sql(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RLSExprDryRun",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RLSExprDryRun_params(ctx context.Context, field graphql.CollectedField, obj *RLSExprDryRun) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RLSExprDryRun_params,
+		func(ctx context.Context) (any, error) {
+			return obj.Params, nil
+		},
+		nil,
+		ec.marshalOString2ᚕstringᚄ,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RLSExprDryRun_params(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RLSExprDryRun",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RLSExprDryRun_result(ctx context.Context, field graphql.CollectedField, obj *RLSExprDryRun) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RLSExprDryRun_result,
+		func(ctx context.Context) (any, error) {
+			return obj.Result, nil
+		},
+		nil,
+		ec.marshalOBoolean2ᚖbool,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RLSExprDryRun_result(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RLSExprDryRun",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _RawDatabase_name(ctx context.Context, field graphql.CollectedField, obj *RawDatabase) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -32194,6 +32327,43 @@ func (ec *executionContext) fieldContext_ValidateRLSExprPayload_error(_ context.
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ValidateRLSExprError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ValidateRLSExprPayload_dryRun(ctx context.Context, field graphql.CollectedField, obj *ValidateRLSExprPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ValidateRLSExprPayload_dryRun,
+		func(ctx context.Context) (any, error) {
+			return obj.DryRun, nil
+		},
+		nil,
+		ec.marshalORLSExprDryRun2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRLSExprDryRun,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ValidateRLSExprPayload_dryRun(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ValidateRLSExprPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "sql":
+				return ec.fieldContext_RLSExprDryRun_sql(ctx, field)
+			case "params":
+				return ec.fieldContext_RLSExprDryRun_params(ctx, field)
+			case "result":
+				return ec.fieldContext_RLSExprDryRun_result(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RLSExprDryRun", field.Name)
 		},
 	}
 	return fc, nil
@@ -36518,7 +36688,7 @@ func (ec *executionContext) unmarshalInputValidateRLSExprInput(ctx context.Conte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"modelId", "exprType", "expression"}
+	fieldsInOrder := [...]string{"modelId", "exprType", "expression", "sampleInput"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -36546,6 +36716,13 @@ func (ec *executionContext) unmarshalInputValidateRLSExprInput(ctx context.Conte
 				return it, err
 			}
 			it.Expression = data
+		case "sampleInput":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sampleInput"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SampleInput = data
 		}
 	}
 
@@ -45505,6 +45682,46 @@ func (ec *executionContext) _RLSCheckViolation(ctx context.Context, sel ast.Sele
 	return out
 }
 
+var rLSExprDryRunImplementors = []string{"RLSExprDryRun"}
+
+func (ec *executionContext) _RLSExprDryRun(ctx context.Context, sel ast.SelectionSet, obj *RLSExprDryRun) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, rLSExprDryRunImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RLSExprDryRun")
+		case "sql":
+			out.Values[i] = ec._RLSExprDryRun_sql(ctx, field, obj)
+		case "params":
+			out.Values[i] = ec._RLSExprDryRun_params(ctx, field, obj)
+		case "result":
+			out.Values[i] = ec._RLSExprDryRun_result(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var rawDatabaseImplementors = []string{"RawDatabase"}
 
 func (ec *executionContext) _RawDatabase(ctx context.Context, sel ast.SelectionSet, obj *RawDatabase) graphql.Marshaler {
@@ -47025,6 +47242,8 @@ func (ec *executionContext) _ValidateRLSExprPayload(ctx context.Context, sel ast
 			}
 		case "error":
 			out.Values[i] = ec._ValidateRLSExprPayload_error(ctx, field, obj)
+		case "dryRun":
+			out.Values[i] = ec._ValidateRLSExprPayload_dryRun(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -52070,6 +52289,13 @@ func (ec *executionContext) marshalOProjectEndUserRoleUserConnection2ᚖmodelcra
 	return ec._ProjectEndUserRoleUserConnection(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalORLSExprDryRun2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRLSExprDryRun(ctx context.Context, sel ast.SelectionSet, v *RLSExprDryRun) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._RLSExprDryRun(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalORLSPreset2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRLSPreset(ctx context.Context, v any) (*RLSPreset, error) {
 	if v == nil {
 		return nil, nil
@@ -52206,6 +52432,42 @@ func (ec *executionContext) marshalOSetProjectAuthSchemaError2modelcraftᚋinter
 		return graphql.Null
 	}
 	return ec._SetProjectAuthSchemaError(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {
