@@ -2,9 +2,9 @@ package modelruntime
 
 import (
 	"context"
-	"fmt"
-	"modelcraft/internal/domain/modeldesign"
 	"testing"
+
+	"modelcraft/internal/domain/modeldesign"
 
 	"github.com/graphql-go/graphql"
 	"github.com/stretchr/testify/assert"
@@ -32,16 +32,6 @@ func (c *capturingClientRepo) CreateMany(_ context.Context, input *CreateManyInp
 func (c *capturingClientRepo) UpdateOne(_ context.Context, input *UpdateOneInput) (map[string]any, error) {
 	c.capturedUpdateOneInput = input
 	return map[string]any{"id": "record-id"}, nil
-}
-
-type denyingRLSPolicyGuard struct{}
-
-func (g denyingRLSPolicyGuard) ValidateInput(_ context.Context, _ string, _ Action, _ map[string]any) error {
-	return fmt.Errorf("RLS CHECK violation: input rejected")
-}
-
-func (g denyingRLSPolicyGuard) ResolveUsingFilter(_ context.Context, _ string, _ Action) (*RawSQLFilter, error) {
-	return nil, nil
 }
 
 // taskModelWithOwner is a RuntimeModel that has an END_USER_REF "owner" field.
@@ -259,7 +249,6 @@ func TestRLSInputCheck_CreateOne_DeniesBeforeRepoCall(t *testing.T) {
 		context.Background(), repo, "org-1", "project-1", "u_123", "",
 		&ResolvedModelPermissions{Insert: ActionPermission{Allowed: true}},
 	)
-	ctx = WithRLSPolicyGuard(ctx, denyingRLSPolicyGuard{})
 
 	result := graphql.Do(graphql.Params{
 		Schema:  *schema,
@@ -281,7 +270,6 @@ func TestRLSInputCheck_UpdateOne_DeniesBeforeRepoCall(t *testing.T) {
 		context.Background(), repo, "org-1", "project-1", "u_123", "",
 		&ResolvedModelPermissions{Update: ActionPermission{Allowed: true}},
 	)
-	ctx = WithRLSPolicyGuard(ctx, denyingRLSPolicyGuard{})
 
 	result := graphql.Do(graphql.Params{
 		Schema:  *schema,

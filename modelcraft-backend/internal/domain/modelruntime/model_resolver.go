@@ -5,13 +5,14 @@ import (
 	"database/sql"
 	"fmt"
 	"maps"
+	"time"
+
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/logfacade"
 	"modelcraft/pkg/requestcontext"
-	"time"
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/gqlerrors"
@@ -50,32 +51,6 @@ func newGraphqlModelResolver(ctx context.Context, model *RuntimeModel,
 // 空字符串表示该 model 无 owner 字段，SELF scope 降级为 ALL（不注入 WHERE）。
 func (m *graphqlModelResolver) endUserRefFieldName() string {
 	return FindEndUserRefFieldName(m.model.Fields)
-}
-
-func (m *graphqlModelResolver) runtimeModelID() string {
-	if m.model.ID != "" {
-		return m.model.ID
-	}
-	return m.model.Name
-}
-
-func (m *graphqlModelResolver) appendRLSUsingFilter(
-	ctx context.Context,
-	rctx *graphqlRequestContext,
-	action Action,
-	filters []RawSQLFilter,
-) ([]RawSQLFilter, error) {
-	if rctx == nil || rctx.RLSPolicyGuard == nil {
-		return filters, nil
-	}
-	filter, err := rctx.RLSPolicyGuard.ResolveUsingFilter(ctx, m.runtimeModelID(), action)
-	if err != nil {
-		return filters, err
-	}
-	if filter == nil {
-		return filters, nil
-	}
-	return append(filters, *filter), nil
 }
 
 func (m *graphqlModelResolver) newGraphqlSchema(ctx context.Context) (*graphql.Schema, error) {
@@ -125,10 +100,6 @@ func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (inter
 		rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID,
 	); rf != nil {
 		maps.Copy(input.Where, rf)
-	}
-	input.RawFilters, err = m.appendRLSUsingFilter(p.Context, rctx, ActionSelect, input.RawFilters)
-	if err != nil {
-		return nil, err
 	}
 	result, err := rctx.ClientRepo.FindUnique(p.Context, input)
 	if err != nil {
@@ -242,10 +213,6 @@ func (m *graphqlModelResolver) executeFindFirst(p graphql.ResolveParams) (any, e
 	); rf != nil {
 		maps.Copy(input.Where, rf)
 	}
-	input.RawFilters, err = m.appendRLSUsingFilter(p.Context, rctx, ActionSelect, input.RawFilters)
-	if err != nil {
-		return nil, err
-	}
 	result, err := rctx.ClientRepo.FindFirst(p.Context, input)
 	if err != nil {
 		if bizerrors.Is(err, sql.ErrNoRows) {
@@ -307,10 +274,6 @@ func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[str
 		rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID,
 	); rf != nil {
 		maps.Copy(input.Where, rf)
-	}
-	input.RawFilters, err = m.appendRLSUsingFilter(p.Context, rctx, ActionSelect, input.RawFilters)
-	if err != nil {
-		return nil, err
 	}
 	result, err := rctx.ClientRepo.FindMany(p.Context, input)
 	if err != nil {
@@ -380,10 +343,6 @@ func (m *graphqlModelResolver) executeAggregate(p graphql.ResolveParams) (map[st
 		return nil, err
 	}
 	input, err := newAggregateInput(m.model.Name, p)
-	if err != nil {
-		return nil, err
-	}
-	input.RawFilters, err = m.appendRLSUsingFilter(p.Context, rctx, ActionSelect, input.RawFilters)
 	if err != nil {
 		return nil, err
 	}
@@ -1454,10 +1413,6 @@ func (m *graphqlModelResolver) executeListByCursor(p graphql.ResolveParams) (map
 	); rf != nil {
 		maps.Copy(input.Where, rf)
 	}
-	input.RawFilters, err = m.appendRLSUsingFilter(p.Context, rctx, ActionSelect, input.RawFilters)
-	if err != nil {
-		return nil, err
-	}
 
 	// Fetch limit+1 rows to detect hasNextPage
 	rows, err := rctx.ClientRepo.ListByCursor(p.Context, input)
@@ -1541,10 +1496,6 @@ func (m *graphqlModelResolver) executeListByPage(p graphql.ResolveParams) (map[s
 		rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID,
 	); rf != nil {
 		maps.Copy(findManyInput.Where, rf)
-	}
-	findManyInput.RawFilters, err = m.appendRLSUsingFilter(p.Context, rctx, ActionSelect, findManyInput.RawFilters)
-	if err != nil {
-		return nil, err
 	}
 
 	items, err := rctx.ClientRepo.FindMany(p.Context, findManyInput)
@@ -1696,15 +1647,6 @@ func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interf
 	if err := enforceOwnerOnCreate(rctx, m.model.Fields, input.Data); err != nil {
 		return nil, err
 	}
-	if rctx.RLSPolicyGuard != nil {
-		modelID := m.model.ID
-		if modelID == "" {
-			modelID = m.model.Name
-		}
-		if err := rctx.RLSPolicyGuard.ValidateInput(p.Context, modelID, ActionInsert, input.Data); err != nil {
-			return nil, err
-		}
-	}
 
 	input.Id = cast.ToString(input.Data[FieldID])
 
@@ -1791,23 +1733,10 @@ func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interf
 			}
 		}
 	}
-	if rctx.RLSPolicyGuard != nil {
-		modelID := m.model.ID
-		if modelID == "" {
-			modelID = m.model.Name
-		}
-		if err := rctx.RLSPolicyGuard.ValidateInput(p.Context, modelID, ActionUpdate, input.Data); err != nil {
-			return nil, err
-		}
-	}
 	if rf := BuildRowFilter(
 		rctx.EndUserPerms, ActionUpdate, m.endUserRefFieldName(), rctx.CurrentEndUserID,
 	); rf != nil {
 		maps.Copy(input.Where, rf)
-	}
-	input.RawFilters, err = m.appendRLSUsingFilter(p.Context, rctx, ActionUpdate, input.RawFilters)
-	if err != nil {
-		return nil, err
 	}
 
 	// 返回包装结果
@@ -1877,10 +1806,6 @@ func (m *graphqlModelResolver) executeDeleteOne(p graphql.ResolveParams) (interf
 		rctx.EndUserPerms, ActionDelete, m.endUserRefFieldName(), rctx.CurrentEndUserID,
 	); rf != nil {
 		maps.Copy(input.Where, rf)
-	}
-	input.RawFilters, err = m.appendRLSUsingFilter(p.Context, rctx, ActionDelete, input.RawFilters)
-	if err != nil {
-		return nil, err
 	}
 	// 返回包装结果
 	result := map[string]interface{}{
@@ -1965,15 +1890,6 @@ func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (inter
 		if err := enforceOwnerOnCreate(rctx, m.model.Fields, dataItem); err != nil {
 			return nil, err
 		}
-		if rctx.RLSPolicyGuard != nil {
-			modelID := m.model.ID
-			if modelID == "" {
-				modelID = m.model.Name
-			}
-			if err := rctx.RLSPolicyGuard.ValidateInput(p.Context, modelID, ActionInsert, dataItem); err != nil {
-				return nil, err
-			}
-		}
 	}
 	result, err := rctx.ClientRepo.CreateMany(p.Context, input)
 	if err != nil {
@@ -2039,23 +1955,10 @@ func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (inter
 			}
 		}
 	}
-	if rctx.RLSPolicyGuard != nil {
-		modelID := m.model.ID
-		if modelID == "" {
-			modelID = m.model.Name
-		}
-		if err := rctx.RLSPolicyGuard.ValidateInput(p.Context, modelID, ActionUpdate, input.Data); err != nil {
-			return nil, err
-		}
-	}
 	if rf := BuildRowFilter(
 		rctx.EndUserPerms, ActionUpdate, m.endUserRefFieldName(), rctx.CurrentEndUserID,
 	); rf != nil {
 		maps.Copy(input.Where, rf)
-	}
-	input.RawFilters, err = m.appendRLSUsingFilter(p.Context, rctx, ActionUpdate, input.RawFilters)
-	if err != nil {
-		return nil, err
 	}
 
 	result, err := rctx.ClientRepo.UpdateMany(p.Context, input)
@@ -2111,10 +2014,6 @@ func (m *graphqlModelResolver) executeDeleteMany(p graphql.ResolveParams) (inter
 		rctx.EndUserPerms, ActionDelete, m.endUserRefFieldName(), rctx.CurrentEndUserID,
 	); rf != nil {
 		maps.Copy(input.Where, rf)
-	}
-	input.RawFilters, err = m.appendRLSUsingFilter(p.Context, rctx, ActionDelete, input.RawFilters)
-	if err != nil {
-		return nil, err
 	}
 	result, err := rctx.ClientRepo.DeleteMany(p.Context, input)
 	if err != nil {

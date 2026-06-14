@@ -2,9 +2,10 @@ package modelruntime
 
 import (
 	"context"
-	"modelcraft/internal/domain/modeldesign"
 	"strings"
 	"testing"
+
+	"modelcraft/internal/domain/modeldesign"
 
 	"github.com/graphql-go/graphql"
 	"github.com/stretchr/testify/assert"
@@ -81,16 +82,6 @@ func (r *fullCapturingRepo) DeleteMany(_ context.Context, input *DeleteManyInput
 	return map[string]any{"count": 1}, nil
 }
 
-type allowingRLSUsingGuard struct{}
-
-func (g allowingRLSUsingGuard) ValidateInput(_ context.Context, _ string, _ Action, _ map[string]any) error {
-	return nil
-}
-
-func (g allowingRLSUsingGuard) ResolveUsingFilter(_ context.Context, _ string, _ Action) (*RawSQLFilter, error) {
-	return &RawSQLFilter{SQL: "owner_id = ?", Params: []any{"u_123"}}, nil
-}
-
 // ─── helper: taskModelWithoutOwner ───────────────────────────────────────────
 
 // taskModelWithoutOwner returns a RuntimeModel that has NO FormatEndUserRef field.
@@ -142,27 +133,6 @@ func allScopePerm() *ResolvedModelPermissions {
 		Update: ActionPermission{Allowed: true, IsSelf: false},
 		Delete: ActionPermission{Allowed: true, IsSelf: false},
 	}
-}
-
-func TestRLSUsingFilter_FindMany_AttachesRawFilter(t *testing.T) {
-	repo := &fullCapturingRepo{}
-	schema := buildSchemaFor(t, taskModelWithoutOwner())
-	ctx := WithGraphqlRequestContext(context.Background(), repo, "org-1", "project-1", "u_123", "",
-		&ResolvedModelPermissions{Select: ActionPermission{Allowed: true}},
-	)
-	ctx = WithRLSPolicyGuard(ctx, allowingRLSUsingGuard{})
-
-	result := graphql.Do(graphql.Params{
-		Schema:  *schema,
-		Context: ctx,
-		RequestString: `query {
-			findMany(where: { title: { equals: "draft" } }) { items { id title } }
-		}`,
-	})
-
-	require.Empty(t, result.Errors)
-	require.Len(t, repo.capturedFindManyRawFilters, 1)
-	require.Equal(t, "owner_id = ?", repo.capturedFindManyRawFilters[0].SQL)
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
