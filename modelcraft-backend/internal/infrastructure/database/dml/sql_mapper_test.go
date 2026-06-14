@@ -310,6 +310,44 @@ func TestConvertFindFirstInputToSQL(t *testing.T) {
 	}
 }
 
+func TestConvertFindManyInputToSQL_WithRawRLSFilter(t *testing.T) {
+	input := &modelruntime.FindManyInput{
+		TableName: "posts",
+		Where:     map[string]any{"status": "draft"},
+		RawFilters: []modelruntime.RawSQLFilter{{
+			SQL:    "owner_id = ?",
+			Params: []any{"u_123"},
+		}},
+		Limit: 10,
+	}
+
+	sql, args, err := convertFindManyInputToSQL(context.Background(), input)
+
+	require.NoError(t, err)
+	require.Contains(t, sql, "WHERE")
+	require.Contains(t, sql, "owner_id = ?")
+	require.Equal(t, []any{"draft", "u_123", int64(10)}, args)
+}
+
+func TestConvertUpdateOneInputToSQL_WithRawRLSFilter(t *testing.T) {
+	input := &modelruntime.UpdateOneInput{
+		TableName: "posts",
+		Where:     map[string]any{"id": "post-1"},
+		Data:      map[string]any{"title": "new"},
+		RawFilters: []modelruntime.RawSQLFilter{{
+			SQL:    "owner_id = ?",
+			Params: []any{"u_123"},
+		}},
+	}
+
+	sql, args, err := convertUpdateOneInputToSQL(context.Background(), input)
+
+	require.NoError(t, err)
+	require.Contains(t, sql, "WHERE")
+	require.Contains(t, sql, "owner_id = ?")
+	require.Equal(t, []any{"new", "post-1", "u_123"}, args)
+}
+
 // TestConvertFindManyInputToSQL 测试FindMany转SQL
 func TestConvertFindManyInputToSQL(t *testing.T) {
 	ctx := context.Background()
