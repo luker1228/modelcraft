@@ -40,7 +40,6 @@ import (
 	appProfile "modelcraft/internal/app/profile"
 
 	appEnduser "modelcraft/internal/app/enduser"
-	appRbac "modelcraft/internal/app/rbac"
 	appRole "modelcraft/internal/app/role"
 	domainAuth "modelcraft/internal/domain/auth"
 	domainEndUser "modelcraft/internal/domain/enduser"
@@ -98,12 +97,6 @@ type DesignHandlers struct {
 
 	// Org Creation Service
 	CreateOrgService *appOrg.CreateOrganizationService
-
-	// RBAC Services (Data-Level Row & Column Permission)
-	RBACPermissionSvc *appRbac.EndUserPermissionAppService
-	RBACBundleSvc     *appRbac.EndUserBundleAppService
-	RBACRoleSvc       *appRbac.EndUserRoleAppService
-	RBACAuthzSvc      *appRbac.EndUserAuthzService
 
 	// Database management
 	ModelDatabaseAppService     *appmodeldatabase.ModelDatabaseAppService
@@ -245,13 +238,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	rlsMatchingSvc := rls.NewPolicyMatchingService(policyRepo, rlsUsingCompiler, rlsCheckEvaluator)
 	_ = rlsMatchingSvc // Wired into RLSResolver when runtime handler integration completes
 	authSchemaAppService := rls.NewAuthSchemaAppService(authSchemaRepo, projectRepository)
-
-	// Create RBAC (Data-Level Row & Column Permission) services
 	rbacRepo := repository.NewSqlEndUserDataPermissionRepository(dbgen.New(loggingDB))
-	rbacPermSvc := appRbac.NewEndUserPermissionAppService(rbacRepo, modelRepository, txManager)
-	rbacBundleSvc := appRbac.NewEndUserBundleAppService(rbacRepo, modelRepository)
-	rbacRoleSvc := appRbac.NewEndUserRoleAppService(rbacRepo)
-	rbacAuthzSvc := appRbac.NewEndUserAuthzService(rbacRepo)
 
 	// Create user management related services
 	userRepo := repository.NewSqlUserRepository(dbgen.New(loggingDB))
@@ -376,10 +363,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		EndUserAppService:           endUserAppService,
 		EndUserAuthHandler:          endUserAuthHandler,
 		EndUserAPITokenService:      apiTokenService,
-		RBACPermissionSvc:           rbacPermSvc,
-		RBACBundleSvc:               rbacBundleSvc,
-		RBACRoleSvc:                 rbacRoleSvc,
-		RBACAuthzSvc:                rbacAuthzSvc,
 		CreateOrgService:            createOrgService,
 		ModelDatabaseAppService:     modelDatabaseAppService,
 		ModelDatabaseSyncAppService: modelDatabaseSyncAppService,
@@ -462,10 +445,6 @@ func SetupProjectGraphQLRoutesOnChi(
 		RLSPolicyAppService:         handlers.RLSPolicyAppService,
 		AuthSchemaAppService:        handlers.AuthSchemaAppService,
 		EndUserMgmtAppService:       handlers.EndUserAppService,
-		RBACPermissionSvc:           handlers.RBACPermissionSvc,
-		RBACBundleSvc:               handlers.RBACBundleSvc,
-		RBACRoleSvc:                 handlers.RBACRoleSvc,
-		RBACAuthzSvc:                handlers.RBACAuthzSvc,
 		ModelDatabaseAppService:     handlers.ModelDatabaseAppService,
 		ModelDatabaseSyncAppService: handlers.ModelDatabaseSyncAppService,
 		PolicyCRUDService:           policyCRUDService,
@@ -559,10 +538,6 @@ func SetupEndUserProjectGraphQLRoutesOnChi(
 		RLSPolicyAppService:         handlers.RLSPolicyAppService,
 		AuthSchemaAppService:        handlers.AuthSchemaAppService,
 		EndUserMgmtAppService:       handlers.EndUserAppService,
-		RBACPermissionSvc:           handlers.RBACPermissionSvc,
-		RBACBundleSvc:               handlers.RBACBundleSvc,
-		RBACRoleSvc:                 handlers.RBACRoleSvc,
-		RBACAuthzSvc:                handlers.RBACAuthzSvc,
 		ModelDatabaseAppService:     handlers.ModelDatabaseAppService,
 		ModelDatabaseSyncAppService: handlers.ModelDatabaseSyncAppService,
 		PolicyCRUDService:           policyCRUDService,

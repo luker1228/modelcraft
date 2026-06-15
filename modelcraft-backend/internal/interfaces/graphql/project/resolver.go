@@ -6,7 +6,6 @@ import (
 	appmodeldatabase "modelcraft/internal/app/modeldatabase"
 	"modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/app/permission"
-	apprbac "modelcraft/internal/app/rbac"
 	"modelcraft/internal/app/rls"
 )
 
@@ -41,12 +40,6 @@ type Resolver struct {
 
 	// End-User
 	EndUserMgmtAppService *appEnduser.EndUserManagementAppService
-
-	// RBAC (Data-Level Row & Column Permission)
-	RBACPermissionSvc *apprbac.EndUserPermissionAppService
-	RBACBundleSvc     *apprbac.EndUserBundleAppService
-	RBACRoleSvc       *apprbac.EndUserRoleAppService
-	RBACAuthzSvc      *apprbac.EndUserAuthzService
 
 	// Database management
 	ModelDatabaseAppService     *appmodeldatabase.ModelDatabaseAppService
