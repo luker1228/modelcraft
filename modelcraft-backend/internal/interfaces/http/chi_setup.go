@@ -43,6 +43,27 @@ type ChiRouterConfig struct {
 	APITokenService *appEnduser.APITokenService
 }
 
+func NewChiRouterConfig(
+	db *sql.DB,
+	cfg *config.Config,
+	designHandlers *DesignHandlers,
+	runtimeHandlers *RuntimeHandlers,
+	jwtConfig *middleware.JWTAuthConfig,
+	logger logfacade.Logger,
+) *ChiRouterConfig {
+	return &ChiRouterConfig{
+		Logger:          logger,
+		Config:          cfg,
+		DB:              db,
+		AuthHandler:     designHandlers.AuthHandler,
+		UserHandler:     designHandlers.UserHandler,
+		DesignHandlers:  designHandlers,
+		RuntimeHandlers: runtimeHandlers,
+		JWTConfig:       jwtConfig,
+		APITokenService: designHandlers.EndUserAPITokenService,
+	}
+}
+
 // SetupChiRouter creates and configures the main Chi router as the primary HTTP mux.
 //
 // Architecture:
@@ -91,41 +112,31 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	// ============================================================
 	// GraphQL Routes - Tenant (Org + Project)
 	// ============================================================
-	if cfg.DesignHandlers != nil {
-		SetupOrgGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
-		SetupProjectGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
-	}
+	SetupOrgGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
+	SetupProjectGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
 
 	// ============================================================
 	// GraphQL Routes - End-User (Org + Project, same resolvers)
 	// ============================================================
-	if cfg.DesignHandlers != nil {
-		SetupEndUserOrgGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
-		SetupEndUserProjectGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
-	}
+	SetupEndUserOrgGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
+	SetupEndUserProjectGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
 
 	// ============================================================
 	// GraphQL Routes - Runtime API
 	// ============================================================
-	if cfg.RuntimeHandlers != nil {
-		var isOrgAdminFn httpmiddleware.IsOrgAdminFn
-		if cfg.DesignHandlers != nil {
-			isOrgAdminFn = cfg.DesignHandlers.IsOrgAdminFn
-		}
-		SetupRuntimeGraphQLRoutesOnChi(r, cfg.RuntimeHandlers, cfg.Config, cfg.APITokenService, isOrgAdminFn)
-	}
+	var isOrgAdminFn httpmiddleware.IsOrgAdminFn
+	isOrgAdminFn = cfg.DesignHandlers.IsOrgAdminFn
+	SetupRuntimeGraphQLRoutesOnChi(r, cfg.RuntimeHandlers, cfg.Config, cfg.APITokenService, isOrgAdminFn)
 
 	// ============================================================
 	// ============================================================
-	// PAT-authenticated whoami route (shared by gateway callers)
+	// PAT-authenticated tenant whoami route (shared by gateway callers)
 	// ============================================================
-	if cfg.DesignHandlers != nil && cfg.DesignHandlers.EndUserAuthHandler != nil && cfg.APITokenService != nil {
-		h := cfg.DesignHandlers.EndUserAuthHandler
-		r.Group(func(gr chi.Router) {
-			gr.Use(middleware.ChiPATAuthMiddleware(cfg.APITokenService, cfg.Logger))
-			gr.Get("/api/tenant/auth/whoami", h.Whoami)
-		})
-	}
+	h := cfg.DesignHandlers.EndUserAuthHandler
+	r.Group(func(gr chi.Router) {
+		gr.Use(middleware.ChiPATAuthMiddleware(cfg.APITokenService, cfg.Logger))
+		gr.Get("/api/tenant/auth/whoami", h.Whoami)
+	})
 
 	// ============================================================
 	// OpenAPI Routes via Generated Chi Handler

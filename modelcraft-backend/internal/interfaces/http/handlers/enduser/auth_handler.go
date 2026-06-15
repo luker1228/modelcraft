@@ -52,11 +52,13 @@ func (h *AuthHandler) Whoami(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := ctxutils.GetUserIDFromContext(ctx)
 	if err != nil || userID == "" {
+		h.logger.Warnf(ctx, "whoami rejected: missing userID requestId=%s", requestID)
 		h.writeError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", "valid PAT token required")
 		return
 	}
 	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
 	if err != nil || orgName == "" {
+		h.logger.Warnf(ctx, "whoami rejected: missing orgName requestId=%s userId=%s", requestID, userID)
 		h.writeError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", "valid PAT token required")
 		return
 	}
@@ -91,6 +93,8 @@ func (h *AuthHandler) Whoami(w http.ResponseWriter, r *http.Request) {
 	if projects == nil {
 		projects = []map[string]any{}
 	}
+
+	h.logger.Infof(ctx, "whoami resolved requestId=%s userId=%s orgName=%s isAdmin=%v projects=%d", requestID, userID, orgName, isAdmin, len(projects))
 
 	h.writeJSON(w, http.StatusOK, map[string]any{
 		"requestId": requestID,

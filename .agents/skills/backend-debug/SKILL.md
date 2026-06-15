@@ -26,7 +26,7 @@ description: >
 
 | 环境 | 运行方式 | 日志位置 | 查日志命令 |
 |------|---------|---------|-----------|
-| **docker**（默认） | `docker-compose up` | 容器内 `/app/logs/server.log` | `docker exec modelcraft-backend sh -c "grep '<requestId>' /app/logs/server.log"` |
+| **docker**（默认） | `docker-compose up` | backend: `/app/logs/server.log`；agent: `/app/logs/agent.log`；apisix: `/usr/local/apisix/logs/access.log` / `/usr/local/apisix/logs/error.log` | `docker exec modelcraft-backend sh -c "grep '<requestId>' /app/logs/server.log"` |
 | **dev**（本地调试） | `just run` | 宿主机 `logs/server.log` | `cd modelcraft-backend && just log-cat <requestId>` |
 
 快速确认当前状态：
@@ -58,16 +58,27 @@ docker ps --format '{{.Names}}' | grep modelcraft
 
 ---
 
-## 第二步：用 requestId 查日志链（优先 grep）
+## 第二步：用 requestId 查日志链（99% 的问题先查 requestId）
+
+默认顺序：
+
+1. 先查 `apisix`，确认请求有没有进网关、状态码是什么
+2. 再查 `modelcraft-backend`，确认有没有转发进 Go 服务
+3. 如果链路经过 `modelcraft-agent`，再查 agent 文件日志
+
+先串链路，再猜代码。不要上来就翻源码。
 
 ### docker 模式（默认）
 
 ```bash
-# backend — 容器内 grep file log
+# backend — 容器内 grep 文件日志
 docker exec modelcraft-backend sh -c "grep '<requestId>' /app/logs/server.log"
 
-# 备选：容器标准输出
-docker logs modelcraft-backend 2>&1 | grep "<requestId>"
+# agent — 容器内 grep 文件日志
+docker exec modelcraft-agent sh -c "grep '<requestId>' /app/logs/agent.log"
+
+# apisix — 容器内 grep access / error 文件日志
+docker exec modelcraft-apisix sh -c "grep '<requestId>' /usr/local/apisix/logs/access.log /usr/local/apisix/logs/error.log"
 ```
 
 ### dev 模式（本地 `just run` 调试）
@@ -79,11 +90,24 @@ just log-cat <requestId>
 
 这会从 `logs/server.log` 中按 `request_id` 字段精确匹配，过滤出该请求的全部日志行。
 
-### gateway（始终是容器）
+### 三段链路推荐命令
 
 ```bash
-docker logs modelcraft-apisix 2>&1 | grep "<requestId>"
+# 1. 先看 apisix
+docker exec modelcraft-apisix sh -c "grep '<requestId>' /usr/local/apisix/logs/access.log /usr/local/apisix/logs/error.log"
+
+# 2. 再看 backend
+docker exec modelcraft-backend sh -c "grep '<requestId>' /app/logs/server.log"
+
+# 3. 如果请求经过 agent，再看 agent
+docker exec modelcraft-agent sh -c "grep '<requestId>' /app/logs/agent.log"
 ```
+
+经验判断：
+
+- `apisix` 有，`backend` 没有：大概率卡在网关鉴权、路由、转发前
+- `backend` 有，`agent` 没有：问题在 backend 内部，或该链路未调用 agent
+- 三边都有：按时间顺序找第一条 `error` / `warn`
 
 ### 日志格式
 
@@ -224,14 +248,17 @@ just db login .env.autotest
 **适用**：问题发生在鉴权、代理转发、请求头注入、跨服务 requestId 传递。
 
 ```bash
-docker logs modelcraft-apisix 2>&1 | grep "<requestId>"
+docker exec modelcraft-apisix sh -c "grep '<requestId>' /usr/local/apisix/logs/access.log /usr/local/apisix/logs/error.log"
+docker exec modelcraft-agent sh -c "grep '<requestId>' /app/logs/agent.log"
 ```
 
 重点检查：
 
 - gateway `request_start/request_end` 是否成对，状态码是否符合预期。
 - 同一 `request_id` 是否在 backend 出现（确认转发链路）。
+- 同一 `request_id` 是否在 agent 出现（确认 backend -> agent 调用链路）。
 - 是否存在鉴权拦截（如 missing Authorization、invalid token）。
+- agent 是否有上游 GraphQL / tool / LLM 调用失败、超时、429、5xx。
 
 ---
 
@@ -280,10 +307,10 @@ just log-cat <requestId>
 
 ## 注意事项
 
-- **docker 模式**（默认）：日志在容器内 `/app/logs/server.log`，用 `docker exec` grep 查看。
+- **docker 模式**（默认）：backend 用 `/app/logs/server.log`，agent 用 `/app/logs/agent.log`，apisix 用 `/usr/local/apisix/logs/access.log` 和 `/usr/local/apisix/logs/error.log`。
 - **dev 模式**（本地 `just run`）：日志在宿主机 `modelcraft-backend/logs/server.log`，用 `just log-cat` 或 `just logs` 查看。
-- Gateway 日志始终在容器 stdout/stderr，用 `docker logs modelcraft-apisix`。
-- 某些启动错误（配置缺失、DB 连不上）没有 requestId，直接看对应环境的日志流（`docker logs` 或 `just logs`）。
+- **排障默认动作**：只要用户给了 `requestId`，先查 `apisix` -> `backend` -> `agent` 三段，不要先猜代码。
+- 某些启动错误（配置缺失、DB 连不上）没有 requestId，这时直接 `tail -f` 对应容器内日志文件。
 - 修复时遵守分层规则（避免引入新问题）：
   - **Repository 层**只返回 `shared.RepositoryError`，不返回 `*BusinessError`
   - **Application 层**把 nil 结果转成 `bizerrors.NewErrorFromContext()`，把 DB 错误转成 `bizerrors.ConvertRepositoryError()`

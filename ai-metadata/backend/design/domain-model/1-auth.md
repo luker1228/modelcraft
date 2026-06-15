@@ -108,7 +108,7 @@ PAT 是 CLI 工具的免密认证方式，用于长期脚本或 Agent 场景。
     └── 注入 context：UserID, OrgName, UserType=end_user
         │
         ▼
-  GET /api/cli/end-user/auth/whoami
+  GET /api/tenant/auth/whoami
     ├── 返回 userId, orgName, isAdmin, projects
     └── CLI 凭此完成身份识别（无需输入账号密码）
 ```

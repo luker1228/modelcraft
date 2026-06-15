@@ -69,6 +69,7 @@ routes:
 
               -- PAT token: mc_pat_* → validate via backend whoami, then inject identity
               if token:sub(1, 7) == "mc_pat_" then
+                core.log.warn("[PAT] start validation request_id=", request_id, " uri=", ctx.var.uri)
                 local httpc = http.new()
                 httpc:set_timeout(3000)
                 local res, err = httpc:request_uri("http://backend:8080/api/tenant/auth/whoami", {
@@ -80,6 +81,12 @@ routes:
                   keepalive = false,
                 })
                 if err or not res or res.status ~= 200 then
+                  local status = res and res.status or "nil"
+                  local body = res and res.body or ""
+                  if #body > 300 then
+                    body = body:sub(1, 300)
+                  end
+                  core.log.error("[PAT] whoami subrequest failed request_id=", request_id, " err=", err or "nil", " status=", status, " body=", body)
                   local failed_request_id = request_id
                   if res and res.body then
                     local cjson = require("cjson")
@@ -94,9 +101,15 @@ routes:
                 local cjson = require("cjson")
                 local ok, payload = pcall(cjson.decode, res.body)
                 if not ok or not payload or not payload.userId then
+                  local body = res and res.body or ""
+                  if #body > 300 then
+                    body = body:sub(1, 300)
+                  end
+                  core.log.error("[PAT] whoami response missing userId request_id=", request_id, " status=", res and res.status or "nil", " body=", body)
                   core.response.exit(401, {message = "PAT validation failed", requestId = request_id})
                   return
                 end
+                core.log.info("[PAT] whoami validation ok request_id=", request_id, " user_id=", payload.userId, " org_name=", payload.orgName or "", " is_admin=", tostring(payload.isAdmin == true))
                 core.request.set_header(ctx, "X-User-ID",   payload.userId)
                 core.request.set_header(ctx, "X-User-Type", "end_user")
                 if payload.isAdmin then

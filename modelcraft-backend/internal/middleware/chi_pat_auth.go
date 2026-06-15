@@ -19,9 +19,19 @@ func ChiPATAuthMiddleware(
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if logger == nil {
+				logger = logfacade.GetLogger(r.Context())
+			}
+
 			bearer := r.Header.Get(httpheader.Authorization)
 			if !strings.HasPrefix(bearer, "Bearer "+patPrefix) {
 				next.ServeHTTP(w, r)
+				return
+			}
+
+			if svc == nil {
+				logger.Warnf(r.Context(), "PAT validation unavailable: api token service is nil")
+				writeJSONError(w, http.StatusUnauthorized, "invalid or expired token", "UNAUTHENTICATED")
 				return
 			}
 
