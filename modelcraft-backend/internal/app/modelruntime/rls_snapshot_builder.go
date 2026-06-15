@@ -45,65 +45,78 @@ func NewRLSSnapshotBuilder(policySvc PolicyResolver) *RLSSnapshotBuilder {
 }
 
 // Build constructs the RLSPolicySnapshot for the given model.
-// Returns nil for developer access (no RLS applied).
 // Returns DenyAll=true when no matching policy exists.
 func (b *RLSSnapshotBuilder) Build(
 	ctx context.Context,
 	orgName, projectSlug, modelID string,
-	isDeveloper bool,
+	action modelruntime.Action,
 	userCtx *rls.UserContext,
+	perms *modelruntime.ResolvedModelPermissions,
 ) (*modelruntime.RLSPolicySnapshot, error) {
-	// Developer JWT — no RLS
-	if isDeveloper {
-		return nil, nil //nolint:nilnil
-	}
-
 	if userCtx == nil {
 		userCtx = &rls.UserContext{}
 	}
 
+	// Merge permissions by OR: if no policy grants this action, deny all.
+	if perms != nil && !perms.Get(action).Allowed {
+		return &modelruntime.RLSPolicySnapshot{DenyAll: true}, nil
+	}
+
 	auth := buildAuthMap(userCtx)
+	snap := &modelruntime.RLSPolicySnapshot{Auth: auth}
 
-	// Resolve USING for each read/write action
-	selectUSING, err := b.resolveUSING(ctx, orgName, projectSlug, modelID, rls.ActionRead, userCtx)
-	if err != nil {
-		return nil, err
-	}
-	updateUSING, err := b.resolveUSING(ctx, orgName, projectSlug, modelID, rls.ActionUpdate, userCtx)
-	if err != nil {
-		return nil, err
-	}
-	deleteUSING, err := b.resolveUSING(ctx, orgName, projectSlug, modelID, rls.ActionDelete, userCtx)
-	if err != nil {
-		return nil, err
+	switch action {
+	case modelruntime.ActionSelect:
+		selectUSING, err := b.resolveUSING(ctx, orgName, projectSlug, modelID, rls.ActionRead, userCtx)
+		if err != nil {
+			return nil, err
+		}
+		if selectUSING == nil {
+			snap.DenyAll = true
+			return snap, nil
+		}
+		snap.SelectUSING = selectUSING
+
+	case modelruntime.ActionInsert:
+		insertCHECK, err := b.compileCHECK(ctx, orgName, projectSlug, modelID, rls.ActionCreate, userCtx)
+		if err != nil {
+			return nil, err
+		}
+		if insertCHECK == nil {
+			snap.DenyAll = true
+			return snap, nil
+		}
+		snap.InsertCHECK = insertCHECK
+
+	case modelruntime.ActionUpdate:
+		updateUSING, err := b.resolveUSING(ctx, orgName, projectSlug, modelID, rls.ActionUpdate, userCtx)
+		if err != nil {
+			return nil, err
+		}
+		updateCHECK, err := b.compileCHECK(ctx, orgName, projectSlug, modelID, rls.ActionUpdate, userCtx)
+		if err != nil {
+			return nil, err
+		}
+		if updateUSING == nil && updateCHECK == nil {
+			snap.DenyAll = true
+			return snap, nil
+		}
+		snap.UpdateUSING = updateUSING
+		snap.UpdateCHECK = updateCHECK
+
+	case modelruntime.ActionDelete:
+		deleteUSING, err := b.resolveUSING(ctx, orgName, projectSlug, modelID, rls.ActionDelete, userCtx)
+		if err != nil {
+			return nil, err
+		}
+		if deleteUSING == nil {
+			snap.DenyAll = true
+			return snap, nil
+		}
+		snap.DeleteUSING = deleteUSING
 	}
 
-	// Compile CHECK for insert and update
-	insertCHECK, err := b.compileCHECK(ctx, orgName, projectSlug, modelID, rls.ActionCreate, userCtx)
-	if err != nil {
-		return nil, err
-	}
-	updateCHECK, err := b.compileCHECK(ctx, orgName, projectSlug, modelID, rls.ActionUpdate, userCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	// DenyAll: no USING and no CHECK for any action
-	if selectUSING == nil && updateUSING == nil && deleteUSING == nil &&
-		insertCHECK == nil && updateCHECK == nil {
-		return &modelruntime.RLSPolicySnapshot{
-			DenyAll: true,
-		}, nil
-	}
-
-	return &modelruntime.RLSPolicySnapshot{
-		SelectUSING: selectUSING,
-		UpdateUSING: updateUSING,
-		DeleteUSING: deleteUSING,
-		InsertCHECK: insertCHECK,
-		UpdateCHECK: updateCHECK,
-		Auth:        auth,
-	}, nil
+	return snap, nil
 }
 
 // resolveUSING resolves the USING expression for a single action.

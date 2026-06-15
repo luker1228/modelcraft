@@ -8,7 +8,9 @@ import (
 
 func TestWithGraphqlRequestContext_EndUserPerms(t *testing.T) {
 	perms := &modelruntime.ResolvedModelPermissions{
-		Select: modelruntime.ActionPermission{Allowed: true, IsSelf: true},
+		Policies: []modelruntime.ResolvedPolicy{
+			{Action: modelruntime.ActionSelect, },
+		},
 	}
 	ctx := modelruntime.WithGraphqlRequestContext(
 		context.Background(),
@@ -23,8 +25,8 @@ func TestWithGraphqlRequestContext_EndUserPerms(t *testing.T) {
 	if rctx.RLS == nil || rctx.RLS.Permissions == nil {
 		t.Fatal("expected EndUserPerms to be set")
 	}
-	if !rctx.RLS.Permissions.Select.IsSelf {
-		t.Error("expected Select.IsSelf = true")
+	if !rctx.RLS.Permissions.Get(modelruntime.ActionSelect).Allowed {
+		t.Error("expected select allowed")
 	}
 }
 

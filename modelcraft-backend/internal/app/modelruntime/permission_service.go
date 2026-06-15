@@ -4,7 +4,6 @@ import (
 	"context"
 	"modelcraft/internal/domain/modelruntime"
 	"modelcraft/internal/domain/rls"
-	"strings"
 )
 
 // PolicyPermissionResolver converts V2 RLS policies into a lightweight action summary.
@@ -16,9 +15,10 @@ func NewPolicyPermissionResolver(policyRepo rls.PolicyRepositoryV2) *PolicyPermi
 	return &PolicyPermissionResolver{policyRepo: policyRepo}
 }
 
-// ResolveFromV2Policy loads V2 policies for a model and summarizes action availability.
+// ResolveFromV2Policy loads V2 policies for a model and returns matching policies as a list.
 func (r *PolicyPermissionResolver) ResolveFromV2Policy(
 	ctx context.Context, orgName, projectSlug, modelID string, endUserRoles []string,
+	action modelruntime.Action,
 ) (*modelruntime.ResolvedModelPermissions, error) {
 	policies, err := r.policyRepo.ListByModel(ctx, orgName, projectSlug, modelID)
 	if err != nil {
@@ -31,47 +31,46 @@ func (r *PolicyPermissionResolver) ResolveFromV2Policy(
 	}
 	roleSet[""] = struct{}{}
 
-	perms := &modelruntime.ResolvedModelPermissions{}
+	var resolved []modelruntime.ResolvedPolicy
 	for _, p := range policies {
 		if _, ok := roleSet[p.Role]; !ok {
 			continue
 		}
-		switch p.Action {
-		case rls.ActionRead:
-			perms.Select = mergeActionPermission(perms.Select, p)
-		case rls.ActionCreate:
-			perms.Insert = mergeActionPermission(perms.Insert, p)
-		case rls.ActionUpdate:
-			perms.Update = mergeActionPermission(perms.Update, p)
-		case rls.ActionDelete:
-			perms.Delete = mergeActionPermission(perms.Delete, p)
+		mapped := mapAction(p.Action)
+		if mapped != action {
+			continue
 		}
+		resolved = append(resolved, modelruntime.ResolvedPolicy{
+			Action:        mapped,
+			UsingExpr:     string(p.UsingExpr),
+			WithCheckExpr: string(p.WithCheckExpr),
+		})
 	}
-	return perms, nil
+	return &modelruntime.ResolvedModelPermissions{Policies: resolved}, nil
 }
 
-func mergeActionPermission(curr modelruntime.ActionPermission, policy *rls.Policy) modelruntime.ActionPermission {
-	curr.Allowed = true
-	if looksLikeSelfScoped(policy) {
-		curr.IsSelf = true
+func mapAction(a rls.Action) modelruntime.Action {
+	switch a {
+	case rls.ActionRead:
+		return modelruntime.ActionSelect
+	case rls.ActionCreate:
+		return modelruntime.ActionInsert
+	case rls.ActionUpdate:
+		return modelruntime.ActionUpdate
+	case rls.ActionDelete:
+		return modelruntime.ActionDelete
+	default:
+		return ""
 	}
-	return curr
-}
-
-func looksLikeSelfScoped(policy *rls.Policy) bool {
-	if policy == nil {
-		return false
-	}
-	return strings.Contains(string(policy.UsingExpr), "$endUserId") ||
-		strings.Contains(string(policy.WithCheckExpr), "$endUserId")
 }
 
 func adminWildcardPermissions() *modelruntime.ResolvedModelPermissions {
-	all := modelruntime.ActionPermission{Allowed: true, IsSelf: false}
 	return &modelruntime.ResolvedModelPermissions{
-		Select: all,
-		Insert: all,
-		Update: all,
-		Delete: all,
+		Policies: []modelruntime.ResolvedPolicy{
+			{Action: modelruntime.ActionSelect},
+			{Action: modelruntime.ActionInsert},
+			{Action: modelruntime.ActionUpdate},
+			{Action: modelruntime.ActionDelete},
+		},
 	}
 }

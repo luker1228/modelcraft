@@ -33,9 +33,11 @@ func TestFindEndUserRefFieldName_NotFound(t *testing.T) {
 	}
 }
 
-func TestBuildRowFilter_IsSelf(t *testing.T) {
+func TestBuildRowFilter_Allowed(t *testing.T) {
 	perms := &modelruntime.ResolvedModelPermissions{
-		Select: modelruntime.ActionPermission{Allowed: true, IsSelf: true},
+		Policies: []modelruntime.ResolvedPolicy{
+			{Action: modelruntime.ActionSelect},
+		},
 	}
 	filter := modelruntime.BuildRowFilter(perms, modelruntime.ActionSelect, "owner_user", "user-abc")
 	if filter == nil {
@@ -46,12 +48,14 @@ func TestBuildRowFilter_IsSelf(t *testing.T) {
 	}
 }
 
-func TestBuildRowFilter_NotIsSelf(t *testing.T) {
+func TestBuildRowFilter_NotAllowed(t *testing.T) {
 	perms := &modelruntime.ResolvedModelPermissions{
-		Select: modelruntime.ActionPermission{Allowed: true, IsSelf: false},
+		Policies: []modelruntime.ResolvedPolicy{
+			{Action: modelruntime.ActionInsert},
+		},
 	}
 	if got := modelruntime.BuildRowFilter(perms, modelruntime.ActionSelect, "owner_user", "user-abc"); got != nil {
-		t.Error("IsSelf=false should return nil filter")
+		t.Error("not-allowed should return nil filter")
 	}
 }
 
@@ -63,7 +67,9 @@ func TestBuildRowFilter_NilPerms(t *testing.T) {
 
 func TestBuildRowFilter_NoOwnerField(t *testing.T) {
 	perms := &modelruntime.ResolvedModelPermissions{
-		Select: modelruntime.ActionPermission{Allowed: true, IsSelf: true},
+		Policies: []modelruntime.ResolvedPolicy{
+			{Action: modelruntime.ActionSelect},
+		},
 	}
 	if got := modelruntime.BuildRowFilter(perms, modelruntime.ActionSelect, "", "user-abc"); got != nil {
 		t.Error("empty ownerField should return nil filter")

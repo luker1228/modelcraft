@@ -94,14 +94,16 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 		return nil, err
 	}
 
+	action := mapOperationToAction(cmd.OperationName)
+
 	var rlsCtx *modelruntime.RLSContext
 	if ctxutils.GetIsAdminFromContext(ctx) {
 		rlsCtx = &modelruntime.RLSContext{
-			IsAdmin:       true,
-			OperationName: cmd.OperationName,
+			IsAdmin: true,
+			Action:  action,
 		}
 	} else {
-		rlsCtx, err = s.buildRLSContext(ctx, orgName, projectSlug, modelID, cmd.OperationName)
+		rlsCtx, err = s.buildRLSContext(ctx, orgName, projectSlug, modelID, action)
 		if err != nil {
 			return nil, err
 		}
@@ -162,12 +164,13 @@ func NewGraphqlAppService(
 
 func (s *GraphqlAppService) buildRLSContext(
 	ctx context.Context,
-	orgName, projectSlug, modelID, operationName string,
+	orgName, projectSlug, modelID string,
+	action modelruntime.Action,
 ) (*modelruntime.RLSContext, error) {
 	rlsCtx := &modelruntime.RLSContext{
-		OperationName: operationName,
-		IsAdmin:       ctxutils.GetIsAdminFromContext(ctx),
-		UserContext:   middleware.GetUserContext(ctx),
+		Action:     action,
+		IsAdmin:    ctxutils.GetIsAdminFromContext(ctx),
+		UserContext: middleware.GetUserContext(ctx),
 	}
 	if rlsCtx.IsAdmin {
 		return rlsCtx, nil
@@ -179,13 +182,18 @@ func (s *GraphqlAppService) buildRLSContext(
 	}
 	rlsCtx.EndUserID = endUserID
 	rlsCtx.Permissions, err = s.permResolver.ResolveFromV2Policy(
-		ctx, orgName, projectSlug, modelID, rlsCtx.UserContext.Roles,
+		ctx, orgName, projectSlug, modelID, rlsCtx.UserContext.Roles, action,
 	)
 	if err != nil {
 		return nil, err
 	}
+	if rlsCtx.Permissions != nil && rlsCtx.Permissions.IsEmpty() {
+		rlsCtx.FastFail = true
+		rlsCtx.FastFailReason = "permissions: no permissions granted"
+		return rlsCtx, nil
+	}
 
-	snap, err := s.snapshotBuilder.Build(ctx, orgName, projectSlug, modelID, rlsCtx.EndUserID == "", rlsCtx.UserContext)
+	snap, err := s.snapshotBuilder.Build(ctx, orgName, projectSlug, modelID, action, rlsCtx.UserContext, rlsCtx.Permissions)
 	if err != nil {
 		return nil, err
 	}
@@ -196,4 +204,18 @@ func (s *GraphqlAppService) buildRLSContext(
 	}
 
 	return rlsCtx, nil
+}
+
+// mapOperationToAction converts a GraphQL operation name to the corresponding domain action.
+func mapOperationToAction(op string) modelruntime.Action {
+	switch {
+	case op == "createOne" || op == "createMany":
+		return modelruntime.ActionInsert
+	case op == "updateOne" || op == "updateMany":
+		return modelruntime.ActionUpdate
+	case op == "deleteOne" || op == "deleteMany":
+		return modelruntime.ActionDelete
+	default:
+		return modelruntime.ActionSelect // find*, aggregate, count, list*, etc.
+	}
 }

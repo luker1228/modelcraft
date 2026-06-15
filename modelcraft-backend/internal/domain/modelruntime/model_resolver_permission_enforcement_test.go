@@ -110,28 +110,34 @@ func taskModelWithoutOwner() *RuntimeModel {
 
 func selectAllPerm() *ResolvedModelPermissions {
 	return &ResolvedModelPermissions{
-		Select: ActionPermission{Allowed: true},
-		Insert: ActionPermission{Allowed: true},
-		Update: ActionPermission{Allowed: true},
-		Delete: ActionPermission{Allowed: true},
+		Policies: []ResolvedPolicy{
+			{Action: ActionSelect},
+			{Action: ActionInsert},
+			{Action: ActionUpdate},
+			{Action: ActionDelete},
+		},
 	}
 }
 
 func selfScopePerm() *ResolvedModelPermissions {
 	return &ResolvedModelPermissions{
-		Select: ActionPermission{Allowed: true, IsSelf: true},
-		Insert: ActionPermission{Allowed: true, IsSelf: true},
-		Update: ActionPermission{Allowed: true, IsSelf: true},
-		Delete: ActionPermission{Allowed: true, IsSelf: true},
+		Policies: []ResolvedPolicy{
+			{Action: ActionSelect, },
+			{Action: ActionInsert, },
+			{Action: ActionUpdate, },
+			{Action: ActionDelete, },
+		},
 	}
 }
 
 func allScopePerm() *ResolvedModelPermissions {
 	return &ResolvedModelPermissions{
-		Select: ActionPermission{Allowed: true, IsSelf: false},
-		Insert: ActionPermission{Allowed: true, IsSelf: false},
-		Update: ActionPermission{Allowed: true, IsSelf: false},
-		Delete: ActionPermission{Allowed: true, IsSelf: false},
+		Policies: []ResolvedPolicy{
+			{Action: ActionSelect, },
+			{Action: ActionInsert, },
+			{Action: ActionUpdate, },
+			{Action: ActionDelete, },
+		},
 	}
 }
 

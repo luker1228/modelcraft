@@ -3,6 +3,7 @@ package modelruntime_test
 import (
 	"context"
 	appruntimeimport "modelcraft/internal/app/modelruntime"
+	"modelcraft/internal/domain/modelruntime"
 	"modelcraft/internal/domain/rls"
 	"testing"
 )
@@ -31,15 +32,15 @@ func (s *stubPolicyRepo) DeleteByModel(_ context.Context, _, _, _ string) error 
 
 func TestPolicyPermissionResolver_ResolveFromV2Policy_NoPermissions(t *testing.T) {
 	resolver := appruntimeimport.NewPolicyPermissionResolver(&stubPolicyRepo{})
-	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"viewer"})
+	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"viewer"}, modelruntime.ActionSelect)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if perms == nil {
 		t.Fatal("expected non-nil perms")
 	}
-	if perms.Select.Allowed || perms.Insert.Allowed || perms.Update.Allowed || perms.Delete.Allowed {
-		t.Fatal("expected all actions denied when no v2 policy matches")
+	if !perms.IsEmpty() {
+		t.Fatal("expected IsEmpty when no v2 policy matches")
 	}
 }
 
@@ -50,17 +51,16 @@ func TestPolicyPermissionResolver_ResolveFromV2Policy_SelectAll(t *testing.T) {
 		},
 	})
 
-	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"viewer"})
+	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"viewer"}, modelruntime.ActionSelect)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !perms.Select.Allowed {
+	if !perms.Get(modelruntime.ActionSelect).Allowed {
 		t.Fatal("expected select allowed")
 	}
-	if perms.Select.IsSelf {
-		t.Fatal("expected select IsSelf=false for non-owner policy")
-	}
-	if perms.Insert.Allowed || perms.Update.Allowed || perms.Delete.Allowed {
+	if perms.Get(modelruntime.ActionInsert).Allowed ||
+		perms.Get(modelruntime.ActionUpdate).Allowed ||
+		perms.Get(modelruntime.ActionDelete).Allowed {
 		t.Fatal("expected non-select actions denied")
 	}
 }
@@ -73,15 +73,22 @@ func TestPolicyPermissionResolver_ResolveFromV2Policy_SelfScoped(t *testing.T) {
 		},
 	})
 
-	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"member"})
+	// Resolve for select — only read policy matches
+	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"member"}, modelruntime.ActionSelect)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !perms.Select.Allowed || !perms.Select.IsSelf {
-		t.Fatal("expected select self-scoped permission")
+	if !perms.Get(modelruntime.ActionSelect).Allowed {
+		t.Fatal("expected select allowed")
 	}
-	if !perms.Insert.Allowed || !perms.Insert.IsSelf {
-		t.Fatal("expected insert self-scoped permission")
+
+	// Resolve for insert — only create policy matches
+	perms, err = resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"member"}, modelruntime.ActionInsert)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !perms.Get(modelruntime.ActionInsert).Allowed {
+		t.Fatal("expected insert allowed")
 	}
 }
 
@@ -92,11 +99,11 @@ func TestPolicyPermissionResolver_ResolveFromV2Policy_DefaultRole(t *testing.T) 
 		},
 	})
 
-	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"unknown"})
+	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"unknown"}, modelruntime.ActionDelete)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !perms.Delete.Allowed {
+	if !perms.Get(modelruntime.ActionDelete).Allowed {
 		t.Fatal("expected default role policy to allow delete")
 	}
 }

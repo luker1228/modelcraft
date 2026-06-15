@@ -19,7 +19,9 @@ func TestResolvedModelPermissions_CheckAction_NilSkipsAll(t *testing.T) {
 
 func TestResolvedModelPermissions_CheckAction_DeniesWhenNotAllowed(t *testing.T) {
 	p := &modelruntime.ResolvedModelPermissions{
-		Select: modelruntime.ActionPermission{Allowed: true, IsSelf: false},
+		Policies: []modelruntime.ResolvedPolicy{
+			{Action: modelruntime.ActionSelect},
+		},
 	}
 	if err := p.CheckAction(modelruntime.ActionSelect); err != nil {
 		t.Errorf("expected select to be allowed, got: %v", err)
@@ -37,7 +39,9 @@ func TestResolvedModelPermissions_CheckAction_DeniesWhenNotAllowed(t *testing.T)
 
 func TestResolvedModelPermissions_CheckAction_UnknownAction(t *testing.T) {
 	p := &modelruntime.ResolvedModelPermissions{
-		Select: modelruntime.ActionPermission{Allowed: true},
+		Policies: []modelruntime.ResolvedPolicy{
+			{Action: modelruntime.ActionSelect},
+		},
 	}
 	if err := p.CheckAction(modelruntime.Action("UNKNOWN")); err == nil {
 		t.Error("unknown action should be denied on non-nil permissions")
@@ -46,15 +50,15 @@ func TestResolvedModelPermissions_CheckAction_UnknownAction(t *testing.T) {
 
 func TestResolvedModelPermissions_Get(t *testing.T) {
 	p := &modelruntime.ResolvedModelPermissions{
-		Select: modelruntime.ActionPermission{Allowed: true, IsSelf: true},
-		Insert: modelruntime.ActionPermission{Allowed: true, IsSelf: false},
-		Update: modelruntime.ActionPermission{Allowed: false},
-		Delete: modelruntime.ActionPermission{Allowed: false},
+		Policies: []modelruntime.ResolvedPolicy{
+			{Action: modelruntime.ActionSelect, },
+			{Action: modelruntime.ActionInsert},
+		},
 	}
-	if got := p.Get(modelruntime.ActionSelect); !got.Allowed || !got.IsSelf {
+	if got := p.Get(modelruntime.ActionSelect); !got.Allowed {
 		t.Errorf("Select: want {true,true}, got %+v", got)
 	}
-	if got := p.Get(modelruntime.ActionInsert); !got.Allowed || got.IsSelf {
+	if got := p.Get(modelruntime.ActionInsert); !got.Allowed {
 		t.Errorf("Insert: want {true,false}, got %+v", got)
 	}
 	if got := p.Get(modelruntime.Action("UNKNOWN")); got.Allowed {
