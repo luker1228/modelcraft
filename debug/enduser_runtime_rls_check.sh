@@ -2,8 +2,8 @@
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:9080}"
-ORG_NAME="${ORG_NAME:-acme}"
-PROJECT_SLUG="${PROJECT_SLUG:-ecommerce}"
+ORG_NAME="${ORG_NAME:-luke_e6kz}"
+PROJECT_SLUG="${PROJECT_SLUG:-luke}"
 DB_NAME="${DB_NAME:-demo_ecommerce}"
 MODEL_NAME="${MODEL_NAME:-users}"
 PAT="${PAT:-mc_pat_ae51b03f762a3f38f9c20d4d7f7fbf0964ea2ab75ac1663bcc4db6902f40120a}"
@@ -14,6 +14,9 @@ endpoint="${BASE_URL}/end-user/graphql/org/${ORG_NAME}/project/${PROJECT_SLUG}/d
 
 query_find_many='{"query":"query RlsCheck { findMany(take: 20, skip: 0, orderBy: [{id: asc}]) { items { id } totalCount timeCost reqId } count { count } }","operationName":"RlsCheck"}'
 query_count_only='{"query":"query RlsCountOnly { count { count } }","operationName":"RlsCountOnly"}'
+mutation_create='{"query":"mutation RlsCreate { create(data: {}) { success } }","operationName":"RlsCreate"}'
+mutation_update='{"query":"mutation RlsUpdate { update(where: { id: \"u001\" }, data: {}) { success } }","operationName":"RlsUpdate"}'
+mutation_delete='{"query":"mutation RlsDelete { delete(where: { id: \"u001\" }) { success } }","operationName":"RlsDelete"}'
 
 check_base_url() {
   local code
@@ -26,10 +29,11 @@ check_base_url() {
 }
 
 run_request() {
-  local role="$1"
-  local payload="$2"
+  local title="$1"
+  local role="$2"
+  local payload="$3"
 
-  printf '\n=== %s ===\n' "$role"
+  printf '\n=== %s | role=%s ===\n' "$title" "$role"
   curl -sS -X POST \
     "$endpoint" \
     -H "Authorization: Bearer ${PAT}" \
@@ -48,6 +52,9 @@ printf 'Model: %s\n' "$MODEL_NAME"
 
 check_base_url
 
-run_request "admin" "$query_find_many"
-run_request "viewer" "$query_find_many"
-run_request "admin" "$query_count_only"
+run_request "READ findMany+count" "admin" "$query_find_many"
+run_request "READ findMany+count" "viewer" "$query_find_many"
+run_request "READ count only" "admin" "$query_count_only"
+run_request "CREATE should be denied" "viewer" "$mutation_create"
+run_request "UPDATE should be denied" "viewer" "$mutation_update"
+run_request "DELETE should be denied" "viewer" "$mutation_delete"

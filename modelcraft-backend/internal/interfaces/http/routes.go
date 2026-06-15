@@ -287,13 +287,13 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	)
 
 	// Create auth handler with token service
-	authHandler := authHandlers.NewHandler(tokenService, cfg.Auth.Cookie)
+	apiTokenRepo := repository.NewSqlAPITokenRepository(repoFactory.SqlDB)
+	apiTokenService := apitoken.NewAPITokenService(apiTokenRepo)
+
+	authHandler := authHandlers.NewHandler(tokenService, apiTokenService, cfg.Auth.Cookie, rbacRepo.IsOrgAdmin)
 
 	// Attach end-user repository support to TokenService (unified auth service).
 	tokenService.WithEndUserSupport(&authEndUserRepoFactory{}, repoFactory.SqlDB)
-
-	apiTokenRepo := repository.NewSqlAPITokenRepository(repoFactory.SqlDB)
-	apiTokenService := apitoken.NewAPITokenService(apiTokenRepo)
 
 	return &DesignHandlers{
 		AuthHandler:                 authHandler,

@@ -169,6 +169,7 @@ func conditionalAuthMiddleware(jwtConfig *middleware.JWTAuthConfig) func(http.Ha
 		"/api/tenant/auth/login":    true,
 		"/api/tenant/auth/logout":   true,
 		"/api/tenant/auth/refresh":  true,
+		"/api/tenant/auth/whoami":   true,
 	}
 
 	return func(next http.Handler) http.Handler {

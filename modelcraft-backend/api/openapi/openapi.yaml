@@ -128,6 +128,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemError'
+  /api/tenant/auth/whoami:
+    get:
+      operationId: whoami
+      summary: Resolve current identity from a PAT token
+      tags:
+        - Auth
+      security: []
+      responses:
+        '200':
+          description: PAT identity resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhoamiResponse'
+        '401':
+          description: Invalid or expired PAT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhoamiUnauthorizedError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemError'
   /api/user/memberships:
     get:
       summary: Get current user's organization memberships
@@ -401,6 +427,41 @@ components:
             expiresIn:
               type: integer
               description: Access token TTL in seconds
+    WhoamiResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          required:
+            - userId
+            - orgName
+            - isAdmin
+          properties:
+            userId:
+              type: string
+            orgName:
+              type: string
+            isAdmin:
+              type: boolean
+    WhoamiUnauthorizedError:
+      type: object
+      required:
+        - requestId
+        - error
+      properties:
+        requestId:
+          type: string
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              enum:
+                - UNAUTHENTICATED
+            message:
+              type: string
     GetMembershipsResponse:
       type: object
       required:

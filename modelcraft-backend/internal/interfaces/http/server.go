@@ -59,6 +59,10 @@ func (s *Server) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	s.authHandler.HandleRefresh(w, r)
 }
 
+func (s *Server) Whoami(w http.ResponseWriter, r *http.Request) {
+	s.authHandler.HandlePATWhoami(w, r)
+}
+
 // ========================
 // User Endpoints
 // ========================

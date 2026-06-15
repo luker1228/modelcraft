@@ -2,6 +2,11 @@ package auth
 
 import (
 	"encoding/json"
+	"strings"
+	"time"
+
+	"modelcraft/internal/app/apitoken"
+	httpmiddleware "modelcraft/internal/interfaces/http/middleware"
 	"modelcraft/internal/interfaces/http/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/config"
@@ -16,14 +21,23 @@ import (
 // Handler handles HTTP auth endpoints.
 type Handler struct {
 	tokenService *appAuth.TokenService
+	apiTokenSvc  *apitoken.APITokenService
 	cookieCfg    config.CookieConfig
+	isOrgAdminFn httpmiddleware.IsOrgAdminFn
 }
 
 // NewHandler creates a new auth Handler.
-func NewHandler(tokenService *appAuth.TokenService, cookieCfg config.CookieConfig) *Handler {
+func NewHandler(
+	tokenService *appAuth.TokenService,
+	apiTokenSvc *apitoken.APITokenService,
+	cookieCfg config.CookieConfig,
+	isOrgAdminFn httpmiddleware.IsOrgAdminFn,
+) *Handler {
 	return &Handler{
 		tokenService: tokenService,
+		apiTokenSvc:  apiTokenSvc,
 		cookieCfg:    cookieCfg,
+		isOrgAdminFn: isOrgAdminFn,
 	}
 }
 
@@ -202,6 +216,53 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 	h.clearRefreshCookie(w)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// HandlePATWhoami resolves identity for a validated PAT request.
+// The PAT middleware authenticates the token and injects user/org fields into context.
+func (h *Handler) HandlePATWhoami(w http.ResponseWriter, r *http.Request) {
+	requestID := ctxutils.GetRequestID(r.Context())
+
+	authHeader := r.Header.Get(httpheader.Authorization)
+	if !strings.HasPrefix(authHeader, "Bearer mc_pat_") {
+		logfacade.GetLogger(r.Context()).Warnf(r.Context(), "PAT whoami rejected: invalid auth header requestId=%s", requestID)
+		writeAuthError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", "valid PAT token required")
+		return
+	}
+
+	if h.apiTokenSvc == nil {
+		logfacade.GetLogger(r.Context()).Error(r.Context(), "PAT whoami unavailable: api token service is nil")
+		writeAuthError(w, http.StatusInternalServerError, requestID, "SYSTEM_ERROR", "Internal server error")
+		return
+	}
+
+	plaintext := strings.TrimPrefix(authHeader, "Bearer ")
+	token, err := h.apiTokenSvc.ValidateToken(r.Context(), plaintext)
+	if err != nil || token == nil {
+		logfacade.GetLogger(r.Context()).Warnf(r.Context(), "PAT whoami validation failed requestId=%s err=%v", requestID, err)
+		writeAuthError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", "valid PAT token required")
+		return
+	}
+
+	go func() {
+		if updateErr := h.apiTokenSvc.UpdateLastUsedAt(r.Context(), token.ID, time.Now()); updateErr != nil {
+			logfacade.GetLogger(r.Context()).Warnf(r.Context(), "PAT whoami update last_used_at failed: %v", updateErr)
+		}
+	}()
+
+	isAdmin := false
+	if h.isOrgAdminFn != nil {
+		if ok, adminErr := h.isOrgAdminFn(r.Context(), token.OrgName, token.EndUserID); adminErr == nil {
+			isAdmin = ok
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"requestId": requestID,
+		"userId":    token.EndUserID,
+		"orgName":   token.OrgName,
+		"isAdmin":   isAdmin,
+	})
 }
 
 // handleBusinessError maps a BusinessError to the appropriate HTTP error response.

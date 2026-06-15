@@ -28,6 +28,8 @@ paths:
     $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1logout"
   /api/tenant/auth/refresh:
     $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1refresh"
+  /api/tenant/auth/whoami:
+    $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1whoami"
 
   # ========================
   # User Endpoints
@@ -69,6 +71,10 @@ components:
       $ref: "auth.yaml#/schemas/LoginResponse"
     RefreshResponse:
       $ref: "auth.yaml#/schemas/RefreshResponse"
+    WhoamiResponse:
+      $ref: "auth.yaml#/schemas/WhoamiResponse"
+    WhoamiUnauthorizedError:
+      $ref: "auth.yaml#/schemas/WhoamiUnauthorizedError"
 
     # -- User --
     GetMembershipsResponse:
