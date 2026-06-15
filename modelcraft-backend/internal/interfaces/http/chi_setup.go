@@ -116,26 +116,14 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	}
 
 	// ============================================================
-	// CLI Auth Routes (no httpOnly cookie — token in body)
 	// ============================================================
-	if cfg.DesignHandlers != nil && cfg.DesignHandlers.EndUserAuthHandler != nil {
-		h := cfg.DesignHandlers.EndUserAuthHandler
-		r.Post("/api/cli/end-user/auth/login", h.CLILogin)
-		r.Post("/api/cli/end-user/auth/refresh", h.CLIRefresh)
-		r.Post("/api/cli/end-user/auth/logout", h.CLILogout)
-	}
-
-	// ============================================================
-	// PAT Auth Middleware
-	// ============================================================
-	// ============================================================
-	// CLI PAT-authenticated Routes (require PAT middleware above)
+	// PAT-authenticated whoami route (shared by gateway callers)
 	// ============================================================
 	if cfg.DesignHandlers != nil && cfg.DesignHandlers.EndUserAuthHandler != nil && cfg.APITokenService != nil {
 		h := cfg.DesignHandlers.EndUserAuthHandler
 		r.Group(func(gr chi.Router) {
 			gr.Use(middleware.ChiPATAuthMiddleware(cfg.APITokenService, cfg.Logger))
-			gr.Get("/api/cli/end-user/auth/whoami", h.CLIWhoami)
+			gr.Get("/api/tenant/auth/whoami", h.Whoami)
 		})
 	}
 
@@ -149,7 +137,6 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	server := NewServer(
 		cfg.AuthHandler,
 		cfg.UserHandler,
-		cfg.DesignHandlers.EndUserAuthHandler,
 	)
 
 	// Create generated Chi handler with NO built-in middleware.
@@ -175,19 +162,14 @@ func conditionalAuthMiddleware(jwtConfig *middleware.JWTAuthConfig) func(http.Ha
 	jwtMW := middleware.ChiJWTAuthMiddleware(jwtConfig)
 
 	// Paths that are public and should NOT require authentication.
-	// All /api/end-user/auth/* routes bypass the design-time JWT middleware because
-	// they validate their own Bearer JWTs inside each handler. Applying the
+	// Tenant auth endpoints bypass the design-time JWT middleware because they
+	// validate their own Bearer JWTs inside each handler. Applying the
 	// design-time ChiJWTAuthMiddleware here would always fail.
 	publicPaths := map[string]bool{
 		"/api/tenant/auth/register": true,
 		"/api/tenant/auth/login":    true,
 		"/api/tenant/auth/logout":   true,
 		"/api/tenant/auth/refresh":  true,
-		// End-user auth: all routes use their own in-handler JWT validation
-		"/api/end-user/auth/login":   true,
-		"/api/end-user/auth/refresh": true,
-		"/api/end-user/auth/logout":  true,
-		"/api/end-user/auth/me":      true,
 	}
 
 	return func(next http.Handler) http.Handler {

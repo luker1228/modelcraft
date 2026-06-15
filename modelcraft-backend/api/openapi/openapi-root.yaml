@@ -30,18 +30,6 @@ paths:
     $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1refresh"
 
   # ========================
-  # End-User Auth Endpoints
-  # ========================
-  /api/end-user/auth/login:
-    $ref: "end-user-auth.yaml#/paths/~1api~1end-user~1auth~1login"
-  /api/end-user/auth/logout:
-    $ref: "end-user-auth.yaml#/paths/~1api~1end-user~1auth~1logout"
-  /api/end-user/auth/refresh:
-    $ref: "end-user-auth.yaml#/paths/~1api~1end-user~1auth~1refresh"
-  /api/end-user/auth/me:
-    $ref: "end-user-auth.yaml#/paths/~1api~1end-user~1auth~1me"
-
-  # ========================
   # User Endpoints
   # ========================
   /api/user/memberships:
@@ -82,29 +70,8 @@ components:
     RefreshResponse:
       $ref: "auth.yaml#/schemas/RefreshResponse"
 
-    # -- End-User Auth --
-    EndUserLoginRequest:
-      $ref: "end-user-auth.yaml#/schemas/EndUserLoginRequest"
-    EndUserLogoutRequest:
-      $ref: "end-user-auth.yaml#/schemas/EndUserLogoutRequest"
-    EndUserRefreshRequest:
-      $ref: "end-user-auth.yaml#/schemas/EndUserRefreshRequest"
-    EndUserTokenResponse:
-      $ref: "end-user-auth.yaml#/schemas/EndUserTokenResponse"
-    EndUserLoginResponse:
-      $ref: "end-user-auth.yaml#/schemas/EndUserLoginResponse"
-    EndUserMeResponse:
-      $ref: "end-user-auth.yaml#/schemas/EndUserMeResponse"
-    EndUserProfile:
-      $ref: "end-user-auth.yaml#/schemas/EndUserProfile"
-    EndUserAccessibleProject:
-      $ref: "end-user-auth.yaml#/schemas/EndUserAccessibleProject"
-    EndUserAuthError:
-      $ref: "end-user-auth.yaml#/schemas/EndUserAuthError"
-
     # -- User --
     GetMembershipsResponse:
       $ref: "user.yaml#/components/schemas/GetMembershipsResponse"
     MembershipInfo:
       $ref: "user.yaml#/components/schemas/MembershipInfo"
-

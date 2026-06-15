@@ -4,7 +4,7 @@ package auth
 //
 // These methods handle login/refresh/me for end-users (终端用户) whose records
 // are stored in the unified users + user_orgs tables (same as tenant users).
-// Route paths remain separate (/api/tenant/auth/* vs /api/end-user/auth/*),
+// Route paths remain separate for tenant auth and PAT-based whoami,
 // but the implementation is unified here.
 
 import (

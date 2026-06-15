@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"modelcraft/internal/interfaces/http/generated"
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
-	enduserHandlers "modelcraft/internal/interfaces/http/handlers/enduser"
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
@@ -13,12 +12,11 @@ import (
 
 // Server implements the generated.ServerInterface using standard net/http handlers.
 //
-// Covers tenant-management (Auth, User) and end-user auth endpoints.
+// Covers tenant-management (Auth, User).
 // Business domain APIs (Projects, Models, Clusters, Enums) are served exclusively via GraphQL.
 type Server struct {
-	authHandler        *authHandlers.Handler
-	userHandler        *userHandlers.Handler
-	endUserAuthHandler *enduserHandlers.AuthHandler
+	authHandler *authHandlers.Handler
+	userHandler *userHandlers.Handler
 }
 
 // Ensure compile-time interface compliance.
@@ -28,12 +26,10 @@ var _ generated.ServerInterface = (*Server)(nil)
 func NewServer(
 	authHandler *authHandlers.Handler,
 	userHandler *userHandlers.Handler,
-	endUserAuthHandler *enduserHandlers.AuthHandler,
 ) *Server {
 	return &Server{
-		authHandler:        authHandler,
-		userHandler:        userHandler,
-		endUserAuthHandler: endUserAuthHandler,
+		authHandler: authHandler,
+		userHandler: userHandler,
 	}
 }
 
@@ -61,26 +57,6 @@ func (s *Server) Logout(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	s.authHandler.HandleRefresh(w, r)
-}
-
-// ========================
-// End-User Auth Endpoints
-// ========================
-
-func (s *Server) EndUserLogin(w http.ResponseWriter, r *http.Request) {
-	s.endUserAuthHandler.EndUserLogin(w, r)
-}
-
-func (s *Server) EndUserLogout(w http.ResponseWriter, r *http.Request) {
-	s.endUserAuthHandler.EndUserLogout(w, r)
-}
-
-func (s *Server) EndUserRefreshToken(w http.ResponseWriter, r *http.Request) {
-	s.endUserAuthHandler.EndUserRefreshToken(w, r)
-}
-
-func (s *Server) EndUserMe(w http.ResponseWriter, r *http.Request) {
-	s.endUserAuthHandler.EndUserMe(w, r)
 }
 
 // ========================

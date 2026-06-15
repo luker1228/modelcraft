@@ -29,32 +29,6 @@ routes:
         header_name: X-Request-Id
         include_in_response: true
 
-  - id: enduser-auth
-    uri: /api/end-user/auth/*
-    upstream_id: backend
-    plugins:
-      cors:
-        allow_origins: "http://localhost:3000"
-        allow_methods: "GET,POST,PUT,DELETE,OPTIONS"
-        allow_headers: "Authorization,Content-Type,X-Request-Id,X-Client-Request-Id"
-        expose_headers: "X-Request-Id"
-        allow_credential: true
-      request-id:
-        header_name: X-Request-Id
-        include_in_response: true
-
-  - id: cli-enduser-auth
-    uri: /api/cli/end-user/auth/*
-    upstream_id: backend
-    plugins:
-      cors:
-        allow_origins: "*"
-        allow_methods: "GET,POST,OPTIONS"
-        allow_headers: "Authorization,Content-Type,X-Request-Id"
-      request-id:
-        header_name: X-Request-Id
-        include_in_response: true
-
   # ── Protected routes: ES256 JWT verification + X-User-ID injection ──────────
   - id: enduser-graphql
     uri: /end-user/graphql/*
@@ -81,6 +55,7 @@ routes:
               local PUB_KEY = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEw1SV3/9qLTugs2eF1dw963KpTNtk\ntbdCtuciyI3OJ01MclvPTFE/Thqti3TegWLdaxidmpPQ5pemawUXIqu6Yg==\n-----END PUBLIC KEY-----"
 
               local auth_header = core.request.header(ctx, "Authorization")
+              local request_id = core.request.header(ctx, "X-Request-Id")
               if not auth_header then
                 core.response.exit(401, {message = "Authorization header required"})
                 return
@@ -96,19 +71,30 @@ routes:
               if token:sub(1, 7) == "mc_pat_" then
                 local httpc = http.new()
                 httpc:set_timeout(3000)
-                local res, err = httpc:request_uri("http://backend:8080/api/cli/end-user/auth/whoami", {
+                local res, err = httpc:request_uri("http://backend:8080/api/tenant/auth/whoami", {
                   method  = "GET",
-                  headers = { ["Authorization"] = auth_header },
+                  headers = {
+                    ["Authorization"] = auth_header,
+                    ["X-Request-Id"] = request_id,
+                  },
                   keepalive = false,
                 })
                 if err or not res or res.status ~= 200 then
-                  core.response.exit(401, {message = "Invalid or expired PAT token"})
+                  local failed_request_id = request_id
+                  if res and res.body then
+                    local cjson = require("cjson")
+                    local ok, payload = pcall(cjson.decode, res.body)
+                    if ok and payload and payload.requestId then
+                      failed_request_id = payload.requestId
+                    end
+                  end
+                  core.response.exit(401, {message = "Invalid or expired PAT token", requestId = failed_request_id})
                   return
                 end
                 local cjson = require("cjson")
                 local ok, payload = pcall(cjson.decode, res.body)
                 if not ok or not payload or not payload.userId then
-                  core.response.exit(401, {message = "PAT validation failed"})
+                  core.response.exit(401, {message = "PAT validation failed", requestId = request_id})
                   return
                 end
                 core.request.set_header(ctx, "X-User-ID",   payload.userId)
