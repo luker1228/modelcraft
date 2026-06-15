@@ -15,9 +15,11 @@ const (
 	XCSRFToken     = "X-CSRF-Token"
 	XRequestedWith = "X-Requested-With"
 
-	XAction          = "X-Action"
-	XInternalToken   = "X-Internal-Token"
-	XUserID          = "X-User-ID"
+	XAction        = "X-Action"
+	XInternalToken = "X-Internal-Token"
+	XUserID        = "X-User-ID"
+	// XUserType is injected by the gateway to distinguish end-user from tenant callers.
+	// It is used to decide which APIs the end-user chain is allowed to call.
 	XUserType        = "X-User-Type"
 	XIsAdmin         = "X-Is-Admin"
 	XOrgName         = "X-Org-Name"
@@ -26,9 +28,15 @@ const (
 	XClientRequestID = "X-Client-Request-Id"
 	Traceparent      = "Traceparent"
 
-	XMCAuthUserID   = "X-MC-Auth-Userid"
+	// XMCAuthUserID is injected by the gateway for RLS context propagation.
+	// It carries the authenticated end-user ID into backend middleware.
+	XMCAuthUserID = "X-MC-Auth-Userid"
+	// XMCAuthUserName is injected by the gateway for RLS context propagation.
+	// It carries the authenticated end-user name into backend middleware.
 	XMCAuthUserName = "X-MC-Auth-Username"
-	XMCAuthRoles    = "X-MC-Auth-Roles"
+	// XMCAuthRoles is injected by the gateway for RLS context propagation.
+	// It carries the caller's role list as a comma-separated string.
+	XMCAuthRoles = "X-MC-Auth-Roles"
 
 	AccessControlAllowOrigin      = "Access-Control-Allow-Origin"
 	AccessControlAllowCredentials = "Access-Control-Allow-Credentials"
