@@ -119,32 +119,6 @@ func selectAllPerm() *ResolvedModelPermissions {
 	}
 }
 
-// selfScopePerm returns permissions where each policy has no UsingExpr —
-// BuildRowFilter provides the default SELF scope owner filter as fallback.
-func selfScopePerm() *ResolvedModelPermissions {
-	return &ResolvedModelPermissions{
-		Policies: []ResolvedPolicy{
-			{Action: ActionSelect},
-			{Action: ActionInsert},
-			{Action: ActionUpdate},
-			{Action: ActionDelete},
-		},
-	}
-}
-
-// allScopePerm returns permissions where each policy has a non-empty UsingExpr
-// (e.g. "true"), meaning RLS handles scoping and BuildRowFilter should NOT inject.
-func allScopePerm() *ResolvedModelPermissions {
-	return &ResolvedModelPermissions{
-		Policies: []ResolvedPolicy{
-			{Action: ActionSelect, UsingExpr: "true"},
-			{Action: ActionInsert, UsingExpr: "true"},
-			{Action: ActionUpdate, UsingExpr: "true"},
-			{Action: ActionDelete, UsingExpr: "true"},
-		},
-	}
-}
-
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 // hasPermissionError returns true when any error message contains "permission" (case-insensitive).
@@ -355,187 +329,40 @@ func TestPermissionEnforcement_ActionGate_AllowedPerm(t *testing.T) {
 	})
 }
 
-// ─── Part 2: Row Filter ───────────────────────────────────────────────────────
+// Part 2: Row Filter — removed. RLS USING/CHECK handles all row-level scoping.
 
-// TestPermissionEnforcement_RowFilter_SelfScope verifies that SELF scope injects
-// "owner = $endUserID" into WHERE for every relevant read/write operation.
-func TestPermissionEnforcement_RowFilter_SelfScope(t *testing.T) {
-	const endUserID = "user-abc"
-	model := taskModelWithOwner()
-	schema := buildSchemaFor(t, model)
-	perms := selfScopePerm()
-
-	t.Run("findMany injects owner", func(t *testing.T) {
-		repo := &fullCapturingRepo{}
-		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
-		)
-		result := doQuery(schema, ctx, `{ findMany { items { id title } } }`)
-		require.Empty(t, result.Errors)
-		assert.Equal(t, endUserID, repo.capturedFindManyWhere["owner"],
-			"findMany WHERE must contain owner=%s", endUserID)
-	})
-
-	t.Run("listByCursor preserves where and injects owner", func(t *testing.T) {
-		repo := &fullCapturingRepo{}
-		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
-		)
-		q := `{ listByCursor(where: { title: { contains: "foo" } },` +
-			` sortField: "id", sortDirection: "asc", limit: 20) { items { id } } }`
-		result := doQuery(schema, ctx, q)
-		require.Empty(t, result.Errors)
-		assert.Equal(t, endUserID, repo.capturedListByCursorWhere["owner"],
-			"listByCursor WHERE must contain owner=%s", endUserID)
-		titleCond, ok := repo.capturedListByCursorWhere["title"].(map[string]any)
-		require.True(t, ok, "listByCursor WHERE must preserve user title condition")
-		assert.Equal(t, "foo", titleCond["contains"])
-	})
-
-	t.Run("listByPage preserves where and injects owner", func(t *testing.T) {
-		repo := &fullCapturingRepo{}
-		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
-		)
-		q := `{ listByPage(where: { title: { contains: "foo" } },` +
-			` orderBy: [{ id: asc }], pageIndex: 1, pageSize: 20) { items { id } total } }`
-		result := doQuery(schema, ctx, q)
-		require.Empty(t, result.Errors)
-		assert.Equal(t, endUserID, repo.capturedListByPageWhere["owner"],
-			"listByPage WHERE must contain owner=%s", endUserID)
-		titleCond, ok := repo.capturedListByPageWhere["title"].(map[string]any)
-		require.True(t, ok, "listByPage WHERE must preserve user title condition")
-		assert.Equal(t, "foo", titleCond["contains"])
-	})
-
-	t.Run("findUnique injects owner", func(t *testing.T) {
-		repo := &fullCapturingRepo{}
-		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
-		)
-		result := doQuery(schema, ctx, `{ findUnique(where: { id: "x" }) { item { id } } }`)
-		require.Empty(t, result.Errors)
-		assert.Equal(t, endUserID, repo.capturedFindUniqueWhere["owner"],
-			"findUnique WHERE must contain owner=%s", endUserID)
-	})
-
-	t.Run("findFirst injects owner", func(t *testing.T) {
-		repo := &fullCapturingRepo{}
-		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
-		)
-		result := doQuery(schema, ctx, `{ findFirst { item { id } } }`)
-		require.Empty(t, result.Errors)
-		assert.Equal(t, endUserID, repo.capturedFindFirstWhere["owner"],
-			"findFirst WHERE must contain owner=%s", endUserID)
-	})
-
-	t.Run("update injects owner", func(t *testing.T) {
-		repo := &fullCapturingRepo{}
-		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
-		)
-		result := doQuery(schema, ctx,
-			`mutation { update(where: { id: "x" }, data: { title: "t" }) { success } }`)
-		require.Empty(t, result.Errors)
-		assert.Equal(t, endUserID, repo.capturedUpdateOneWhere["owner"],
-			"update WHERE must contain owner=%s", endUserID)
-	})
-
-	t.Run("delete injects owner", func(t *testing.T) {
-		repo := &fullCapturingRepo{}
-		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
-		)
-		result := doQuery(schema, ctx,
-			`mutation { delete(where: { id: "x" }) { success } }`)
-		require.Empty(t, result.Errors)
-		assert.Equal(t, endUserID, repo.capturedDeleteOneWhere["owner"],
-			"delete WHERE must contain owner=%s", endUserID)
-	})
-
-	t.Run("updateMany injects owner", func(t *testing.T) {
-		repo := &fullCapturingRepo{}
-		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
-		)
-		result := doQuery(schema, ctx,
-			`mutation { updateMany(where: {}, data: { title: "t" }, take: 1) { count } }`)
-		require.Empty(t, result.Errors)
-		assert.Equal(t, endUserID, repo.capturedUpdateManyWhere["owner"],
-			"updateMany WHERE must contain owner=%s", endUserID)
-	})
-
-	t.Run("deleteMany injects owner", func(t *testing.T) {
-		repo := &fullCapturingRepo{}
-		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
-		)
-		result := doQuery(schema, ctx,
-			`mutation { deleteMany(where: {}, take: 1) { count } }`)
-		require.Empty(t, result.Errors)
-		assert.Equal(t, endUserID, repo.capturedDeleteManyWhere["owner"],
-			"deleteMany WHERE must contain owner=%s", endUserID)
-	})
+// taskModelWithOwner returns a RuntimeModel that has an END_USER_REF "owner" field.
+func taskModelWithOwner() *RuntimeModel {
+	return &RuntimeModel{
+		Name:  "TaskWithOwner",
+		Title: "任务（含所有者）",
+		Fields: map[string]*RuntimeField{
+			"id": {
+				Name:      "id",
+				Title:     "ID",
+				Type:      &modeldesign.FieldType{Format: modeldesign.FormatUUID},
+				IsPrimary: true,
+				IsUnique:  true,
+			},
+			"title": {
+				Name:  "title",
+				Title: "标题",
+				Type:  &modeldesign.FieldType{Format: modeldesign.FormatString},
+			},
+			"owner": {
+				Name:  "owner",
+				Title: "所有者",
+				Type:  &modeldesign.FieldType{Format: modeldesign.FormatEndUserRef},
+			},
+		},
+	}
 }
 
-// TestPermissionEnforcement_RowFilter_AllScope verifies that ALL scope (IsSelf=false)
-// does NOT inject an owner filter.
-func TestPermissionEnforcement_RowFilter_AllScope(t *testing.T) {
-	const endUserID = "user-abc"
-	model := taskModelWithOwner()
-	schema := buildSchemaFor(t, model)
-
-	repo := &fullCapturingRepo{}
-	ctx := WithGraphqlRequestContext(
-		context.Background(), repo, "org-1", "proj-1", endUserID, "",
-		allScopePerm(),
-	)
-
-	result := doQuery(schema, ctx, `{ findMany { items { id title } } }`)
-	require.Empty(t, result.Errors)
-	_, ownerPresent := repo.capturedFindManyWhere["owner"]
-	assert.False(t, ownerPresent,
-		"ALL scope must NOT inject owner into findMany WHERE")
-}
-
-// TestPermissionEnforcement_RowFilter_TenantAdmin verifies that a tenant admin
-// (nil EndUserPerms) does NOT receive an owner filter injection.
-func TestPermissionEnforcement_RowFilter_TenantAdmin(t *testing.T) {
-	model := taskModelWithOwner()
-	schema := buildSchemaFor(t, model)
-
-	repo := &fullCapturingRepo{}
-	// nil EndUserPerms = tenant admin
-	ctx := WithGraphqlRequestContext(
-		context.Background(), repo, "org-1", "proj-1", "", "",
-		nil,
-	)
-
-	result := doQuery(schema, ctx, `{ findMany { items { id title } } }`)
-	require.Empty(t, result.Errors)
-	_, ownerPresent := repo.capturedFindManyWhere["owner"]
-	assert.False(t, ownerPresent,
-		"tenant admin must NOT have owner injected into findMany WHERE")
-}
-
-// TestPermissionEnforcement_RowFilter_NoEndUserRefField verifies that SELF scope
-// does NOT inject anything when the model has no FormatEndUserRef field.
-func TestPermissionEnforcement_RowFilter_NoEndUserRefField(t *testing.T) {
-	const endUserID = "user-abc"
-	// Model without an owner field
-	model := taskModelWithoutOwner()
-	schema := buildSchemaFor(t, model)
-
-	repo := &fullCapturingRepo{}
-	ctx := WithGraphqlRequestContext(
-		context.Background(), repo, "org-1", "proj-1", endUserID, "",
-		selfScopePerm(),
-	)
-
-	result := doQuery(schema, ctx, `{ findMany { items { id title } } }`)
-	require.Empty(t, result.Errors)
-	_, ownerPresent := repo.capturedFindManyWhere["owner"]
-	assert.False(t, ownerPresent,
-		"SELF scope must NOT inject owner when model has no EndUserRef field")
+// buildSchemaFor builds a real GraphQL schema from the given RuntimeModel.
+func buildSchemaFor(t *testing.T, model *RuntimeModel) *graphql.Schema {
+	t.Helper()
+	resolver := newGraphqlModelResolver(context.Background(), model, nil, nil)
+	schema, err := resolver.newGraphqlSchema(context.Background())
+	require.NoError(t, err)
+	return schema
 }

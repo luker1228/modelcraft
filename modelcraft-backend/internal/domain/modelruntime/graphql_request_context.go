@@ -97,10 +97,3 @@ func (rctx *graphqlRequestContext) getOrCreateLoader(
 	return l
 }
 
-// resolveEndUserOwnerID returns the runtime end-user ID to use for END_USER_REF field injection.
-func (rctx *graphqlRequestContext) resolveEndUserOwnerID() string {
-	if rctx.RLS == nil {
-		return ""
-	}
-	return rctx.RLS.EndUserID
-}

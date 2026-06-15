@@ -1,7 +1,6 @@
 package modelruntime
 
 import (
-	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/pkg/bizerrors"
 )
 
@@ -66,63 +65,4 @@ func (p *ResolvedModelPermissions) CheckAction(action Action) error {
 		return bizerrors.NewError(bizerrors.PermissionDenied, string(action))
 	}
 	return nil
-}
-
-// enforceOwnerOnCreate injects the current end-user ID into the END_USER_REF field
-// of the create payload.
-//
-// Caller: executeCreateOne / executeCreateMany.
-func enforceOwnerOnCreate(
-	rctx *graphqlRequestContext,
-	fields map[string]*RuntimeField,
-	data map[string]any,
-) error {
-	ownerID := rctx.resolveEndUserOwnerID()
-	if ownerID == "" {
-		return nil // tenant admin without admin-claim: use payload as-is
-	}
-	for _, field := range fields {
-		if field.Type == nil || field.Type.Format != modeldesign.FormatEndUserRef {
-			continue
-		}
-		data[field.Name] = ownerID
-		return nil
-	}
-	return nil
-}
-
-// 若无此字段，返回空字符串（SELF scope 降级为 ALL，不注入 WHERE）。
-func FindEndUserRefFieldName(fields map[string]*RuntimeField) string {
-	for _, f := range fields {
-		if f.Type != nil && f.Type.Format == modeldesign.FormatEndUserRef {
-			return f.Name
-		}
-	}
-	return ""
-}
-
-// BuildRowFilter 根据权限和 action 构造 WHERE 注入 map。
-// 如果任何匹配的策略包含非空 UsingExpr（由 RLS USING 处理范围），则返回 nil。
-// 否则，在动作被允许且模型有 END_USER_REF 字段的前提下，默认注入 SELF 范围筛选。
-// 返回 nil 表示无需注入（ownerField/endUserID 为空，或 RLS USING 处理范围）。
-func BuildRowFilter(
-	perms *ResolvedModelPermissions,
-	action Action,
-	ownerField string,
-	endUserID string,
-) map[string]any {
-	if perms == nil || ownerField == "" || endUserID == "" {
-		return nil
-	}
-	if !perms.Get(action).Allowed {
-		return nil
-	}
-	// If any policy for this action has a UsingExpr, RLS handles scoping.
-	// Otherwise, default to SELF scope (inject owner filter).
-	for _, pol := range perms.Policies {
-		if pol.Action == action && pol.UsingExpr != "" {
-			return nil // RLS USING handles scoping
-		}
-	}
-	return map[string]any{ownerField: endUserID}
 }

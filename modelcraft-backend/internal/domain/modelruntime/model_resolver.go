@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"maps"
 	"time"
 
 	"modelcraft/internal/domain/modeldesign"
@@ -45,12 +44,6 @@ func newGraphqlModelResolver(ctx context.Context, model *RuntimeModel,
 		inputTypeGenerator: newInputTypeGenerator(),
 		enumConfigMap:      make(map[string]*graphqlEnumConfig),
 	}
-}
-
-// endUserRefFieldName 返回此 model 中 FormatEndUserRef 类型字段的名称。
-// 空字符串表示该 model 无 owner 字段，SELF scope 降级为 ALL（不注入 WHERE）。
-func (m *graphqlModelResolver) endUserRefFieldName() string {
-	return FindEndUserRefFieldName(m.model.Fields)
 }
 
 func (m *graphqlModelResolver) newGraphqlSchema(ctx context.Context) (*graphql.Schema, error) {
@@ -95,11 +88,6 @@ func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (inter
 	input, err := newFindUniqueInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
-	}
-	if rf := BuildRowFilter(
-		rctx.RLS.Permissions, ActionSelect, m.endUserRefFieldName(), rctx.RLS.EndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
 	}
 	result, err := rctx.ClientRepo.FindUnique(p.Context, input)
 	if err != nil {
@@ -208,11 +196,6 @@ func (m *graphqlModelResolver) executeFindFirst(p graphql.ResolveParams) (any, e
 	if err != nil {
 		return nil, err
 	}
-	if rf := BuildRowFilter(
-		rctx.RLS.Permissions, ActionSelect, m.endUserRefFieldName(), rctx.RLS.EndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
-	}
 	result, err := rctx.ClientRepo.FindFirst(p.Context, input)
 	if err != nil {
 		if bizerrors.Is(err, sql.ErrNoRows) {
@@ -269,11 +252,6 @@ func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[str
 	input, err := newFindManyInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
-	}
-	if rf := BuildRowFilter(
-		rctx.RLS.Permissions, ActionSelect, m.endUserRefFieldName(), rctx.RLS.EndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
 	}
 	result, err := rctx.ClientRepo.FindMany(p.Context, input)
 	if err != nil {
@@ -1408,11 +1386,6 @@ func (m *graphqlModelResolver) executeListByCursor(p graphql.ResolveParams) (map
 	}
 
 	// Inject RLS row filter
-	if rf := BuildRowFilter(
-		rctx.RLS.Permissions, ActionSelect, m.endUserRefFieldName(), rctx.RLS.EndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
-	}
 
 	// Fetch limit+1 rows to detect hasNextPage
 	rows, err := rctx.ClientRepo.ListByCursor(p.Context, input)
@@ -1491,11 +1464,6 @@ func (m *graphqlModelResolver) executeListByPage(p graphql.ResolveParams) (map[s
 		OrderBy:   orderBy,
 		Limit:     uint(pageSizeRaw),
 		Offset:    uint((pageIndexRaw - 1) * pageSizeRaw),
-	}
-	if rf := BuildRowFilter(
-		rctx.RLS.Permissions, ActionSelect, m.endUserRefFieldName(), rctx.RLS.EndUserID,
-	); rf != nil {
-		maps.Copy(findManyInput.Where, rf)
 	}
 
 	items, err := rctx.ClientRepo.FindMany(p.Context, findManyInput)
@@ -1639,14 +1607,6 @@ func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interf
 		}
 	}
 
-	// Inject owner from end-user identity (end-user JWT or tenant admin's end-user-admin claim).
-	// Only inject if the model actually has an END_USER_REF field (prevents
-	// accidentally clobbering a user-defined field named "owner" on models
-	// that do not use the END_USER_REF system field).
-	// When no owner identity is available: use payload value as-is.
-	if err := enforceOwnerOnCreate(rctx, m.model.Fields, input.Data); err != nil {
-		return nil, err
-	}
 
 	input.Id = cast.ToString(input.Data[FieldID])
 
@@ -1723,21 +1683,6 @@ func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interf
 		return nil, err
 	}
 
-	// Inject owner from end-user identity (end-user JWT or tenant admin's end-user-admin claim).
-	// Only applies if the model has an END_USER_REF field and an owner identity is available.
-	if ownerID := rctx.resolveEndUserOwnerID(); ownerID != "" {
-		for _, field := range m.model.Fields {
-			if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
-				input.Data[field.Name] = ownerID
-				break
-			}
-		}
-	}
-	if rf := BuildRowFilter(
-		rctx.RLS.Permissions, ActionUpdate, m.endUserRefFieldName(), rctx.RLS.EndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
-	}
 
 	// 返回包装结果
 	result := map[string]interface{}{
@@ -1801,11 +1746,6 @@ func (m *graphqlModelResolver) executeDeleteOne(p graphql.ResolveParams) (interf
 	input, err := newDeleteOneInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
-	}
-	if rf := BuildRowFilter(
-		rctx.RLS.Permissions, ActionDelete, m.endUserRefFieldName(), rctx.RLS.EndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
 	}
 	// 返回包装结果
 	result := map[string]interface{}{
@@ -1885,11 +1825,6 @@ func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (inter
 				}
 			}
 		}
-		// Inject owner from end-user identity (end-user JWT or tenant admin's end-user-admin claim).
-		// Only applies if the model has an END_USER_REF field and an owner identity is available.
-		if err := enforceOwnerOnCreate(rctx, m.model.Fields, dataItem); err != nil {
-			return nil, err
-		}
 	}
 	result, err := rctx.ClientRepo.CreateMany(p.Context, input)
 	if err != nil {
@@ -1945,21 +1880,6 @@ func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (inter
 		return nil, err
 	}
 
-	// Inject owner from end-user identity (end-user JWT or tenant admin's end-user-admin claim).
-	// updateMany uses a single data map applied to all matched records.
-	if ownerID := rctx.resolveEndUserOwnerID(); ownerID != "" {
-		for _, field := range m.model.Fields {
-			if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
-				input.Data[field.Name] = ownerID
-				break
-			}
-		}
-	}
-	if rf := BuildRowFilter(
-		rctx.RLS.Permissions, ActionUpdate, m.endUserRefFieldName(), rctx.RLS.EndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
-	}
 
 	result, err := rctx.ClientRepo.UpdateMany(p.Context, input)
 	if err != nil {
@@ -2009,11 +1929,6 @@ func (m *graphqlModelResolver) executeDeleteMany(p graphql.ResolveParams) (inter
 	input, err := newDeleteManyInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
-	}
-	if rf := BuildRowFilter(
-		rctx.RLS.Permissions, ActionDelete, m.endUserRefFieldName(), rctx.RLS.EndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
 	}
 	result, err := rctx.ClientRepo.DeleteMany(p.Context, input)
 	if err != nil {
