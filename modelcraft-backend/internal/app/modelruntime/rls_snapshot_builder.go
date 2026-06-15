@@ -47,11 +47,12 @@ func NewRLSSnapshotBuilder(policySvc PolicyResolver) *RLSSnapshotBuilder {
 	}
 }
 
-// Build constructs the RLSPolicySnapshot for the given model.
+// Build constructs a comprehensive RLSPolicySnapshot for the given model.
+// It merges USING filters from all read/write actions (select, update, delete)
+// and compiles CHECK programs from insert/update actions.
 func (b *RLSSnapshotBuilder) Build(
 	ctx context.Context,
 	orgName, projectSlug, modelID string,
-	action modelruntime.Action,
 	userCtx *rls.UserContext,
 	perms *modelruntime.ResolvedModelPermissions,
 ) (*modelruntime.RLSPolicySnapshot, error) {
@@ -64,66 +65,54 @@ func (b *RLSSnapshotBuilder) Build(
 	auth := buildAuthMap(userCtx)
 	snap := &modelruntime.RLSPolicySnapshot{Auth: auth}
 
-	// Collect expressions from perms, merge USING (OR), compile CHECKs.
-	switch action {
-	case modelruntime.ActionSelect:
-		filter, err := b.mergeUSING(ctx, perms, action, userCtx)
-		if err != nil {
-			return nil, err
-		}
-		snap.USING = filter
-		logger.Debugf(ctx, "RLS snapshot: action=%s model=%s using=%v checks=0", action, modelID, filter != nil)
-
-	case modelruntime.ActionInsert:
-		checks, err := b.compileCHECKs(perms, action)
-		if err != nil {
-			return nil, err
-		}
-		snap.CHECKs = checks
-		logger.Debugf(ctx, "RLS snapshot: action=%s model=%s using=false checks=%d", action, modelID, len(checks))
-
-	case modelruntime.ActionUpdate:
-		filter, err := b.mergeUSING(ctx, perms, action, userCtx)
-		if err != nil {
-			return nil, err
-		}
-		checks, err := b.compileCHECKs(perms, action)
-		if err != nil {
-			return nil, err
-		}
-		snap.USING = filter
-		snap.CHECKs = checks
-		logger.Debugf(ctx, "RLS snapshot: action=%s model=%s using=%v checks=%d", action, modelID, filter != nil, len(checks))
-
-	case modelruntime.ActionDelete:
-		filter, err := b.mergeUSING(ctx, perms, action, userCtx)
-		if err != nil {
-			return nil, err
-		}
-		snap.USING = filter
-		logger.Debugf(ctx, "RLS snapshot: action=%s model=%s using=%v checks=0", action, modelID, filter != nil)
+	// Merge USING from select, update, delete policies (OR logic)
+	filter, err := b.mergeUSING(ctx, perms, []modelruntime.Action{
+		modelruntime.ActionSelect,
+		modelruntime.ActionUpdate,
+		modelruntime.ActionDelete,
+	}, userCtx)
+	if err != nil {
+		return nil, err
 	}
+	snap.USING = filter
+
+	// Compile CHECKs from insert, update policies
+	checks, err := b.compileCHECKs(perms, []modelruntime.Action{
+		modelruntime.ActionInsert,
+		modelruntime.ActionUpdate,
+	})
+	if err != nil {
+		return nil, err
+	}
+	snap.CHECKs = checks
+
+	logger.Debugf(ctx, "RLS snapshot: model=%s using=%v checks=%d", modelID, filter != nil, len(checks))
 
 	return snap, nil
 }
 
-// mergeUSING collects all UsingExpr from perms.Policies matching the action,
+// mergeUSING collects all UsingExpr from perms.Policies matching any of the given actions,
 // compiles each to SQL, and OR-merges the results.
 func (b *RLSSnapshotBuilder) mergeUSING(
 	ctx context.Context,
 	perms *modelruntime.ResolvedModelPermissions,
-	action modelruntime.Action,
+	actions []modelruntime.Action,
 	userCtx *rls.UserContext,
 ) (*modelruntime.RawSQLFilter, error) {
 	if perms == nil {
 		return nil, nil //nolint:nilnil
 	}
 
+	actionSet := make(map[modelruntime.Action]struct{}, len(actions))
+	for _, a := range actions {
+		actionSet[a] = struct{}{}
+	}
+
 	var orClauses []string
 	var allParams []interface{}
 
 	for _, pol := range perms.Policies {
-		if pol.Action != action || pol.UsingExpr == "" {
+		if _, ok := actionSet[pol.Action]; !ok || pol.UsingExpr == "" {
 			continue
 		}
 		compiled, err := b.policySvc.CompileUsingExpr(ctx, pol.UsingExpr, userCtx)
@@ -144,19 +133,24 @@ func (b *RLSSnapshotBuilder) mergeUSING(
 	}, nil
 }
 
-// compileCHECKs compiles all WithCheckExpr from perms.Policies matching the action.
+// compileCHECKs compiles all WithCheckExpr from perms.Policies matching any of the given actions.
 // CHECK expressions use OR logic — any single one passing is sufficient.
 func (b *RLSSnapshotBuilder) compileCHECKs(
 	perms *modelruntime.ResolvedModelPermissions,
-	action modelruntime.Action,
+	actions []modelruntime.Action,
 ) ([]*modelruntime.CheckProgram, error) {
 	if perms == nil {
 		return nil, nil
 	}
 
+	actionSet := make(map[modelruntime.Action]struct{}, len(actions))
+	for _, a := range actions {
+		actionSet[a] = struct{}{}
+	}
+
 	var checks []*modelruntime.CheckProgram
 	for _, pol := range perms.Policies {
-		if pol.Action != action || pol.WithCheckExpr == "" {
+		if _, ok := actionSet[pol.Action]; !ok || pol.WithCheckExpr == "" {
 			continue
 		}
 		ast, issues := b.celEnv.Compile(pol.WithCheckExpr)

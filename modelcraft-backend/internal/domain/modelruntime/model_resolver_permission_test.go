@@ -34,6 +34,7 @@ func TestFindEndUserRefFieldName_NotFound(t *testing.T) {
 }
 
 func TestBuildRowFilter_Allowed(t *testing.T) {
+	// Policy without UsingExpr → default SELF scope → owner filter injected
 	perms := &modelruntime.ResolvedModelPermissions{
 		Policies: []modelruntime.ResolvedPolicy{
 			{Action: modelruntime.ActionSelect},
@@ -41,10 +42,22 @@ func TestBuildRowFilter_Allowed(t *testing.T) {
 	}
 	filter := modelruntime.BuildRowFilter(perms, modelruntime.ActionSelect, "owner_user", "user-abc")
 	if filter == nil {
-		t.Fatal("expected non-nil filter")
+		t.Fatal("expected non-nil filter (default SELF scope when no UsingExpr)")
 	}
 	if filter["owner_user"] != "user-abc" {
 		t.Errorf("expected owner_user=user-abc, got %v", filter["owner_user"])
+	}
+}
+
+func TestBuildRowFilter_AllScopeWithUsing(t *testing.T) {
+	// Policy WITH UsingExpr → RLS handles scoping → no owner filter injected
+	perms := &modelruntime.ResolvedModelPermissions{
+		Policies: []modelruntime.ResolvedPolicy{
+			{Action: modelruntime.ActionSelect, UsingExpr: "true"},
+		},
+	}
+	if got := modelruntime.BuildRowFilter(perms, modelruntime.ActionSelect, "owner_user", "user-abc"); got != nil {
+		t.Error("policy with UsingExpr should NOT inject owner filter (RLS handles scoping)")
 	}
 }
 

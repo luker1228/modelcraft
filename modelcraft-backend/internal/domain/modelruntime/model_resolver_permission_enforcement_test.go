@@ -119,24 +119,28 @@ func selectAllPerm() *ResolvedModelPermissions {
 	}
 }
 
+// selfScopePerm returns permissions where each policy has no UsingExpr —
+// BuildRowFilter provides the default SELF scope owner filter as fallback.
 func selfScopePerm() *ResolvedModelPermissions {
 	return &ResolvedModelPermissions{
 		Policies: []ResolvedPolicy{
-			{Action: ActionSelect, },
-			{Action: ActionInsert, },
-			{Action: ActionUpdate, },
-			{Action: ActionDelete, },
+			{Action: ActionSelect},
+			{Action: ActionInsert},
+			{Action: ActionUpdate},
+			{Action: ActionDelete},
 		},
 	}
 }
 
+// allScopePerm returns permissions where each policy has a non-empty UsingExpr
+// (e.g. "true"), meaning RLS handles scoping and BuildRowFilter should NOT inject.
 func allScopePerm() *ResolvedModelPermissions {
 	return &ResolvedModelPermissions{
 		Policies: []ResolvedPolicy{
-			{Action: ActionSelect, },
-			{Action: ActionInsert, },
-			{Action: ActionUpdate, },
-			{Action: ActionDelete, },
+			{Action: ActionSelect, UsingExpr: "true"},
+			{Action: ActionInsert, UsingExpr: "true"},
+			{Action: ActionUpdate, UsingExpr: "true"},
+			{Action: ActionDelete, UsingExpr: "true"},
 		},
 	}
 }

@@ -15,10 +15,10 @@ func NewPolicyPermissionResolver(policyRepo rls.PolicyRepositoryV2) *PolicyPermi
 	return &PolicyPermissionResolver{policyRepo: policyRepo}
 }
 
-// ResolveFromV2Policy loads V2 policies for a model and returns matching policies as a list.
+// ResolveFromV2Policy loads V2 policies for a model and returns ALL matching policies
+// (across all actions). The resolver-level CheckAction calls filter by action at check time.
 func (r *PolicyPermissionResolver) ResolveFromV2Policy(
 	ctx context.Context, orgName, projectSlug, modelID string, endUserRoles []string,
-	action modelruntime.Action,
 ) (*modelruntime.ResolvedModelPermissions, error) {
 	policies, err := r.policyRepo.ListByModel(ctx, orgName, projectSlug, modelID)
 	if err != nil {
@@ -37,7 +37,7 @@ func (r *PolicyPermissionResolver) ResolveFromV2Policy(
 			continue
 		}
 		mapped := mapAction(p.Action)
-		if mapped != action {
+		if mapped == "" {
 			continue
 		}
 		resolved = append(resolved, modelruntime.ResolvedPolicy{

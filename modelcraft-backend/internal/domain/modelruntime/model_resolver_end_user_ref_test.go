@@ -259,7 +259,7 @@ func TestOwnerSelfScopeEnforcement_CreateOne(t *testing.T) {
 	model := taskModelWithOwner()
 	schema := buildSchemaFor(t, model)
 
-	t.Run("IsSelf=true: 传他人 owner 时应返回 PermissionDenied", func(t *testing.T) {
+	t.Run("传他人 owner 时被覆盖为当前用户", func(t *testing.T) {
 		repo := &capturingClientRepo{}
 		ctx := WithGraphqlRequestContext(
 			context.Background(), repo, "org-1", "proj-1", currentUser, "",
@@ -274,14 +274,13 @@ func TestOwnerSelfScopeEnforcement_CreateOne(t *testing.T) {
 			}`,
 		})
 
-		require.NotEmpty(t, result.Errors, "should return permission error when owner != currentUser")
-		assert.True(t, hasPermissionError(result),
-			"error message must contain 'permission', got: %v", result.Errors)
-		assert.Nil(t, repo.capturedCreateInput,
-			"CreateOne must NOT be called when permission check fails")
+		require.Empty(t, result.Errors, "create should succeed (owner overwritten to current user)")
+		require.NotNil(t, repo.capturedCreateInput)
+		assert.Equal(t, currentUser, repo.capturedCreateInput.Data["owner"],
+			"owner must be overwritten to current user")
 	})
 
-	t.Run("IsSelf=true: 传本人 owner 时应成功，写库 owner 为当前用户", func(t *testing.T) {
+	t.Run("传本人 owner 时应成功，写库 owner 为当前用户", func(t *testing.T) {
 		repo := &capturingClientRepo{}
 		ctx := WithGraphqlRequestContext(
 			context.Background(), repo, "org-1", "proj-1", currentUser, "",
@@ -301,7 +300,7 @@ func TestOwnerSelfScopeEnforcement_CreateOne(t *testing.T) {
 		assert.Equal(t, currentUser, repo.capturedCreateInput.Data["owner"])
 	})
 
-	t.Run("IsSelf=true: 不传 owner 时应成功，自动注入当前用户 ID", func(t *testing.T) {
+	t.Run("不传 owner 时应成功，自动注入当前用户 ID", func(t *testing.T) {
 		repo := &capturingClientRepo{}
 		ctx := WithGraphqlRequestContext(
 			context.Background(), repo, "org-1", "proj-1", currentUser, "",
@@ -353,7 +352,7 @@ func TestOwnerSelfScopeEnforcement_CreateMany(t *testing.T) {
 	model := taskModelWithOwner()
 	schema := buildSchemaFor(t, model)
 
-	t.Run("IsSelf=true: 批量 create 中含他人 owner 时应返回 PermissionDenied", func(t *testing.T) {
+	t.Run("createMany: 显式传其他 owner 时被覆盖为当前用户", func(t *testing.T) {
 		repo := &capturingClientRepo{}
 		ctx := WithGraphqlRequestContext(
 			context.Background(), repo, "org-1", "proj-1", currentUser, "",
@@ -370,14 +369,13 @@ func TestOwnerSelfScopeEnforcement_CreateMany(t *testing.T) {
 			}`,
 		})
 
-		require.NotEmpty(t, result.Errors, "createMany should return permission error")
-		assert.True(t, hasPermissionError(result),
-			"error must mention 'permission', got: %v", result.Errors)
-		assert.Nil(t, repo.capturedCreateManyInput,
-			"CreateMany must NOT be called when permission check fails")
+		require.Empty(t, result.Errors, "createMany should succeed (owner overwritten)")
+		require.NotNil(t, repo.capturedCreateManyInput)
+		assert.Equal(t, currentUser, repo.capturedCreateManyInput.Data[0]["owner"],
+			"owner must be overwritten with current user")
 	})
 
-	t.Run("IsSelf=true: 批量 create 不传 owner 时应成功并注入当前用户", func(t *testing.T) {
+	t.Run("createMany: 不传 owner 时应成功并注入当前用户", func(t *testing.T) {
 		repo := &capturingClientRepo{}
 		ctx := WithGraphqlRequestContext(
 			context.Background(), repo, "org-1", "proj-1", currentUser, "",

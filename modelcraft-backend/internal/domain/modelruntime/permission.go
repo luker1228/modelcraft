@@ -102,7 +102,9 @@ func FindEndUserRefFieldName(fields map[string]*RuntimeField) string {
 }
 
 // BuildRowFilter 根据权限和 action 构造 WHERE 注入 map。
-// 返回 nil 表示无需注入（ownerField/endUserID 为空）。
+// 如果任何匹配的策略包含非空 UsingExpr（由 RLS USING 处理范围），则返回 nil。
+// 否则，在动作被允许且模型有 END_USER_REF 字段的前提下，默认注入 SELF 范围筛选。
+// 返回 nil 表示无需注入（ownerField/endUserID 为空，或 RLS USING 处理范围）。
 func BuildRowFilter(
 	perms *ResolvedModelPermissions,
 	action Action,
@@ -114,6 +116,13 @@ func BuildRowFilter(
 	}
 	if !perms.Get(action).Allowed {
 		return nil
+	}
+	// If any policy for this action has a UsingExpr, RLS handles scoping.
+	// Otherwise, default to SELF scope (inject owner filter).
+	for _, pol := range perms.Policies {
+		if pol.Action == action && pol.UsingExpr != "" {
+			return nil // RLS USING handles scoping
+		}
 	}
 	return map[string]any{ownerField: endUserID}
 }

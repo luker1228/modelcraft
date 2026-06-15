@@ -32,7 +32,7 @@ func (s *stubPolicyRepo) DeleteByModel(_ context.Context, _, _, _ string) error 
 
 func TestPolicyPermissionResolver_ResolveFromV2Policy_NoPermissions(t *testing.T) {
 	resolver := appruntimeimport.NewPolicyPermissionResolver(&stubPolicyRepo{})
-	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"viewer"}, modelruntime.ActionSelect)
+	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"viewer"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestPolicyPermissionResolver_ResolveFromV2Policy_SelectAll(t *testing.T) {
 		},
 	})
 
-	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"viewer"}, modelruntime.ActionSelect)
+	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"viewer"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,19 +73,13 @@ func TestPolicyPermissionResolver_ResolveFromV2Policy_SelfScoped(t *testing.T) {
 		},
 	})
 
-	// Resolve for select — only read policy matches
-	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"member"}, modelruntime.ActionSelect)
+	// All policies are returned regardless of action — both read and create policies loaded
+	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"member"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !perms.Get(modelruntime.ActionSelect).Allowed {
 		t.Fatal("expected select allowed")
-	}
-
-	// Resolve for insert — only create policy matches
-	perms, err = resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"member"}, modelruntime.ActionInsert)
-	if err != nil {
-		t.Fatal(err)
 	}
 	if !perms.Get(modelruntime.ActionInsert).Allowed {
 		t.Fatal("expected insert allowed")
@@ -99,7 +93,7 @@ func TestPolicyPermissionResolver_ResolveFromV2Policy_DefaultRole(t *testing.T) 
 		},
 	})
 
-	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"unknown"}, modelruntime.ActionDelete)
+	perms, err := resolver.ResolveFromV2Policy(context.Background(), "org1", "proj1", "model-id", []string{"unknown"})
 	if err != nil {
 		t.Fatal(err)
 	}

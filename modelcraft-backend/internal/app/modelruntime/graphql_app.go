@@ -94,16 +94,13 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 		return nil, err
 	}
 
-	action := mapOperationToAction(cmd.OperationName)
-
 	var rlsCtx *modelruntime.RLSContext
 	if ctxutils.GetIsAdminFromContext(ctx) {
 		rlsCtx = &modelruntime.RLSContext{
 			IsAdmin: true,
-			Action:  action,
 		}
 	} else {
-		rlsCtx, err = s.buildRLSContext(ctx, orgName, projectSlug, modelID, action)
+		rlsCtx, err = s.buildRLSContext(ctx, orgName, projectSlug, modelID)
 		if err != nil {
 			return nil, err
 		}
@@ -165,12 +162,10 @@ func NewGraphqlAppService(
 func (s *GraphqlAppService) buildRLSContext(
 	ctx context.Context,
 	orgName, projectSlug, modelID string,
-	action modelruntime.Action,
 ) (*modelruntime.RLSContext, error) {
 	logger := logfacade.GetLogger(ctx)
 
 	rlsCtx := &modelruntime.RLSContext{
-		Action:      action,
 		IsAdmin:     ctxutils.GetIsAdminFromContext(ctx),
 		UserContext: middleware.GetUserContext(ctx),
 	}
@@ -184,7 +179,7 @@ func (s *GraphqlAppService) buildRLSContext(
 	}
 	rlsCtx.EndUserID = endUserID
 	rlsCtx.Permissions, err = s.permResolver.ResolveFromV2Policy(
-		ctx, orgName, projectSlug, modelID, rlsCtx.UserContext.Roles, action,
+		ctx, orgName, projectSlug, modelID, rlsCtx.UserContext.Roles,
 	)
 	if err != nil {
 		return nil, err
@@ -192,32 +187,18 @@ func (s *GraphqlAppService) buildRLSContext(
 	if rlsCtx.Permissions != nil && rlsCtx.Permissions.IsEmpty() {
 		rlsCtx.FastFail = true
 		rlsCtx.FastFailReason = "permissions: no permissions granted"
-		logger.Debugf(ctx, "RLS fast-fail: model=%s action=%s reason=%s", modelID, action, rlsCtx.FastFailReason)
+		logger.Debugf(ctx, "RLS fast-fail: model=%s reason=%s", modelID, rlsCtx.FastFailReason)
 		return rlsCtx, nil
 	}
 
-	snap, err := s.snapshotBuilder.Build(ctx, orgName, projectSlug, modelID, action, rlsCtx.UserContext, rlsCtx.Permissions)
+	snap, err := s.snapshotBuilder.Build(ctx, orgName, projectSlug, modelID, rlsCtx.UserContext, rlsCtx.Permissions)
 	if err != nil {
 		return nil, err
 	}
 	rlsCtx.Snapshot = snap
-	logger.Debugf(ctx, "RLS context built: model=%s action=%s endUser=%s policies=%d using=%v checks=%d",
-		modelID, action, endUserID, len(rlsCtx.Permissions.Policies),
+	logger.Debugf(ctx, "RLS context built: model=%s endUser=%s policies=%d using=%v checks=%d",
+		modelID, endUserID, len(rlsCtx.Permissions.Policies),
 		snap.USING != nil, len(snap.CHECKs))
 
 	return rlsCtx, nil
-}
-
-// mapOperationToAction converts a GraphQL operation name to the corresponding domain action.
-func mapOperationToAction(op string) modelruntime.Action {
-	switch {
-	case op == "createOne" || op == "createMany":
-		return modelruntime.ActionInsert
-	case op == "updateOne" || op == "updateMany":
-		return modelruntime.ActionUpdate
-	case op == "deleteOne" || op == "deleteMany":
-		return modelruntime.ActionDelete
-	default:
-		return modelruntime.ActionSelect // find*, aggregate, count, list*, etc.
-	}
 }

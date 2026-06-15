@@ -57,7 +57,6 @@ func TestBuild_NilUserCtx_UsesDefaults(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		modelruntime.ActionSelect,
 		nil, // userCtx
 		perms(modelruntime.ResolvedPolicy{
 			Action:    modelruntime.ActionSelect,
@@ -67,7 +66,7 @@ func TestBuild_NilUserCtx_UsesDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-		if snap.Auth == nil {
+	if snap.Auth == nil {
 		t.Fatal("expected Auth map")
 	}
 	if snap.Auth["userid"] != "" || snap.Auth["username"] != "" {
@@ -75,9 +74,7 @@ func TestBuild_NilUserCtx_UsesDefaults(t *testing.T) {
 	}
 }
 
-// ─── permissions gate ────────────────────────────────────────────────────────
-
-// ─── ActionSelect (USING) ────────────────────────────────────────────────────
+// ─── USING (read/write actions) ──────────────────────────────────────────────
 
 func TestBuild_Select_SingleUSING(t *testing.T) {
 	b := newTestBuilder(&stubPolicyResolver{
@@ -89,7 +86,6 @@ func TestBuild_Select_SingleUSING(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		modelruntime.ActionSelect,
 		&rls.UserContext{UserID: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:    modelruntime.ActionSelect,
@@ -100,7 +96,7 @@ func TestBuild_Select_SingleUSING(t *testing.T) {
 		t.Fatal(err)
 	}
 	if snap.USING == nil {
-		t.Fatal("expected SelectUSING")
+		t.Fatal("expected USING")
 	}
 	if snap.USING.SQL != "(status = 'open')" {
 		t.Errorf("expected SQL='(status = \\'open\\')', got %q", snap.USING.SQL)
@@ -117,7 +113,6 @@ func TestBuild_Select_MultipleUSING_ORMerged(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		modelruntime.ActionSelect,
 		&rls.UserContext{UserID: "u1"},
 		perms(
 			modelruntime.ResolvedPolicy{
@@ -134,7 +129,7 @@ func TestBuild_Select_MultipleUSING_ORMerged(t *testing.T) {
 		t.Fatal(err)
 	}
 	if snap.USING == nil {
-		t.Fatal("expected SelectUSING")
+		t.Fatal("expected USING")
 	}
 	if !strings.Contains(snap.USING.SQL, " OR ") {
 		t.Errorf("expected OR-merged SQL, got %q", snap.USING.SQL)
@@ -144,7 +139,7 @@ func TestBuild_Select_MultipleUSING_ORMerged(t *testing.T) {
 	}
 }
 
-// ─── ActionSelect (USING) ────────────────────────────────────────────────────
+// ─── CHECKs (insert/update actions) ──────────────────────────────────────────
 
 func TestBuild_Insert_WithCHECK(t *testing.T) {
 	b := newTestBuilder(&stubPolicyResolver{})
@@ -152,7 +147,6 @@ func TestBuild_Insert_WithCHECK(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		modelruntime.ActionInsert,
 		&rls.UserContext{UserID: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:        modelruntime.ActionInsert,
@@ -163,7 +157,7 @@ func TestBuild_Insert_WithCHECK(t *testing.T) {
 		t.Fatal(err)
 	}
 	if snap.CHECKs == nil {
-		t.Fatal("expected InsertCHECK")
+		t.Fatal("expected CHECKs")
 	}
 }
 
@@ -175,7 +169,6 @@ func TestBuild_Insert_MultipleCHECKs_AllCompiled(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		modelruntime.ActionInsert,
 		&rls.UserContext{UserID: "u1"},
 		perms(
 			modelruntime.ResolvedPolicy{
@@ -202,7 +195,6 @@ func TestBuild_Insert_InvalidCEL_Error(t *testing.T) {
 	_, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		modelruntime.ActionInsert,
 		&rls.UserContext{UserID: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:        modelruntime.ActionInsert,
@@ -214,7 +206,7 @@ func TestBuild_Insert_InvalidCEL_Error(t *testing.T) {
 	}
 }
 
-// ─── ActionUpdate (USING + CHECK) ────────────────────────────────────────────
+// ─── Update policies (USING + CHECK) ─────────────────────────────────────────
 
 func TestBuild_Update_BothUSINGAndCHECK(t *testing.T) {
 	b := newTestBuilder(&stubPolicyResolver{
@@ -226,7 +218,6 @@ func TestBuild_Update_BothUSINGAndCHECK(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		modelruntime.ActionUpdate,
 		&rls.UserContext{UserID: "u1"},
 		perms(
 			modelruntime.ResolvedPolicy{
@@ -240,10 +231,10 @@ func TestBuild_Update_BothUSINGAndCHECK(t *testing.T) {
 		t.Fatal(err)
 	}
 	if snap.USING == nil {
-		t.Fatal("expected UpdateUSING")
+		t.Fatal("expected USING")
 	}
 	if snap.CHECKs == nil {
-		t.Fatal("expected UpdateCHECK")
+		t.Fatal("expected CHECKs")
 	}
 }
 
@@ -257,7 +248,6 @@ func TestBuild_Update_OnlyUSING(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		modelruntime.ActionUpdate,
 		&rls.UserContext{UserID: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:    modelruntime.ActionUpdate,
@@ -268,10 +258,10 @@ func TestBuild_Update_OnlyUSING(t *testing.T) {
 		t.Fatal(err)
 	}
 	if snap.USING == nil {
-		t.Fatal("expected UpdateUSING")
+		t.Fatal("expected USING")
 	}
 	if snap.CHECKs != nil {
-		t.Fatal("expected no UpdateCHECK")
+		t.Fatal("expected no CHECKs")
 	}
 }
 
@@ -281,7 +271,6 @@ func TestBuild_Update_OnlyCHECK(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		modelruntime.ActionUpdate,
 		&rls.UserContext{UserID: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:        modelruntime.ActionUpdate,
@@ -292,14 +281,14 @@ func TestBuild_Update_OnlyCHECK(t *testing.T) {
 		t.Fatal(err)
 	}
 	if snap.USING != nil {
-		t.Fatal("expected no UpdateUSING")
+		t.Fatal("expected no USING")
 	}
 	if snap.CHECKs == nil {
-		t.Fatal("expected UpdateCHECK")
+		t.Fatal("expected CHECKs")
 	}
 }
 
-// ─── ActionDelete (USING) ────────────────────────────────────────────────────
+// ─── Delete policies (USING) ─────────────────────────────────────────────────
 
 func TestBuild_Delete_WithUSING(t *testing.T) {
 	b := newTestBuilder(&stubPolicyResolver{
@@ -311,7 +300,6 @@ func TestBuild_Delete_WithUSING(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		modelruntime.ActionDelete,
 		&rls.UserContext{UserID: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:    modelruntime.ActionDelete,
@@ -322,7 +310,7 @@ func TestBuild_Delete_WithUSING(t *testing.T) {
 		t.Fatal(err)
 	}
 	if snap.USING == nil {
-		t.Fatal("expected DeleteUSING")
+		t.Fatal("expected USING")
 	}
 }
 
@@ -338,7 +326,6 @@ func TestBuild_CompileUsingExprError(t *testing.T) {
 	_, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		modelruntime.ActionSelect,
 		&rls.UserContext{UserID: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:    modelruntime.ActionSelect,
@@ -349,8 +336,6 @@ func TestBuild_CompileUsingExprError(t *testing.T) {
 		t.Fatal("expected compilation error")
 	}
 }
-
-// ─── policy filtering by action ──────────────────────────────────────────────
 
 // ─── userCtx propagation ─────────────────────────────────────────────────────
 
@@ -364,7 +349,6 @@ func TestBuild_UserCtxInAuth(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		modelruntime.ActionSelect,
 		&rls.UserContext{
 			UserID:   "user-abc",
 			UserName: "Alice",

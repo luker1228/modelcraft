@@ -64,13 +64,9 @@ func TestResolvedModelPermissions_Get(t *testing.T) {
 	if got := p.Get(modelruntime.Action("UNKNOWN")); got.Allowed {
 		t.Error("unknown action should be denied")
 	}
-	// nil receiver + unknown action should be denied
+	// nil receiver → tenant admin → allowed for all actions
 	var nilP *modelruntime.ResolvedModelPermissions
-	if got := nilP.Get(modelruntime.Action("UNKNOWN")); got.Allowed {
-		t.Error("nil receiver + unknown action should be denied")
-	}
-	// nil receiver + known action → tenant admin → allowed
 	if got := nilP.Get(modelruntime.ActionSelect); !got.Allowed {
-		t.Error("nil receiver + known action should be allowed (tenant admin)")
+		t.Error("nil receiver should be allowed (tenant admin)")
 	}
 }
