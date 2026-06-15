@@ -32,7 +32,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@web/components/ui/tooltip'
-import { Columns, Loader2, Save, HelpCircle, Link2 } from 'lucide-react'
+import { Loader2, Save, HelpCircle, Link2 } from 'lucide-react'
 import { hasSystemLabelSuffix } from '@/shared/model/system-field'
 import type {
   EnumSourceOption,
@@ -40,17 +40,8 @@ import type {
   ModelEnumDomainError,
 } from '@/types'
 
+// 仅支持插入关联关系字段，物理字段由数据库同步
 const FORMAT_TYPE_OPTIONS = [
-  { value: 'STRING', label: '字符串 (String)' },
-  { value: 'ENUM', label: '枚举 (Enum)' },
-  { value: 'UUID', label: 'UUID v7' },
-  { value: 'DATE', label: '日期 (Date)' },
-  { value: 'DATETIME', label: '日期时间 (DateTime)' },
-  { value: 'TIME', label: '时间 (Time)' },
-  { value: 'INTEGER', label: '整数 (Integer)' },
-  { value: 'NUMBER', label: '浮点数 (Number)' },
-  { value: 'DECIMAL', label: '精确小数 (Decimal)' },
-  { value: 'BOOLEAN', label: '布尔值 (Boolean)' },
   { value: 'RELATION', label: '关联关系 (Relation)' },
 ]
 
@@ -67,7 +58,7 @@ const STRING_STORAGE_HINTS = [
 const DEFAULT_FIELD_DATA = {
   name: '',
   title: '',
-  format: 'STRING',
+  format: 'RELATION',
   storageHint: '',
   nonNull: false,
   required: false,
@@ -319,11 +310,11 @@ export function InsertFieldSheet({
           {/* Header */}
           <DrawerHeader className="border-b border-border px-6 py-4">
             <DrawerTitle className="flex items-center gap-2 text-lg font-semibold">
-              <Columns className="size-5 text-primary" strokeWidth={1.5} />
-              插入字段
+              <Link2 className="size-5 text-primary" strokeWidth={1.5} />
+              插入关联字段
             </DrawerTitle>
             <DrawerDescription className="mt-1 text-sm">
-              为模型 <span className="font-mono text-primary">{modelName}</span> 添加新字段
+              为模型 <span className="font-mono text-primary">{modelName}</span> 添加关联关系字段（物理字段由数据库同步）
             </DrawerDescription>
           </DrawerHeader>
 

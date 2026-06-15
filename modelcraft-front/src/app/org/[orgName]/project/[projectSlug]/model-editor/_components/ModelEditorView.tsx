@@ -147,8 +147,8 @@ export function ModelEditorView() {
         </DialogContent>
       </Dialog>
 
-      {/* Create Model Sheet */}
-      <CreateModelDialog state={state} crud={crud} />
+      {/* 新建模型已禁用：系统不再支持直接创建模型 */}
+      {/* <CreateModelDialog state={state} crud={crud} /> */}
 
       {/* Edit Model Drawer */}
       <ModelDetailPanel

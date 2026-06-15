@@ -74,7 +74,7 @@ export function ModelDetailPanel({
   return (
     <Drawer open={state.editModelOpen} onOpenChange={crud.handleCloseEditModel} direction="right">
       <DrawerContent direction="right" className="flex w-[680px] flex-col rounded-none">
-        {/* Insert Field Sheet - nested inside for correct z-index layering */}
+        {/* 插入字段仅限关联关系（RELATION），物理字段由数据库同步 */}
         <InsertFieldSheet
           open={state.insertFieldOpen}
           onOpenChange={state.setInsertFieldOpen}
@@ -320,7 +320,7 @@ export function ModelDetailPanel({
                   </div>
                   <button
                     type="button"
-                    title={isManagedReadOnlyModel ? '托管模型仅支持查看' : '新增字段'}
+                    title={isManagedReadOnlyModel ? '托管模型仅支持查看' : '新增关联字段'}
                     className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={() => state.setInsertFieldOpen(true)}
                     disabled={isManagedReadOnlyModel}
@@ -477,7 +477,7 @@ export function ModelDetailPanel({
                     <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                       <Table2 className="mb-2 size-8 opacity-30" />
                       <p className="text-sm">暂无字段</p>
-                      <p className="mt-1 text-xs">点击上方按钮添加字段</p>
+                      <p className="mt-1 text-xs">从数据库同步获取物理字段，或点击上方按钮添加关联字段</p>
                     </div>
                   )}
                 </div>

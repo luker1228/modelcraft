@@ -7,7 +7,7 @@ import { useRegisterAICapability } from '@web/hooks/ai/use-register-ai-capabilit
 import {
   Table2,
   Search,
-  Plus,
+  // Plus, // 新建模型已禁用
   Download,
   MoreVertical,
   ChevronsUpDown,
@@ -71,22 +71,22 @@ export function ModelSidebar({
     | 'data'
 
   // AI capability refs for chip highlighting
-  const createModelBtnRef = useRef<HTMLButtonElement>(null)
+  const importModelBtnRef = useRef<HTMLButtonElement>(null)
   const selectDbBtnRef = useRef<HTMLButtonElement>(null)
 
-  useRegisterAICapability('create_model', '新建模型', createModelBtnRef, '点击打开新建模型表单')
+  useRegisterAICapability('import_model', '导入模型', importModelBtnRef, '点击打开导入模型表单')
   useRegisterAICapability('select_database', '选择数据库', selectDbBtnRef, '点击选择要操作的数据库')
 
   const handleModelDetailClick = (modelId: string) => {
     state.setSelectedModelId(modelId)
   }
 
-  const handleCreateModel = () => {
+  const handleImportModel = () => {
     if (!state.selectedDatabase) {
       alert('请先选择数据库')
       return
     }
-    state.setCreateModelOpen(true)
+    state.setImportDialogOpen(true)
   }
 
   // Clear pendingAction when user interacts with the spotlit sidebar elements
@@ -103,9 +103,9 @@ export function ModelSidebar({
     )
   }
 
-  const handleCreateModelClick = () => {
-    if (pendingAction === 'nav_create_model') setPendingAction(null)
-    handleCreateModel()
+  const handleImportModelClick = () => {
+    if (pendingAction === 'nav_import_model') setPendingAction(null)
+    handleImportModel()
   }
 
   return (
@@ -194,6 +194,8 @@ export function ModelSidebar({
             const canWrite = !selectedDbMode || selectedDbMode === 'SELF_HOSTED'
             return canWrite ? (
               <>
+                {/* 新建模型已禁用：系统不再支持直接创建模型，仅支持从数据库导入/同步 */}
+                {/*
                 <Button
                   ref={createModelBtnRef}
                   size="sm"
@@ -209,14 +211,17 @@ export function ModelSidebar({
                   <Plus className="mr-1 size-3.5" />
                   新建模型
                 </Button>
+                */}
                 <Button
+                  ref={importModelBtnRef}
                   size="sm"
                   variant="outline"
                   className={cn(
                     'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
-                    !state.selectedDatabase && 'pointer-events-none opacity-40'
+                    !state.selectedDatabase && 'pointer-events-none opacity-40',
+                    pendingAction === 'nav_import_model' && state.selectedDatabase && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
                   )}
-                  onClick={() => state.setImportDialogOpen(true)}
+                  onClick={handleImportModelClick}
                   disabled={!state.selectedDatabase}
                 >
                   <Download className="mr-1 size-3.5" strokeWidth={1.5} />
@@ -227,10 +232,11 @@ export function ModelSidebar({
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 w-full justify-start px-2.5 text-xs font-normal opacity-50"
-                disabled
+                className="h-7 w-full justify-start px-2.5 text-xs font-normal"
+                onClick={() => state.setImportDialogOpen(true)}
               >
-                同步模型（即将推出）
+                <Download className="mr-1 size-3.5" strokeWidth={1.5} />
+                同步模型
               </Button>
             ) : null
           })()}

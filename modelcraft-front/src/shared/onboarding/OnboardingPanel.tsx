@@ -37,7 +37,7 @@ export function OnboardingPanel({ orgName, className }: { orgName: string; class
   /** True if this step requires a project but none is available */
   const needsProject = (stepId: string): boolean => {
     const projectScopedIds = [
-      'goto_model_editor', 'select_database_nav', 'nav_create_model',
+      'goto_model_editor', 'select_database_nav', 'nav_import_model',
       'goto_end_user_access', 'nav_assign_role',
     ]
     return projectScopedIds.includes(stepId) && !projectSlug
@@ -273,7 +273,7 @@ export function OnboardingPanel({ orgName, className }: { orgName: string; class
                               const actionNavMap: Record<string, OnboardingPendingAction> = {
                                 select_database_nav: 'select_database',
                                 nav_create_project: 'nav_create_project',
-                                nav_create_model: 'nav_create_model',
+                                nav_import_model: 'nav_import_model',
                                 nav_add_end_user: 'nav_add_end_user',
                                 nav_assign_role: 'nav_assign_role',
                               }

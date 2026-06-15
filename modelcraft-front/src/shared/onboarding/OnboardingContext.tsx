@@ -39,7 +39,7 @@ export interface OnboardingGroupWithStatus extends Omit<OnboardingGroup, 'steps'
 
 export type OnboardingPendingAction =
   | 'nav_create_project'
-  | 'nav_create_model'
+  | 'nav_import_model'
   | 'select_database'
   | 'nav_add_end_user'
   | 'nav_assign_role'
