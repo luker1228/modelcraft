@@ -90,7 +90,7 @@ func (s *Server) EndUserMe(w http.ResponseWriter, r *http.Request) {
 func (s *Server) GetUserMemberships(w http.ResponseWriter, r *http.Request) {
 	logger := logfacade.GetLogger(r.Context())
 
-	userID, err := ctxutils.GetTenantUserIDFromContext(r.Context())
+	userID, err := ctxutils.GetUserIDFromContext(r.Context())
 	if err != nil {
 		logger.Error(r.Context(), "User ID not found in request context", logfacade.Err(err), logfacade.Stack(err))
 		writeJSON(w, http.StatusUnauthorized, generated.UnauthorizedError{

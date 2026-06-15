@@ -147,7 +147,7 @@ func TestProjectAppService_CreateProject_AlreadyExists(t *testing.T) {
 }
 
 func TestProjectAppService_ProvisionAdminRoleCreatesProtectedAdminRole(t *testing.T) {
-	ctx := ctxutils.SetTenantUserID(context.Background(), "creator-user")
+	ctx := ctxutils.SetUserID(context.Background(), "creator-user")
 	service := newTestService(new(MockProjectRepository))
 	querier := &captureCreateEndUserRoleQuerier{}
 

@@ -24,8 +24,8 @@ type graphqlRequestContext struct {
 	// CurrentEndUserID 是当前请求的 EndUser ID（从 JWT 提取）。
 	// 为空字符串表示请求来自 tenant admin（无 EndUser 身份）。
 	CurrentEndUserID string
-	// EndUserAdminID 是当前 org 的 end-user super-admin ID（从 JWT claim 提取）。
-	// 仅 tenant admin 请求有值，用于自动填充 END_USER_REF 字段的默认 owner。
+	// EndUserAdminID 是当前请求用于自动填充 END_USER_REF 字段的默认 owner。
+	// 对 tenant admin 请求，它来自标准 user identity。
 	EndUserAdminID string
 	// EndUserPerms 是当前 EndUser 在本次请求目标 model 上的权限快照。
 	// nil 表示请求来自 tenant admin，跳过所有权限检查。
@@ -87,9 +87,9 @@ func (rctx *graphqlRequestContext) getOrCreateLoader(
 	return l
 }
 
-// resolveEndUserOwnerID returns the end-user ID to use for END_USER_REF field injection.
-// Priority: CurrentEndUserID (from end-user JWT) > EndUserAdminID (from tenant admin JWT claim).
-// Returns empty string if neither is available (tenant admin without admin claim).
+// resolveEndUserOwnerID returns the user ID to use for END_USER_REF field injection.
+// Priority: CurrentEndUserID (from end-user JWT) > EndUserAdminID (from authenticated user context).
+// Returns empty string if neither is available.
 func (rctx *graphqlRequestContext) resolveEndUserOwnerID() string {
 	if rctx.CurrentEndUserID != "" {
 		return rctx.CurrentEndUserID

@@ -137,7 +137,7 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 		ctx = modelruntime.WithRLSSnapshot(ctx, snap)
 	}
 
-	endUserAdminID, _ := ctxutils.GetTenantUserIDFromContext(ctx)
+	endUserAdminID, _ := ctxutils.GetUserIDFromContext(ctx)
 	reqCtx := modelruntime.WithGraphqlRequestContext(
 		ctx, clientRepo, orgName, projectSlug, endUserID, endUserAdminID, endUserPerms,
 	)

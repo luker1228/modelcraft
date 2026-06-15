@@ -202,10 +202,9 @@ routes:
               end
 
               -- graphql-all is tenant-only: inject X-User-ID (required by ChiJWTAuthMiddleware),
-              -- X-Tenant-User-Id (used by GraphQL resolvers), X-User-Type, X-Org-Name, and X-Is-Admin
+              -- X-User-Type, X-Org-Name, and X-Is-Admin
               if payload.user_id then
                 core.request.set_header(ctx, "X-User-ID", payload.user_id)
-                core.request.set_header(ctx, "X-Tenant-User-Id", payload.user_id)
               end
               core.request.set_header(ctx, "X-User-Type", "tenant")
               if payload.org_name then
@@ -267,10 +266,9 @@ routes:
               end
 
               -- api-user is tenant-only; inject X-User-ID (required by ChiJWTAuthMiddleware),
-              -- X-Tenant-User-Id (used by user handler), X-User-Type, X-Org-Name, and X-Is-Admin
+              -- X-User-Type, X-Org-Name, and X-Is-Admin
               if payload.user_id then
                 core.request.set_header(ctx, "X-User-ID", payload.user_id)
-                core.request.set_header(ctx, "X-Tenant-User-Id", payload.user_id)
                 core.request.set_header(ctx, "X-User-Type", "tenant")
               end
               if payload.org_name then

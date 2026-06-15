@@ -199,11 +199,7 @@ func (s *ProjectAppService) provisionAdminRole(
 	}
 
 	// Assign the project creator to the admin role so they can immediately query data.
-	// Try tenant user ID first (design-time creator), then end-user ID (runtime creator).
-	creatorID, idErr := ctxutils.GetTenantUserIDFromContext(ctx)
-	if idErr != nil || creatorID == "" {
-		creatorID, idErr = ctxutils.GetUserIDFromContext(ctx)
-	}
+	creatorID, idErr := ctxutils.GetUserIDFromContext(ctx)
 	if idErr != nil || creatorID == "" {
 		logger.Error(ctx, "provisionAdminRole: no user ID in context, rolling back project creation",
 			logfacade.String("org", orgName),

@@ -31,10 +31,6 @@ const (
 	// ContextKeyIsAdmin stores whether the end-user is an org admin, derived from the
 	// is_admin JWT claim injected by APISIX as X-Is-Admin header.
 	ContextKeyIsAdmin contextKey = "is_admin"
-
-	// ContextKeyTenantUserID stores the tenant admin's user ID.
-	// Set from X-Tenant-User-Id header (injected by APISIX for tenant tokens).
-	ContextKeyTenantUserID contextKey = "tenant_user_id"
 )
 
 const UserTypeEndUser = "end_user"
@@ -182,21 +178,6 @@ func IsEndUser(ctx context.Context) bool {
 // When false, the runtime GraphQL handler bypasses the schema cache.
 func SetUseCache(ctx context.Context, useCache bool) context.Context {
 	return context.WithValue(ctx, ContextKeyUseCache, useCache)
-}
-
-// SetTenantUserID stores the tenant admin's user ID in context.
-func SetTenantUserID(ctx context.Context, tenantUserID string) context.Context {
-	return context.WithValue(ctx, ContextKeyTenantUserID, tenantUserID)
-}
-
-// GetTenantUserIDFromContext extracts the tenant admin's user ID from context.
-// Returns ("", error) if not set — only present for tenant (developer/admin) callers.
-func GetTenantUserIDFromContext(ctx context.Context) (string, error) {
-	val, _ := ctx.Value(ContextKeyTenantUserID).(string)
-	if val == "" {
-		return "", fmt.Errorf("tenant user ID not found in context")
-	}
-	return val, nil
 }
 
 // GetUseCache extracts the useCache flag from context.

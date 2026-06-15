@@ -58,7 +58,6 @@ func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler
 			// - X-User-ID: end-user ID (for end_user tokens, or admin end-user ID for tenant tokens)
 			// - X-User-Type: "tenant" or "end_user"
 			// - X-Is-Admin: "true" / "false" (from is_admin JWT claim, end-user routes only)
-			// - X-Tenant-User-Id: tenant admin's user ID (only for tenant tokens)
 			if userID := r.Header.Get("X-User-ID"); userID != "" {
 				ctx := ctxutils.SetUserID(r.Context(), userID)
 				if userType := r.Header.Get("X-User-Type"); userType != "" {
@@ -66,9 +65,6 @@ func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler
 				}
 				if r.Header.Get("X-Is-Admin") == "true" {
 					ctx = ctxutils.SetIsAdmin(ctx, true)
-				}
-				if tenantUserID := r.Header.Get("X-Tenant-User-Id"); tenantUserID != "" {
-					ctx = ctxutils.SetTenantUserID(ctx, tenantUserID)
 				}
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
