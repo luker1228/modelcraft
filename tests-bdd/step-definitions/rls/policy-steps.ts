@@ -110,51 +110,6 @@ function getCurrentModelId(world: ModelCraftWorld): string {
   return id
 }
 
-// Preset 常量定义
-const PRESET_CONFIGS: Record<string, {
-  selectPredicate: string
-  insertCheck: string
-  updatePredicate: string
-  updateCheck: string
-  deletePredicate: string
-}> = {
-  READ_WRITE_OWNER: {
-    selectPredicate: '{"owner":{"_eq":{"_auth":"uid"}}}',
-    insertCheck: '{"owner":{"_eq":{"_auth":"uid"}}}',
-    updatePredicate: '{"owner":{"_eq":{"_auth":"uid"}}}',
-    updateCheck: '{"owner":{"_eq":{"_auth":"uid"}}}',
-    deletePredicate: '{"owner":{"_eq":{"_auth":"uid"}}}',
-  },
-  READ_ALL_WRITE_OWNER: {
-    selectPredicate: 'true',
-    insertCheck: '{"owner":{"_eq":{"_auth":"uid"}}}',
-    updatePredicate: '{"owner":{"_eq":{"_auth":"uid"}}}',
-    updateCheck: '{"owner":{"_eq":{"_auth":"uid"}}}',
-    deletePredicate: '{"owner":{"_eq":{"_auth":"uid"}}}',
-  },
-  READ_ALL: {
-    selectPredicate: 'true',
-    insertCheck: 'false',
-    updatePredicate: 'false',
-    updateCheck: 'false',
-    deletePredicate: 'false',
-  },
-  READ_WRITE_ALL: {
-    selectPredicate: 'true',
-    insertCheck: 'true',
-    updatePredicate: 'true',
-    updateCheck: 'true',
-    deletePredicate: 'true',
-  },
-  NO_ACCESS: {
-    selectPredicate: 'false',
-    insertCheck: 'false',
-    updatePredicate: 'false',
-    updateCheck: 'false',
-    deletePredicate: 'false',
-  },
-}
-
 // Given 步骤
 
 Given('该模型不存在 RLS 策略', async function (this: ModelCraftWorld) {
@@ -191,79 +146,7 @@ Given('已为项目设置 auth_schema，包含变量 {string}', async function (
   })
 })
 
-Given('开发者将该模型的 Policy 设置为 {word}', async function (
-  this: ModelCraftWorld, preset: string
-) {
-  const modelId = getCurrentModelId(this)
-  const config = PRESET_CONFIGS[preset]
-  if (!config) throw new Error(`未知的 Preset: ${preset}`)
-
-  const res = await this.projectClient.mutate<{ setModelRLSPolicy: unknown }>(
-    SET_MODEL_RLS_POLICY,
-    {
-      input: {
-        modelId,
-        ...config,
-      },
-    }
-  )
-  this.lastResponse = { setModelRLSPolicy: res.setModelRLSPolicy }
-})
-
 // When 步骤
-
-When('我将该模型的 Policy 设置为 {word}', async function (
-  this: ModelCraftWorld, preset: string
-) {
-  const modelId = getCurrentModelId(this)
-  const config = PRESET_CONFIGS[preset]
-  if (!config) throw new Error(`未知的 Preset: ${preset}`)
-
-  const res = await this.projectClient.mutate<{ setModelRLSPolicy: unknown }>(
-    SET_MODEL_RLS_POLICY,
-    {
-      input: {
-        modelId,
-        ...config,
-      },
-    }
-  )
-  this.lastResponse = { setModelRLSPolicy: res.setModelRLSPolicy }
-})
-
-When('开发者确认风险并将该模型的 Policy 设置为 READ_WRITE_ALL', async function (
-  this: ModelCraftWorld
-) {
-  const modelId = getCurrentModelId(this)
-  const config = PRESET_CONFIGS.READ_WRITE_ALL
-
-  const res = await this.projectClient.mutate<{ setModelRLSPolicy: unknown }>(
-    SET_MODEL_RLS_POLICY,
-    {
-      input: {
-        modelId,
-        ...config,
-      },
-    }
-  )
-  this.lastResponse = { setModelRLSPolicy: res.setModelRLSPolicy }
-})
-
-When('我尝试为该模型设置 Policy', async function (this: ModelCraftWorld) {
-  const modelId = getCurrentModelId(this)
-  const config = PRESET_CONFIGS.READ_WRITE_OWNER
-
-  const res = await this.projectClient.mutate<{ setModelRLSPolicy: unknown }>(
-    SET_MODEL_RLS_POLICY,
-    {
-      input: {
-        modelId,
-        ...config,
-      },
-    }
-  )
-  this.lastResponse = { setModelRLSPolicy: res.setModelRLSPolicy }
-})
 
 When('我验证表达式 {string} 用于 {word}', async function (
   this: ModelCraftWorld, expression: string, exprType: string
@@ -326,13 +209,6 @@ Then('Policy 设置成功', function (this: ModelCraftWorld) {
   expect(payload.policy).not.toBeNull()
 })
 
-Then('Policy 应该为 null（自定义策略）', function (this: ModelCraftWorld) {
-  const payload = (this.lastResponse as {
-    setModelRLSPolicy: { policy: { preset: string | null } | null }
-  }).setModelRLSPolicy
-  expect(payload.policy?.preset).toBeNull()
-})
-
 Then('Policy 的 {word} 应该为 {string}', function (
   this: ModelCraftWorld, predicateType: string, expectedValue: string
 ) {
@@ -342,27 +218,6 @@ Then('Policy 的 {word} 应该为 {string}', function (
 
   expect(payload.policy).not.toBeNull()
   expect(payload.policy?.[predicateType]).toBe(expectedValue)
-})
-
-Then('所有谓词都应该为 {string}', function (this: ModelCraftWorld, expectedValue: string) {
-  const payload = (this.lastResponse as {
-    setModelRLSPolicy: {
-      policy: {
-        selectPredicate: string
-        insertCheck: string
-        updatePredicate: string
-        updateCheck: string
-        deletePredicate: string
-      } | null
-    }
-  }).setModelRLSPolicy
-
-  expect(payload.policy).not.toBeNull()
-  expect(payload.policy?.selectPredicate).toBe(expectedValue)
-  expect(payload.policy?.insertCheck).toBe(expectedValue)
-  expect(payload.policy?.updatePredicate).toBe(expectedValue)
-  expect(payload.policy?.updateCheck).toBe(expectedValue)
-  expect(payload.policy?.deletePredicate).toBe(expectedValue)
 })
 
 Then('验证应该通过', function (this: ModelCraftWorld) {
@@ -421,18 +276,4 @@ Then('项目应该包含 auth 变量 {string}', async function (
   const variables = res.project.project?.authSchema.variables ?? []
   const found = variables.some(v => v.name === varName)
   expect(found).toBe(true)
-})
-
-Then('preset 应该为 null（自定义策略）', function (this: ModelCraftWorld) {
-  const payload = (this.lastResponse as {
-    setModelRLSPolicy: { policy: { preset: string | null } | null }
-  }).setModelRLSPolicy
-  expect(payload.policy?.preset).toBeNull()
-})
-
-Then('preset 应该为 {string}', function (this: ModelCraftWorld, expectedPreset: string) {
-  const payload = (this.lastResponse as {
-    setModelRLSPolicy: { policy: { preset: string | null } | null }
-  }).setModelRLSPolicy
-  expect(payload.policy?.preset).toBe(expectedPreset)
 })

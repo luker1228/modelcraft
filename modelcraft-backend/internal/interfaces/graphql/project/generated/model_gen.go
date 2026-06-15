@@ -10,56 +10,12 @@ import (
 	"time"
 )
 
-type AddEndUserPermissionToBundleError interface {
-	IsAddEndUserPermissionToBundleError()
-}
-
-type AddEndUserPresetToBundleError interface {
-	IsAddEndUserPresetToBundleError()
-}
-
 type AddFieldsError interface {
 	IsAddFieldsError()
 }
 
-type ApplyEndUserPresetPolicyError interface {
-	IsApplyEndUserPresetPolicyError()
-}
-
-type AssignBundleToEndUserError interface {
-	IsAssignBundleToEndUserError()
-}
-
-type AssignBundleToEndUserRoleError interface {
-	IsAssignBundleToEndUserRoleError()
-}
-
-type AssignEndUserRoleError interface {
-	IsAssignEndUserRoleError()
-}
-
-type BindCustomItemToBundleError interface {
-	IsBindCustomItemToBundleError()
-}
-
-type BindPresetItemToBundleError interface {
-	IsBindPresetItemToBundleError()
-}
-
 type CreateEndUserError interface {
 	IsCreateEndUserError()
-}
-
-type CreateEndUserPermissionBundleError interface {
-	IsCreateEndUserPermissionBundleError()
-}
-
-type CreateEndUserPermissionError interface {
-	IsCreateEndUserPermissionError()
-}
-
-type CreateEndUserRoleError interface {
-	IsCreateEndUserRoleError()
 }
 
 type CreateEnumError interface {
@@ -84,18 +40,6 @@ type DeleteClusterError interface {
 
 type DeleteEndUserError interface {
 	IsDeleteEndUserError()
-}
-
-type DeleteEndUserPermissionBundleError interface {
-	IsDeleteEndUserPermissionBundleError()
-}
-
-type DeleteEndUserPermissionError interface {
-	IsDeleteEndUserPermissionError()
-}
-
-type DeleteEndUserRoleError interface {
-	IsDeleteEndUserRoleError()
 }
 
 type DeleteEnumError interface {
@@ -127,10 +71,6 @@ type GetClusterError interface {
 	IsGetClusterError()
 }
 
-type GetEffectivePermissionsError interface {
-	IsGetEffectivePermissionsError()
-}
-
 type GetEnumError interface {
 	IsGetEnumError()
 }
@@ -141,10 +81,6 @@ type GetModelError interface {
 
 type InitPrivateDBPayloadError interface {
 	IsInitPrivateDBPayloadError()
-}
-
-type ListProjectEndUserRoleUsersError interface {
-	IsListProjectEndUserRoleUsersError()
 }
 
 type MoveModelToGroupError interface {
@@ -164,14 +100,6 @@ type RegisteredDatabasesError interface {
 	IsRegisteredDatabasesError()
 }
 
-type RemoveDataPermissionItemFromBundleError interface {
-	IsRemoveDataPermissionItemFromBundleError()
-}
-
-type RemoveEndUserPermissionFromBundleError interface {
-	IsRemoveEndUserPermissionFromBundleError()
-}
-
 type RemoveFieldError interface {
 	IsRemoveFieldError()
 }
@@ -182,22 +110,6 @@ type RenameGroupError interface {
 
 type ReorderGroupError interface {
 	IsReorderGroupError()
-}
-
-type RestoreEndUserPermissionBundleError interface {
-	IsRestoreEndUserPermissionBundleError()
-}
-
-type RevokeBundleFromEndUserError interface {
-	IsRevokeBundleFromEndUserError()
-}
-
-type RevokeBundleFromEndUserRoleError interface {
-	IsRevokeBundleFromEndUserRoleError()
-}
-
-type RevokeEndUserRoleError interface {
-	IsRevokeEndUserRoleError()
 }
 
 type SetModelRLSPolicyError interface {
@@ -218,18 +130,6 @@ type UpdateClusterError interface {
 
 type UpdateEndUserError interface {
 	IsUpdateEndUserError()
-}
-
-type UpdateEndUserPermissionBundleError interface {
-	IsUpdateEndUserPermissionBundleError()
-}
-
-type UpdateEndUserPermissionError interface {
-	IsUpdateEndUserPermissionError()
-}
-
-type UpdateEndUserRoleError interface {
-	IsUpdateEndUserRoleError()
 }
 
 type UpdateEnumError interface {
@@ -258,29 +158,6 @@ type ActualForeignKey struct {
 	ConstraintName   string `json:"constraintName"`
 }
 
-type AddEndUserPermissionToBundleInput struct {
-	BundleID     string `json:"bundleId"`
-	PermissionID string `json:"permissionId"`
-	SortOrder    *int32 `json:"sortOrder,omitempty"`
-}
-
-type AddEndUserPermissionToBundlePayload struct {
-	Bundle *EndUserPermissionBundle          `json:"bundle,omitempty"`
-	Error  AddEndUserPermissionToBundleError `json:"error,omitempty"`
-}
-
-type AddEndUserPresetToBundleInput struct {
-	BundleID  string                  `json:"bundleId"`
-	ModelID   string                  `json:"modelId"`
-	Preset    EndUserPermissionPreset `json:"preset"`
-	SortOrder *int32                  `json:"sortOrder,omitempty"`
-}
-
-type AddEndUserPresetToBundlePayload struct {
-	Bundle *EndUserPermissionBundle      `json:"bundle,omitempty"`
-	Error  AddEndUserPresetToBundleError `json:"error,omitempty"`
-}
-
 type AddFieldInput struct {
 	Name             string                 `json:"name"`
 	Title            string                 `json:"title"`
@@ -306,50 +183,6 @@ type AddFieldsPayload struct {
 	Model   *Model                `json:"model,omitempty"`
 	Results []*AddFieldItemResult `json:"results"`
 	Error   AddFieldsError        `json:"error,omitempty"`
-}
-
-type ApplyEndUserPresetPolicyInput struct {
-	ModelID string `json:"modelId"`
-	// 为空时执行模型级 reconcile（同步模型全部可适配预设）
-	Preset *EndUserPermissionPreset `json:"preset,omitempty"`
-}
-
-type ApplyEndUserPresetPolicyPayload struct {
-	// 应用预设后，该模型当前所有的权限点（含原有自定义权限点）
-	Permissions []*EndUserPermission          `json:"permissions"`
-	Error       ApplyEndUserPresetPolicyError `json:"error,omitempty"`
-}
-
-type AssignBundleToEndUserInput struct {
-	EndUserID string `json:"endUserId"`
-	BundleID  string `json:"bundleId"`
-}
-
-type AssignBundleToEndUserPayload struct {
-	EndUserID string                     `json:"endUserId"`
-	Bundle    *EndUserPermissionBundle   `json:"bundle,omitempty"`
-	Error     AssignBundleToEndUserError `json:"error,omitempty"`
-}
-
-type AssignBundleToEndUserRoleInput struct {
-	RoleID   string `json:"roleId"`
-	BundleID string `json:"bundleId"`
-}
-
-type AssignBundleToEndUserRolePayload struct {
-	Role  *EndUserRole                   `json:"role,omitempty"`
-	Error AssignBundleToEndUserRoleError `json:"error,omitempty"`
-}
-
-type AssignEndUserRoleInput struct {
-	EndUserID string `json:"endUserId"`
-	RoleID    string `json:"roleId"`
-}
-
-type AssignEndUserRolePayload struct {
-	EndUserID string                 `json:"endUserId"`
-	Role      *EndUserRole           `json:"role,omitempty"`
-	Error     AssignEndUserRoleError `json:"error,omitempty"`
 }
 
 type AuthVariable struct {
@@ -382,30 +215,6 @@ type BatchRegisterModelDatabaseInput struct {
 type BatchRegisterModelDatabaseResult struct {
 	Succeeded []*ModelDatabase      `json:"succeeded"`
 	Failed    []*BatchRegisterError `json:"failed"`
-}
-
-type BindCustomItemToBundleInput struct {
-	BundleID           string `json:"bundleId"`
-	ModelID            string `json:"modelId"`
-	CustomPermissionID string `json:"customPermissionId"`
-	SortOrder          *int32 `json:"sortOrder,omitempty"`
-}
-
-type BindCustomItemToBundlePayload struct {
-	Bundle *EndUserPermissionBundle    `json:"bundle,omitempty"`
-	Error  BindCustomItemToBundleError `json:"error,omitempty"`
-}
-
-type BindPresetItemToBundleInput struct {
-	BundleID  string                  `json:"bundleId"`
-	ModelID   string                  `json:"modelId"`
-	Preset    EndUserPermissionPreset `json:"preset"`
-	SortOrder *int32                  `json:"sortOrder,omitempty"`
-}
-
-type BindPresetItemToBundlePayload struct {
-	Bundle *EndUserPermissionBundle    `json:"bundle,omitempty"`
-	Error  BindPresetItemToBundleError `json:"error,omitempty"`
 }
 
 type CannotDeleteDeployedModel struct {
@@ -450,28 +259,6 @@ type ClusterConnectionInput struct {
 	ConnectionInfo *DatabaseConnectionInput `json:"connectionInfo"`
 }
 
-type ColumnPolicy struct {
-	DefaultMode ColumnAccessMode `json:"defaultMode"`
-	Rules       []*ColumnRule    `json:"rules"`
-}
-
-type ColumnPolicyInput struct {
-	DefaultMode ColumnAccessMode   `json:"defaultMode"`
-	Rules       []*ColumnRuleInput `json:"rules"`
-}
-
-type ColumnRule struct {
-	FieldName   string           `json:"fieldName"`
-	Mode        ColumnAccessMode `json:"mode"`
-	MaskPattern *string          `json:"maskPattern,omitempty"`
-}
-
-type ColumnRuleInput struct {
-	FieldName   string           `json:"fieldName"`
-	Mode        ColumnAccessMode `json:"mode"`
-	MaskPattern *string          `json:"maskPattern,omitempty"`
-}
-
 type CreateEndUserInput struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -480,42 +267,6 @@ type CreateEndUserInput struct {
 type CreateEndUserPayload struct {
 	EndUser *EndUser           `json:"endUser,omitempty"`
 	Error   CreateEndUserError `json:"error,omitempty"`
-}
-
-type CreateEndUserPermissionBundleInput struct {
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
-	// 可选。不传时从 name 自动生成。同项目内唯一，创建后不可修改。
-	Slug *string `json:"slug,omitempty"`
-}
-
-type CreateEndUserPermissionBundlePayload struct {
-	Bundle *EndUserPermissionBundle           `json:"bundle,omitempty"`
-	Error  CreateEndUserPermissionBundleError `json:"error,omitempty"`
-}
-
-type CreateEndUserPermissionInput struct {
-	ModelID      string             `json:"modelId"`
-	Action       RbacAction         `json:"action"`
-	ColumnPolicy *ColumnPolicyInput `json:"columnPolicy"`
-	RowScope     RowScopeType       `json:"rowScope"`
-	DisplayName  *string            `json:"displayName,omitempty"`
-	Description  *string            `json:"description,omitempty"`
-}
-
-type CreateEndUserPermissionPayload struct {
-	Permission *EndUserPermission           `json:"permission,omitempty"`
-	Error      CreateEndUserPermissionError `json:"error,omitempty"`
-}
-
-type CreateEndUserRoleInput struct {
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
-}
-
-type CreateEndUserRolePayload struct {
-	Role  *EndUserRole           `json:"role,omitempty"`
-	Error CreateEndUserRoleError `json:"error,omitempty"`
 }
 
 type CreateEnumInput struct {
@@ -671,21 +422,6 @@ type DeleteEndUserPayload struct {
 	Error   DeleteEndUserError `json:"error,omitempty"`
 }
 
-type DeleteEndUserPermissionBundlePayload struct {
-	Success bool                               `json:"success"`
-	Error   DeleteEndUserPermissionBundleError `json:"error,omitempty"`
-}
-
-type DeleteEndUserPermissionPayload struct {
-	Success bool                         `json:"success"`
-	Error   DeleteEndUserPermissionError `json:"error,omitempty"`
-}
-
-type DeleteEndUserRolePayload struct {
-	Success bool                   `json:"success"`
-	Error   DeleteEndUserRoleError `json:"error,omitempty"`
-}
-
 type DeleteEnumPayload struct {
 	Success bool            `json:"success"`
 	Error   DeleteEnumError `json:"error,omitempty"`
@@ -716,25 +452,6 @@ type DeleteRlsPolicyPayload struct {
 	Error   DeleteRlsPolicyError `json:"error,omitempty"`
 }
 
-type EffectiveGrant struct {
-	Action       RbacAction    `json:"action"`
-	ColumnPolicy *ColumnPolicy `json:"columnPolicy"`
-	RowScope     RowScopeType  `json:"rowScope"`
-}
-
-type EffectivePermissionSources struct {
-	DirectBundles       []*EndUserPermissionBundle `json:"directBundles"`
-	ExplicitRoleBundles []*EndUserRoleBundleSource `json:"explicitRoleBundles"`
-	ImplicitRoleBundles []*EndUserRoleBundleSource `json:"implicitRoleBundles"`
-}
-
-type EffectivePermissions struct {
-	EndUserID string                      `json:"endUserId"`
-	ModelID   string                      `json:"modelId"`
-	Grants    []*EffectiveGrant           `json:"grants"`
-	Sources   *EffectivePermissionSources `json:"sources"`
-}
-
 type EndUser struct {
 	ID          string    `json:"id"`
 	Username    string    `json:"username"`
@@ -756,64 +473,6 @@ func (this EndUserAlreadyExists) GetMessage() string { return this.Message }
 
 func (EndUserAlreadyExists) IsCreateEndUserError() {}
 
-type EndUserBundleAssignment struct {
-	EndUserID  string                   `json:"endUserId"`
-	Bundle     *EndUserPermissionBundle `json:"bundle"`
-	AssignedAt time.Time                `json:"assignedAt"`
-}
-
-// Bundle 内的数据权限配置项（item-centric）。
-// 同一 bundle 下同一 modelId 最多一个 item。
-type EndUserBundleDataPermissionItem struct {
-	ID       string `json:"id"`
-	BundleID string `json:"bundleId"`
-	ModelID  string `json:"modelId"`
-	// 来源类型：PRESET（预设模板）或 CUSTOM（管理员自定义）
-	GrantType DataPermissionGrantType `json:"grantType"`
-	// 当 grantType=PRESET 时非空
-	Preset *EndUserPermissionPreset `json:"preset,omitempty"`
-	// 当 grantType=CUSTOM 时非空
-	CustomPermissionID *string `json:"customPermissionId,omitempty"`
-	// 当 grantType=CUSTOM 时，引用的自定义权限点摘要
-	CustomPermission *EndUserPermission `json:"customPermission,omitempty"`
-	SortOrder        int32              `json:"sortOrder"`
-	CreatedAt        time.Time          `json:"createdAt"`
-	UpdatedAt        time.Time          `json:"updatedAt"`
-	// 模型技术名（snake_case）
-	ModelName *string `json:"modelName,omitempty"`
-	// 所属数据库名
-	DatabaseName *string `json:"databaseName,omitempty"`
-	// 模型显示标题（人类可读）
-	ModelTitle *string `json:"modelTitle,omitempty"`
-}
-
-type EndUserBundlePermissionEntry struct {
-	SortOrder  int32              `json:"sortOrder"`
-	Permission *EndUserPermission `json:"permission"`
-}
-
-type EndUserCannotAssignImplicitRole struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (EndUserCannotAssignImplicitRole) IsError()                {}
-func (this EndUserCannotAssignImplicitRole) GetMessage() string { return this.Message }
-
-func (EndUserCannotAssignImplicitRole) IsAssignEndUserRoleError() {}
-
-type EndUserImplicitRoleCannotBeModified struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (EndUserImplicitRoleCannotBeModified) IsError()                {}
-func (this EndUserImplicitRoleCannotBeModified) GetMessage() string { return this.Message }
-
-func (EndUserImplicitRoleCannotBeModified) IsUpdateEndUserRoleError() {}
-
-func (EndUserImplicitRoleCannotBeModified) IsDeleteEndUserRoleError() {}
-
 type EndUserPasswordTooWeak struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -824,130 +483,6 @@ func (this EndUserPasswordTooWeak) GetMessage() string { return this.Message }
 
 func (EndUserPasswordTooWeak) IsCreateEndUserError() {}
 
-type EndUserPermission struct {
-	ID           string        `json:"id"`
-	ModelID      string        `json:"modelId"`
-	DatabaseName *string       `json:"databaseName,omitempty"`
-	ModelName    *string       `json:"modelName,omitempty"`
-	Action       RbacAction    `json:"action"`
-	ColumnPolicy *ColumnPolicy `json:"columnPolicy"`
-	RowScope     RowScopeType  `json:"rowScope"`
-	// 来源预设，null 表示手动创建的自定义权限点
-	Preset      *EndUserPermissionPreset `json:"preset,omitempty"`
-	DisplayName *string                  `json:"displayName,omitempty"`
-	Description *string                  `json:"description,omitempty"`
-	CreatedAt   time.Time                `json:"createdAt"`
-	UpdatedAt   time.Time                `json:"updatedAt"`
-}
-
-func (EndUserPermission) IsNode()            {}
-func (this EndUserPermission) GetID() string { return this.ID }
-
-type EndUserPermissionBundle struct {
-	ID string `json:"id"`
-	// URL 友好的对外标识符，同项目内唯一，创建时由用户指定或从名称自动派生，之后不可修改。
-	Slug        string  `json:"slug"`
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
-	// Item-centric 数据权限列表：每个模型最多一个 item。
-	DataPermissionItems []*EndUserBundleDataPermissionItem `json:"dataPermissionItems"`
-	// 兼容旧字段（将逐步废弃），从 item 导出的 permission 视图。
-	Permissions []*EndUserBundlePermissionEntry `json:"permissions"`
-	// 当前版本号（每次权限列表变更后递增）。初始创建时为 0，首次修改后变为 1。
-	CurrentVersion int32 `json:"currentVersion"`
-	// 最近历史快照列表（最多 5 个，按 version DESC 排列）
-	Snapshots []*EndUserPermissionBundleSnapshot `json:"snapshots"`
-	CreatedAt time.Time                          `json:"createdAt"`
-	UpdatedAt time.Time                          `json:"updatedAt"`
-}
-
-func (EndUserPermissionBundle) IsNode()            {}
-func (this EndUserPermissionBundle) GetID() string { return this.ID }
-
-type EndUserPermissionBundleAlreadyExists struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (EndUserPermissionBundleAlreadyExists) IsError()                {}
-func (this EndUserPermissionBundleAlreadyExists) GetMessage() string { return this.Message }
-
-func (EndUserPermissionBundleAlreadyExists) IsCreateEndUserPermissionBundleError() {}
-
-func (EndUserPermissionBundleAlreadyExists) IsUpdateEndUserPermissionBundleError() {}
-
-type EndUserPermissionBundleConnection struct {
-	Edges      []*EndUserPermissionBundleEdge `json:"edges"`
-	PageInfo   *PageInfo                      `json:"pageInfo"`
-	TotalCount int32                          `json:"totalCount"`
-}
-
-type EndUserPermissionBundleEdge struct {
-	Node   *EndUserPermissionBundle `json:"node"`
-	Cursor string                   `json:"cursor"`
-}
-
-type EndUserPermissionBundleInUse struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (EndUserPermissionBundleInUse) IsError()                {}
-func (this EndUserPermissionBundleInUse) GetMessage() string { return this.Message }
-
-func (EndUserPermissionBundleInUse) IsDeleteEndUserPermissionBundleError() {}
-
-// 权限包历史快照
-type EndUserPermissionBundleSnapshot struct {
-	Version   int32     `json:"version"`
-	CreatedAt time.Time `json:"createdAt"`
-	CreatedBy *string   `json:"createdBy,omitempty"`
-	// 若为回滚操作，指向来源版本号
-	RestoredFrom *int32 `json:"restoredFrom,omitempty"`
-	// Item-centric 快照条目列表
-	Items []*EndUserPermissionSnapshotItemEntry `json:"items"`
-	// 兼容旧字段
-	Permissions []*EndUserPermissionSnapshotEntry `json:"permissions"`
-}
-
-type EndUserPermissionConnection struct {
-	Edges      []*EndUserPermissionEdge `json:"edges"`
-	PageInfo   *PageInfo                `json:"pageInfo"`
-	TotalCount int32                    `json:"totalCount"`
-}
-
-type EndUserPermissionEdge struct {
-	Node   *EndUserPermission `json:"node"`
-	Cursor string             `json:"cursor"`
-}
-
-type EndUserPermissionInUse struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (EndUserPermissionInUse) IsError()                {}
-func (this EndUserPermissionInUse) GetMessage() string { return this.Message }
-
-func (EndUserPermissionInUse) IsDeleteEndUserPermissionError() {}
-
-// 快照中的权限点条目（兼容旧格式）。已删除的权限点 permission 字段为 null，permissionId 仍保留原始 ID。
-type EndUserPermissionSnapshotEntry struct {
-	SortOrder int32 `json:"sortOrder"`
-	// 已删除时为 null
-	Permission   *EndUserPermission `json:"permission,omitempty"`
-	PermissionID string             `json:"permissionId"`
-}
-
-// 快照中的数据权限 item 条目（item-centric）。
-type EndUserPermissionSnapshotItemEntry struct {
-	ModelID            string                   `json:"modelId"`
-	GrantType          DataPermissionGrantType  `json:"grantType"`
-	Preset             *EndUserPermissionPreset `json:"preset,omitempty"`
-	CustomPermissionID *string                  `json:"customPermissionId,omitempty"`
-	SortOrder          int32                    `json:"sortOrder"`
-}
-
 type EndUserRefAlreadyExists struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -955,58 +490,6 @@ type EndUserRefAlreadyExists struct {
 
 func (EndUserRefAlreadyExists) IsError()                {}
 func (this EndUserRefAlreadyExists) GetMessage() string { return this.Message }
-
-type EndUserRole struct {
-	ID                string                    `json:"id"`
-	Name              string                    `json:"name"`
-	Description       *string                   `json:"description,omitempty"`
-	IsImplicit        bool                      `json:"isImplicit"`
-	PermissionBundles []*EndUserRoleBundleEntry `json:"permissionBundles"`
-	CreatedAt         time.Time                 `json:"createdAt"`
-	UpdatedAt         time.Time                 `json:"updatedAt"`
-}
-
-func (EndUserRole) IsNode()            {}
-func (this EndUserRole) GetID() string { return this.ID }
-
-type EndUserRoleAlreadyExists struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (EndUserRoleAlreadyExists) IsError()                {}
-func (this EndUserRoleAlreadyExists) GetMessage() string { return this.Message }
-
-func (EndUserRoleAlreadyExists) IsCreateEndUserRoleError() {}
-
-func (EndUserRoleAlreadyExists) IsUpdateEndUserRoleError() {}
-
-type EndUserRoleAssignment struct {
-	EndUserID  string       `json:"endUserId"`
-	Role       *EndUserRole `json:"role"`
-	AssignedAt time.Time    `json:"assignedAt"`
-}
-
-type EndUserRoleBundleEntry struct {
-	Bundle     *EndUserPermissionBundle `json:"bundle"`
-	AssignedAt time.Time                `json:"assignedAt"`
-}
-
-type EndUserRoleBundleSource struct {
-	Role    *EndUserRole               `json:"role"`
-	Bundles []*EndUserPermissionBundle `json:"bundles"`
-}
-
-type EndUserRoleConnection struct {
-	Edges      []*EndUserRoleEdge `json:"edges"`
-	PageInfo   *PageInfo          `json:"pageInfo"`
-	TotalCount int32              `json:"totalCount"`
-}
-
-type EndUserRoleEdge struct {
-	Node   *EndUserRole `json:"node"`
-	Cursor string       `json:"cursor"`
-}
 
 type EnumAlreadyExists struct {
 	Message    string  `json:"message"`
@@ -1131,16 +614,6 @@ type GetClusterPayload struct {
 	Error   GetClusterError  `json:"error,omitempty"`
 }
 
-type GetEffectivePermissionsInput struct {
-	EndUserID string `json:"endUserId"`
-	ModelID   string `json:"modelId"`
-}
-
-type GetEffectivePermissionsPayload struct {
-	EffectivePermissions *EffectivePermissions        `json:"effectivePermissions,omitempty"`
-	Error                GetEffectivePermissionsError `json:"error,omitempty"`
-}
-
 type GetEnumPayload struct {
 	Enum  *EnumDefinition `json:"enum,omitempty"`
 	Error GetEnumError    `json:"error,omitempty"`
@@ -1253,28 +726,6 @@ func (InvalidInput) IsCreateModelError() {}
 
 func (InvalidInput) IsUpdateModelError() {}
 
-func (InvalidInput) IsCreateEndUserPermissionError() {}
-
-func (InvalidInput) IsUpdateEndUserPermissionError() {}
-
-func (InvalidInput) IsCreateEndUserPermissionBundleError() {}
-
-func (InvalidInput) IsUpdateEndUserPermissionBundleError() {}
-
-func (InvalidInput) IsAddEndUserPermissionToBundleError() {}
-
-func (InvalidInput) IsAddEndUserPresetToBundleError() {}
-
-func (InvalidInput) IsBindPresetItemToBundleError() {}
-
-func (InvalidInput) IsBindCustomItemToBundleError() {}
-
-func (InvalidInput) IsCreateEndUserRoleError() {}
-
-func (InvalidInput) IsUpdateEndUserRoleError() {}
-
-func (InvalidInput) IsListProjectEndUserRoleUsersError() {}
-
 func (InvalidInput) IsSetProjectAuthSchemaError() {}
 
 func (InvalidInput) IsUpsertRlsPolicyError() {}
@@ -1296,38 +747,6 @@ type ListDatabasesInput struct {
 	Offset *int32  `json:"offset,omitempty"`
 	Limit  *int32  `json:"limit,omitempty"`
 	Search *string `json:"search,omitempty"`
-}
-
-type ListEndUserPermissionBundlesInput struct {
-	Search *string `json:"search,omitempty"`
-	First  *int32  `json:"first,omitempty"`
-	After  *string `json:"after,omitempty"`
-}
-
-type ListEndUserPermissionsInput struct {
-	ModelID *string     `json:"modelId,omitempty"`
-	Action  *RbacAction `json:"action,omitempty"`
-	First   *int32      `json:"first,omitempty"`
-	After   *string     `json:"after,omitempty"`
-}
-
-type ListEndUserRolesInput struct {
-	IncludeImplicit *bool   `json:"includeImplicit,omitempty"`
-	Search          *string `json:"search,omitempty"`
-	First           *int32  `json:"first,omitempty"`
-	After           *string `json:"after,omitempty"`
-}
-
-type ListProjectEndUserRoleUsersInput struct {
-	Search *string `json:"search,omitempty"`
-	RoleID *string `json:"roleId,omitempty"`
-	First  *int32  `json:"first,omitempty"`
-	After  *string `json:"after,omitempty"`
-}
-
-type ListProjectEndUserRoleUsersPayload struct {
-	Connection *ProjectEndUserRoleUserConnection `json:"connection,omitempty"`
-	Error      ListProjectEndUserRoleUsersError  `json:"error,omitempty"`
 }
 
 type ListTablesInput struct {
@@ -1507,48 +926,9 @@ type PageInfo struct {
 	EndCursor       *string `json:"endCursor,omitempty"`
 }
 
-type PresetDeleteBlockedByBundle struct {
-	// reconcile 删除某预设时，发现该权限点仍被权限包引用
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (PresetDeleteBlockedByBundle) IsError()                {}
-func (this PresetDeleteBlockedByBundle) GetMessage() string { return this.Message }
-
-func (PresetDeleteBlockedByBundle) IsApplyEndUserPresetPolicyError() {}
-
-type PresetRequiresOwnerField struct {
-	// 选择的预设依赖 END_USER_REF 字段，但模型中不存在该字段
-	Message    string                  `json:"message"`
-	Preset     EndUserPermissionPreset `json:"preset"`
-	Suggestion *string                 `json:"suggestion,omitempty"`
-}
-
-func (PresetRequiresOwnerField) IsError()                {}
-func (this PresetRequiresOwnerField) GetMessage() string { return this.Message }
-
-func (PresetRequiresOwnerField) IsApplyEndUserPresetPolicyError() {}
-
-func (PresetRequiresOwnerField) IsAddEndUserPresetToBundleError() {}
-
-func (PresetRequiresOwnerField) IsBindPresetItemToBundleError() {}
-
 type ProjectAuthSchema struct {
 	// 认证变量列表（不含内置 uid）
 	Variables []*AuthVariable `json:"variables"`
-}
-
-type ProjectEndUserRoleUser struct {
-	EndUser    *EndUser     `json:"endUser"`
-	Role       *EndUserRole `json:"role"`
-	AssignedAt time.Time    `json:"assignedAt"`
-}
-
-type ProjectEndUserRoleUserConnection struct {
-	Nodes      []*ProjectEndUserRoleUser `json:"nodes"`
-	PageInfo   *PageInfo                 `json:"pageInfo"`
-	TotalCount int32                     `json:"totalCount"`
 }
 
 type Query struct {
@@ -1591,26 +971,6 @@ type RegisteredDatabasesPayload struct {
 	TotalCount int32           `json:"totalCount"`
 	Page       int32           `json:"page"`
 	PageSize   int32           `json:"pageSize"`
-}
-
-type RemoveDataPermissionItemFromBundleInput struct {
-	BundleID string `json:"bundleId"`
-	ModelID  string `json:"modelId"`
-}
-
-type RemoveDataPermissionItemFromBundlePayload struct {
-	Bundle *EndUserPermissionBundle                `json:"bundle,omitempty"`
-	Error  RemoveDataPermissionItemFromBundleError `json:"error,omitempty"`
-}
-
-type RemoveEndUserPermissionFromBundleInput struct {
-	BundleID     string `json:"bundleId"`
-	PermissionID string `json:"permissionId"`
-}
-
-type RemoveEndUserPermissionFromBundlePayload struct {
-	Bundle *EndUserPermissionBundle               `json:"bundle,omitempty"`
-	Error  RemoveEndUserPermissionFromBundleError `json:"error,omitempty"`
 }
 
 type RemoveFieldPayload struct {
@@ -1707,56 +1067,6 @@ func (ResourceNotFound) IsReorderGroupError() {}
 
 func (ResourceNotFound) IsMoveModelToGroupError() {}
 
-func (ResourceNotFound) IsCreateEndUserPermissionError() {}
-
-func (ResourceNotFound) IsUpdateEndUserPermissionError() {}
-
-func (ResourceNotFound) IsDeleteEndUserPermissionError() {}
-
-func (ResourceNotFound) IsApplyEndUserPresetPolicyError() {}
-
-func (ResourceNotFound) IsCreateEndUserPermissionBundleError() {}
-
-func (ResourceNotFound) IsUpdateEndUserPermissionBundleError() {}
-
-func (ResourceNotFound) IsDeleteEndUserPermissionBundleError() {}
-
-func (ResourceNotFound) IsAddEndUserPermissionToBundleError() {}
-
-func (ResourceNotFound) IsAddEndUserPresetToBundleError() {}
-
-func (ResourceNotFound) IsRemoveEndUserPermissionFromBundleError() {}
-
-func (ResourceNotFound) IsBindPresetItemToBundleError() {}
-
-func (ResourceNotFound) IsBindCustomItemToBundleError() {}
-
-func (ResourceNotFound) IsRemoveDataPermissionItemFromBundleError() {}
-
-func (ResourceNotFound) IsRestoreEndUserPermissionBundleError() {}
-
-func (ResourceNotFound) IsCreateEndUserRoleError() {}
-
-func (ResourceNotFound) IsUpdateEndUserRoleError() {}
-
-func (ResourceNotFound) IsDeleteEndUserRoleError() {}
-
-func (ResourceNotFound) IsAssignBundleToEndUserRoleError() {}
-
-func (ResourceNotFound) IsRevokeBundleFromEndUserRoleError() {}
-
-func (ResourceNotFound) IsAssignBundleToEndUserError() {}
-
-func (ResourceNotFound) IsRevokeBundleFromEndUserError() {}
-
-func (ResourceNotFound) IsAssignEndUserRoleError() {}
-
-func (ResourceNotFound) IsRevokeEndUserRoleError() {}
-
-func (ResourceNotFound) IsGetEffectivePermissionsError() {}
-
-func (ResourceNotFound) IsListProjectEndUserRoleUsersError() {}
-
 func (ResourceNotFound) IsSetProjectAuthSchemaError() {}
 
 func (ResourceNotFound) IsSetModelRLSPolicyError() {}
@@ -1766,48 +1076,6 @@ func (ResourceNotFound) IsValidateRLSExprError() {}
 func (ResourceNotFound) IsUpsertRlsPolicyError() {}
 
 func (ResourceNotFound) IsDeleteRlsPolicyError() {}
-
-type RestoreEndUserPermissionBundleInput struct {
-	BundleID      string `json:"bundleId"`
-	TargetVersion int32  `json:"targetVersion"`
-}
-
-type RestoreEndUserPermissionBundlePayload struct {
-	Bundle *EndUserPermissionBundle `json:"bundle,omitempty"`
-	// 回滚后生成的新版本号
-	NewVersion int32                               `json:"newVersion"`
-	Error      RestoreEndUserPermissionBundleError `json:"error,omitempty"`
-}
-
-type RevokeBundleFromEndUserInput struct {
-	EndUserID string `json:"endUserId"`
-	BundleID  string `json:"bundleId"`
-}
-
-type RevokeBundleFromEndUserPayload struct {
-	Success bool                         `json:"success"`
-	Error   RevokeBundleFromEndUserError `json:"error,omitempty"`
-}
-
-type RevokeBundleFromEndUserRoleInput struct {
-	RoleID   string `json:"roleId"`
-	BundleID string `json:"bundleId"`
-}
-
-type RevokeBundleFromEndUserRolePayload struct {
-	Role  *EndUserRole                     `json:"role,omitempty"`
-	Error RevokeBundleFromEndUserRoleError `json:"error,omitempty"`
-}
-
-type RevokeEndUserRoleInput struct {
-	EndUserID string `json:"endUserId"`
-	RoleID    string `json:"roleId"`
-}
-
-type RevokeEndUserRolePayload struct {
-	Success bool                   `json:"success"`
-	Error   RevokeEndUserRoleError `json:"error,omitempty"`
-}
 
 type RlsPolicy struct {
 	ID            string    `json:"id"`
@@ -1834,20 +1102,6 @@ type RlsPolicyNotFound struct {
 
 func (RlsPolicyNotFound) IsError()                {}
 func (this RlsPolicyNotFound) GetMessage() string { return this.Message }
-
-type RowScopeFieldMissing struct {
-	Message            string       `json:"message"`
-	MissingField       string       `json:"missingField"`
-	RequiredByRowScope RowScopeType `json:"requiredByRowScope"`
-	Suggestion         *string      `json:"suggestion,omitempty"`
-}
-
-func (RowScopeFieldMissing) IsError()                {}
-func (this RowScopeFieldMissing) GetMessage() string { return this.Message }
-
-func (RowScopeFieldMissing) IsCreateEndUserPermissionError() {}
-
-func (RowScopeFieldMissing) IsUpdateEndUserPermissionError() {}
 
 type SchemaIssue struct {
 	Type        SchemaIssueType `json:"type"`
@@ -1936,37 +1190,6 @@ type UpdateClusterPayload struct {
 	Error   UpdateClusterError `json:"error,omitempty"`
 }
 
-type UpdateEndUserPermissionBundleInput struct {
-	Name        *string `json:"name,omitempty"`
-	Description *string `json:"description,omitempty"`
-}
-
-type UpdateEndUserPermissionBundlePayload struct {
-	Bundle *EndUserPermissionBundle           `json:"bundle,omitempty"`
-	Error  UpdateEndUserPermissionBundleError `json:"error,omitempty"`
-}
-
-type UpdateEndUserPermissionInput struct {
-	ColumnPolicy *ColumnPolicyInput `json:"columnPolicy,omitempty"`
-	DisplayName  *string            `json:"displayName,omitempty"`
-	Description  *string            `json:"description,omitempty"`
-}
-
-type UpdateEndUserPermissionPayload struct {
-	Permission *EndUserPermission           `json:"permission,omitempty"`
-	Error      UpdateEndUserPermissionError `json:"error,omitempty"`
-}
-
-type UpdateEndUserRoleInput struct {
-	Name        *string `json:"name,omitempty"`
-	Description *string `json:"description,omitempty"`
-}
-
-type UpdateEndUserRolePayload struct {
-	Role  *EndUserRole           `json:"role,omitempty"`
-	Error UpdateEndUserRoleError `json:"error,omitempty"`
-}
-
 type UpdateEndUserStatusInput struct {
 	UserID      string `json:"userId"`
 	IsForbidden bool   `json:"isForbidden"`
@@ -2022,24 +1245,6 @@ type UpsertRlsPolicyPayload struct {
 	Policy *RlsPolicy           `json:"policy,omitempty"`
 	Error  UpsertRlsPolicyError `json:"error,omitempty"`
 }
-
-type UserBundleAlreadyAssigned struct {
-	Message string `json:"message"`
-}
-
-func (UserBundleAlreadyAssigned) IsError()                {}
-func (this UserBundleAlreadyAssigned) GetMessage() string { return this.Message }
-
-func (UserBundleAlreadyAssigned) IsAssignBundleToEndUserError() {}
-
-type UserRoleAlreadyAssigned struct {
-	Message string `json:"message"`
-}
-
-func (UserRoleAlreadyAssigned) IsError()                {}
-func (this UserRoleAlreadyAssigned) GetMessage() string { return this.Message }
-
-func (UserRoleAlreadyAssigned) IsAssignEndUserRoleError() {}
 
 type ValidateRLSExprInput struct {
 	// 所属模型 ID（用于字段名白名单校验）
@@ -2257,126 +1462,6 @@ func (e ClusterStatus) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// 列访问模式
-type ColumnAccessMode string
-
-const (
-	// 可见且可编辑
-	ColumnAccessModeVisible ColumnAccessMode = "VISIBLE"
-	// 可见但只读
-	ColumnAccessModeReadonly ColumnAccessMode = "READONLY"
-	// 脱敏显示
-	ColumnAccessModeMasked ColumnAccessMode = "MASKED"
-	// 完全隐藏
-	ColumnAccessModeHidden ColumnAccessMode = "HIDDEN"
-)
-
-var AllColumnAccessMode = []ColumnAccessMode{
-	ColumnAccessModeVisible,
-	ColumnAccessModeReadonly,
-	ColumnAccessModeMasked,
-	ColumnAccessModeHidden,
-}
-
-func (e ColumnAccessMode) IsValid() bool {
-	switch e {
-	case ColumnAccessModeVisible, ColumnAccessModeReadonly, ColumnAccessModeMasked, ColumnAccessModeHidden:
-		return true
-	}
-	return false
-}
-
-func (e ColumnAccessMode) String() string {
-	return string(e)
-}
-
-func (e *ColumnAccessMode) UnmarshalGQL(v any) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = ColumnAccessMode(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid ColumnAccessMode", str)
-	}
-	return nil
-}
-
-func (e ColumnAccessMode) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-func (e *ColumnAccessMode) UnmarshalJSON(b []byte) error {
-	s, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	return e.UnmarshalGQL(s)
-}
-
-func (e ColumnAccessMode) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	e.MarshalGQL(&buf)
-	return buf.Bytes(), nil
-}
-
-// 数据权限 item 来源类型：PRESET（预设模板）或 CUSTOM（管理员自定义）
-type DataPermissionGrantType string
-
-const (
-	DataPermissionGrantTypePreset DataPermissionGrantType = "PRESET"
-	DataPermissionGrantTypeCustom DataPermissionGrantType = "CUSTOM"
-)
-
-var AllDataPermissionGrantType = []DataPermissionGrantType{
-	DataPermissionGrantTypePreset,
-	DataPermissionGrantTypeCustom,
-}
-
-func (e DataPermissionGrantType) IsValid() bool {
-	switch e {
-	case DataPermissionGrantTypePreset, DataPermissionGrantTypeCustom:
-		return true
-	}
-	return false
-}
-
-func (e DataPermissionGrantType) String() string {
-	return string(e)
-}
-
-func (e *DataPermissionGrantType) UnmarshalGQL(v any) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = DataPermissionGrantType(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid DataPermissionGrantType", str)
-	}
-	return nil
-}
-
-func (e DataPermissionGrantType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-func (e *DataPermissionGrantType) UnmarshalJSON(b []byte) error {
-	s, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	return e.UnmarshalGQL(s)
-}
-
-func (e DataPermissionGrantType) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	e.MarshalGQL(&buf)
-	return buf.Bytes(), nil
-}
-
 type DatabaseMode string
 
 const (
@@ -2484,85 +1569,6 @@ func (e *DbTableStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e DbTableStatus) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	e.MarshalGQL(&buf)
-	return buf.Bytes(), nil
-}
-
-// 权限点预设策略类型。
-//
-// 应用预设时执行模型级差异同步（reconcile），仅处理 preset != null 的权限点，
-// preset = null（手动创建）的权限点不受影响。
-//
-// READ_WRITE_ALL      — 读写全部（不依赖 END_USER_REF 字段）
-//
-//	SELECT ALL + INSERT ALL + UPDATE ALL + DELETE ALL
-//
-// READ_ALL            — 只读全部（不依赖 END_USER_REF 字段）
-//
-//	SELECT ALL
-//
-// READ_WRITE_OWNER    — 读写自己（依赖 END_USER_REF 字段）
-//
-//	SELECT SELF + INSERT SELF + UPDATE SELF + DELETE SELF
-//
-// READ_ALL_WRITE_OWNER — 读所有写自己（依赖 END_USER_REF 字段）
-//
-//	SELECT ALL + INSERT SELF + UPDATE SELF + DELETE SELF
-type EndUserPermissionPreset string
-
-const (
-	EndUserPermissionPresetReadWriteAll      EndUserPermissionPreset = "READ_WRITE_ALL"
-	EndUserPermissionPresetReadAll           EndUserPermissionPreset = "READ_ALL"
-	EndUserPermissionPresetReadWriteOwner    EndUserPermissionPreset = "READ_WRITE_OWNER"
-	EndUserPermissionPresetReadAllWriteOwner EndUserPermissionPreset = "READ_ALL_WRITE_OWNER"
-)
-
-var AllEndUserPermissionPreset = []EndUserPermissionPreset{
-	EndUserPermissionPresetReadWriteAll,
-	EndUserPermissionPresetReadAll,
-	EndUserPermissionPresetReadWriteOwner,
-	EndUserPermissionPresetReadAllWriteOwner,
-}
-
-func (e EndUserPermissionPreset) IsValid() bool {
-	switch e {
-	case EndUserPermissionPresetReadWriteAll, EndUserPermissionPresetReadAll, EndUserPermissionPresetReadWriteOwner, EndUserPermissionPresetReadAllWriteOwner:
-		return true
-	}
-	return false
-}
-
-func (e EndUserPermissionPreset) String() string {
-	return string(e)
-}
-
-func (e *EndUserPermissionPreset) UnmarshalGQL(v any) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = EndUserPermissionPreset(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid EndUserPermissionPreset", str)
-	}
-	return nil
-}
-
-func (e EndUserPermissionPreset) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-func (e *EndUserPermissionPreset) UnmarshalJSON(b []byte) error {
-	s, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	return e.UnmarshalGQL(s)
-}
-
-func (e EndUserPermissionPreset) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil
@@ -3115,68 +2121,6 @@ func (e RLSPreset) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// 数据操作动作：终端用户对数据表可执行的操作类型
-type RbacAction string
-
-const (
-	RbacActionSelect RbacAction = "SELECT"
-	RbacActionInsert RbacAction = "INSERT"
-	RbacActionUpdate RbacAction = "UPDATE"
-	RbacActionDelete RbacAction = "DELETE"
-	RbacActionExport RbacAction = "EXPORT"
-)
-
-var AllRbacAction = []RbacAction{
-	RbacActionSelect,
-	RbacActionInsert,
-	RbacActionUpdate,
-	RbacActionDelete,
-	RbacActionExport,
-}
-
-func (e RbacAction) IsValid() bool {
-	switch e {
-	case RbacActionSelect, RbacActionInsert, RbacActionUpdate, RbacActionDelete, RbacActionExport:
-		return true
-	}
-	return false
-}
-
-func (e RbacAction) String() string {
-	return string(e)
-}
-
-func (e *RbacAction) UnmarshalGQL(v any) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = RbacAction(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid RbacAction", str)
-	}
-	return nil
-}
-
-func (e RbacAction) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-func (e *RbacAction) UnmarshalJSON(b []byte) error {
-	s, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	return e.UnmarshalGQL(s)
-}
-
-func (e RbacAction) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	e.MarshalGQL(&buf)
-	return buf.Bytes(), nil
-}
-
 type RepairMode string
 
 const (
@@ -3375,71 +2319,6 @@ func (e *RlsAction) UnmarshalJSON(b []byte) error {
 }
 
 func (e RlsAction) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	e.MarshalGQL(&buf)
-	return buf.Bytes(), nil
-}
-
-// 行策略范围：控制终端用户可见哪些数据行
-//
-// ALL                — 全部行，不过滤
-// SELF               — 仅当前用户自己的行
-// DEPT               — 仅当前用户所在部门的行
-// DEPT_AND_CHILDREN  — 当前部门及所有下级部门的行
-type RowScopeType string
-
-const (
-	RowScopeTypeAll             RowScopeType = "ALL"
-	RowScopeTypeSelf            RowScopeType = "SELF"
-	RowScopeTypeDept            RowScopeType = "DEPT"
-	RowScopeTypeDeptAndChildren RowScopeType = "DEPT_AND_CHILDREN"
-)
-
-var AllRowScopeType = []RowScopeType{
-	RowScopeTypeAll,
-	RowScopeTypeSelf,
-	RowScopeTypeDept,
-	RowScopeTypeDeptAndChildren,
-}
-
-func (e RowScopeType) IsValid() bool {
-	switch e {
-	case RowScopeTypeAll, RowScopeTypeSelf, RowScopeTypeDept, RowScopeTypeDeptAndChildren:
-		return true
-	}
-	return false
-}
-
-func (e RowScopeType) String() string {
-	return string(e)
-}
-
-func (e *RowScopeType) UnmarshalGQL(v any) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = RowScopeType(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid RowScopeType", str)
-	}
-	return nil
-}
-
-func (e RowScopeType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-func (e *RowScopeType) UnmarshalJSON(b []byte) error {
-	s, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	return e.UnmarshalGQL(s)
-}
-
-func (e RowScopeType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

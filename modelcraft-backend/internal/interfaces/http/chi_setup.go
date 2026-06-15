@@ -52,7 +52,7 @@ type ChiRouterConfig struct {
 //	  ├── /health, /test                               → net/http (no auth)
 //	  ├── /api/openapi.json                            → net/http (no auth)
 //	  ├── /graphql/org/*                               → tenant-only GraphQL (X-Tenant-User-Id)
-//	  ├── /end-user/graphql/org/*                      → end-user GraphQL (X-User-ID)
+//	  ├── /end-user/graphql/org/*                      → end-user GraphQL (X-User-ID + RLS headers)
 //	  ├── /graphql/org/*/project/*/db/*/model/*        → runtime GraphQL
 //	  └── /api/* (generated OpenAPI handler)           → Chi with conditional auth
 func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {

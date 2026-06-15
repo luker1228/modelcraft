@@ -26,16 +26,6 @@ Feature: EndUserRef 字段类型
     When 我为该模型添加名为 "customOwner" 格式为 "END_USER_REF" 的字段
     Then addFields 结果中字段 "customOwner" 应该失败并返回 "InvalidInput"
 
-  Scenario: 查询 Model 的 RLS 策略配置
-    Given 模型已有名为 "owner" 格式为 "END_USER_REF" 的字段
-    When 我查询该模型的 RLS 策略
-    Then 应该返回默认的 READ_WRITE_OWNER 策略
-
-  Scenario: 新建模型后同时查询字段与策略应生效
-    Given 已创建名为 "RLSDefaultEnforcedModel" 的模型
-    When 我查询该模型的 RLS 策略
-    Then 返回结果应同时包含 owner EndUserRef 字段和 READ_WRITE_OWNER 策略
-
   Scenario: 删除 EndUserRef 字段后策略同步删除
     Given 模型已有名为 "owner" 格式为 "END_USER_REF" 的字段
     When 我删除名为 "owner" 的字段

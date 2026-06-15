@@ -15,7 +15,6 @@ Feature: Model owner 字段生命周期
     When 我创建名为 "AutoOwnerModel" 的模型
     Then 模型应该创建成功
     And 模型应该包含名为 "owner" 的 EndUserRef 字段
-    And 该模型应该存在默认的 READ_WRITE_OWNER 策略
 
   Scenario: 新建 Model 的 owner 字段可被删除
     Given 已创建名为 "RemovableOwnerModel" 的模型
@@ -34,4 +33,3 @@ Feature: Model owner 字段生命周期
     And 我删除名为 "owner" 的字段
     When 我重新为模型添加 EndUserRef 字段
     Then 字段应该添加成功
-    And 该模型应该存在默认的 READ_WRITE_OWNER 策略

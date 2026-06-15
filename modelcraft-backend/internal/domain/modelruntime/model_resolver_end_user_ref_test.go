@@ -242,48 +242,6 @@ func TestEndUserRefOwnerInjection_UpdateOne_ViaRealResolver(t *testing.T) {
 	})
 }
 
-func TestRLSInputCheck_CreateOne_DeniesBeforeRepoCall(t *testing.T) {
-	repo := &capturingClientRepo{}
-	schema := buildSchemaFor(t, taskModelWithOwner())
-	ctx := WithGraphqlRequestContext(
-		context.Background(), repo, "org-1", "project-1", "u_123", "",
-		&ResolvedModelPermissions{Insert: ActionPermission{Allowed: true}},
-	)
-
-	result := graphql.Do(graphql.Params{
-		Schema:  *schema,
-		Context: ctx,
-		RequestString: `mutation {
-			create(data: { title: "hello", owner: "u_123" }) { id }
-		}`,
-	})
-
-	require.NotEmpty(t, result.Errors)
-	require.Contains(t, result.Errors[0].Message, "RLS CHECK violation")
-	require.Nil(t, repo.capturedCreateInput)
-}
-
-func TestRLSInputCheck_UpdateOne_DeniesBeforeRepoCall(t *testing.T) {
-	repo := &capturingClientRepo{}
-	schema := buildSchemaFor(t, taskModelWithOwner())
-	ctx := WithGraphqlRequestContext(
-		context.Background(), repo, "org-1", "project-1", "u_123", "",
-		&ResolvedModelPermissions{Update: ActionPermission{Allowed: true}},
-	)
-
-	result := graphql.Do(graphql.Params{
-		Schema:  *schema,
-		Context: ctx,
-		RequestString: `mutation {
-			update(where: { id: "record-id" }, data: { title: "renamed" }) { success }
-		}`,
-	})
-
-	require.NotEmpty(t, result.Errors)
-	require.Contains(t, result.Errors[0].Message, "RLS CHECK violation")
-	require.Nil(t, repo.capturedUpdateOneInput)
-}
-
 // ─── Owner SELF-scope enforcement (IsSelf=true) ──────────────────────────────
 
 // TestOwnerSelfScopeEnforcement_CreateOne 验证 IsSelf=true 时 create mutation 的 owner 检查。

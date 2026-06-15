@@ -29,15 +29,20 @@ Feature: Runtime RLS 注入和行级过滤
     And 终端用户 "userA" 查询 "Orders"，where 条件为 owner = "userB_id"
     Then 查询结果为空
 
-  Scenario: selectPredicate=true 时 EndUser 可以查询全量数据
-    Given 开发者将该模型的 Policy 设置为 READ_ALL_WRITE_OWNER
-    When 终端用户 "userA" 查询 "Orders"
-    Then 查询结果包含所有用户的记录
-
-  Scenario: selectPredicate=false 时 EndUser 查询返回空
-    Given 开发者将该模型的 Policy 设置为 NO_ACCESS
-    When 终端用户 "userA" 查询 "Orders"
-    Then 查询结果为空
+  Scenario: 配置 RLS v2 policy 后 runtime 只返回当前用户的数据
+    Given 已创建名为 "ScopedOrders" 的模型
+    And 模型已有名为 "name" 格式为 "STRING" 的字段
+    And 我为该模型配置以下 RLS v2 policies:
+      | policyName   | action | role | usingExpr                          | withCheckExpr                      |
+      | owner_read   | read   |      | {"owner":{"_eq":{"_auth":"uid"}}} |                                    |
+      | owner_create | create |      |                                    | {"owner":{"_eq":{"_auth":"uid"}}} |
+    And 终端用户 "userA" 已登录
+    And 终端用户 "userA" 创建了一条 "ScopedOrders" 记录，name 为 "ScopedOrderA"
+    And 终端用户 "userB" 已登录
+    And 终端用户 "userB" 创建了一条 "ScopedOrders" 记录，name 为 "ScopedOrderB"
+    When 终端用户 "userA" 查询 "ScopedOrders"
+    Then 查询结果只包含 "ScopedOrderA"
+    And 查询结果不包含 "ScopedOrderB"
 
   Scenario: EndUser 创建记录时 owner 自动填充为当前用户 ID
     Given 终端用户 "userA" 已登录
@@ -65,12 +70,6 @@ Feature: Runtime RLS 注入和行级过滤
     And "OrderB" 记录的实际 ID 为 "orderB_id"
     When 终端用户 "userA" 尝试删除 ID 为 "orderB_id" 的 "Orders" 记录
     Then 删除操作返回 0 行受影响（静默失败，无错误）
-
-  Scenario: insertCheck=false 时禁止创建数据
-    Given 开发者将该模型的 Policy 设置为 NO_ACCESS
-    And 终端用户 "userA" 已登录
-    When 终端用户 "userA" 尝试创建一条 "Orders" 记录
-    Then 操作失败并返回错误类型 "RLSCheckViolation"
 
   Scenario: updateCheck=OWNER 时无法将 owner 改为他人
     Given 终端用户 "userB" 已登录
