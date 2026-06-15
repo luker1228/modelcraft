@@ -96,9 +96,12 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 
 	var rlsCtx *modelruntime.RLSContext
 	if ctxutils.GetIsAdminFromContext(ctx) {
-		rlsCtx = &modelruntime.RLSContext{IsAdmin: true}
+		rlsCtx = &modelruntime.RLSContext{
+			IsAdmin:       true,
+			OperationName: cmd.OperationName,
+		}
 	} else {
-		rlsCtx, err = s.buildRLSContext(ctx, orgName, projectSlug, modelID)
+		rlsCtx, err = s.buildRLSContext(ctx, orgName, projectSlug, modelID, cmd.OperationName)
 		if err != nil {
 			return nil, err
 		}
@@ -159,11 +162,12 @@ func NewGraphqlAppService(
 
 func (s *GraphqlAppService) buildRLSContext(
 	ctx context.Context,
-	orgName, projectSlug, modelID string,
+	orgName, projectSlug, modelID, operationName string,
 ) (*modelruntime.RLSContext, error) {
 	rlsCtx := &modelruntime.RLSContext{
-		IsAdmin:     ctxutils.GetIsAdminFromContext(ctx),
-		UserContext: middleware.GetUserContext(ctx),
+		OperationName: operationName,
+		IsAdmin:       ctxutils.GetIsAdminFromContext(ctx),
+		UserContext:   middleware.GetUserContext(ctx),
 	}
 	if rlsCtx.IsAdmin {
 		return rlsCtx, nil

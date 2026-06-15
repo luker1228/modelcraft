@@ -47,15 +47,6 @@ func TestSchemaContract_SoftDeleteColumnsExist(t *testing.T) {
 			"`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0",
 			"`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
 		},
-		schemaPath("12_user_data_auth.sql"): {
-			"`project_roles`", "`project_role_users`",
-			"`deleted_at`", "BIGINT UNSIGNED NOT NULL DEFAULT 0",
-			"`delete_token`",
-		},
-		schemaPath("13_rbac_permissions.sql"): {
-			"`end_user_data_permissions`", "`end_user_permission_bundles`",
-			"`deleted_at`", "BIGINT UNSIGNED NOT NULL DEFAULT 0", "`delete_token`",
-		},
 	}
 
 	for file, mustContain := range required {
@@ -92,18 +83,6 @@ func TestSchemaContract_DeleteTokenUniqueIndexesExist(t *testing.T) {
 		},
 		schemaPath("07_roles_permissions.sql"): {
 			"`uk_role_name_org` (`name`, `org_name`, `delete_token`)",
-		},
-		schemaPath("12_user_data_auth.sql"): {
-			"`uk_project_roles_name`   (`org_name`, `project_slug`, `name`, `delete_token`)",
-			"`uk_project_roles_org_id` (`org_name`, `id`, `delete_token`)",
-		},
-		schemaPath("13_rbac_permissions.sql"): {
-			"`uq_permissions_model_name`",
-			"`model_id`, `name`, `delete_token`",
-			"`uq_bundles_org_project_slug`",
-			"`org_name`, `project_slug`, `slug`, `delete_token`",
-			"`uq_bundles_org_project_name`",
-			"`org_name`, `project_slug`, `name`, `delete_token`",
 		},
 	}
 

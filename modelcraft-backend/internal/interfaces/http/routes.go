@@ -204,8 +204,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	rlsMatchingSvc := rls.NewPolicyMatchingService(policyRepo, rlsUsingCompiler, rlsCheckEvaluator)
 	_ = rlsMatchingSvc // Wired into RLSResolver when runtime handler integration completes
 	authSchemaAppService := rls.NewAuthSchemaAppService(authSchemaRepo, projectRepository)
-	rbacRepo := repository.NewSqlEndUserDataPermissionRepository(dbgen.New(loggingDB))
-
 	// Create user management related services
 	userRepo := repository.NewSqlUserRepository(dbgen.New(loggingDB))
 	profileRepo := repository.NewSqlProfileRepository(dbgen.New(loggingDB))
@@ -290,7 +288,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	apiTokenRepo := repository.NewSqlAPITokenRepository(repoFactory.SqlDB)
 	apiTokenService := apitoken.NewAPITokenService(apiTokenRepo)
 
-	authHandler := authHandlers.NewHandler(tokenService, apiTokenService, cfg.Auth.Cookie, rbacRepo.IsOrgAdmin)
+	authHandler := authHandlers.NewHandler(tokenService, apiTokenService, cfg.Auth.Cookie, nil)
 
 	// Attach end-user repository support to TokenService (unified auth service).
 	tokenService.WithEndUserSupport(&authEndUserRepoFactory{}, repoFactory.SqlDB)
@@ -321,7 +319,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		CreateOrgService:            createOrgService,
 		ModelDatabaseAppService:     modelDatabaseAppService,
 		ModelDatabaseSyncAppService: modelDatabaseSyncAppService,
-		IsOrgAdminFn:                rbacRepo.IsOrgAdmin,
+		IsOrgAdminFn:                nil,
 	}, nil
 }
 

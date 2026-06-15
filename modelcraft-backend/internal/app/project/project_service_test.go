@@ -2,12 +2,8 @@ package project
 
 import (
 	"context"
-	"database/sql"
 	"modelcraft/internal/domain/project"
-	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/pkg/bizerrors"
-	"modelcraft/pkg/ctxutils"
-	"modelcraft/pkg/logfacade"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -91,28 +87,6 @@ func newTestService(mockRepo *MockProjectRepository) *ProjectAppService {
 	return NewProjectAppService(mockRepo, nil, nil, nil)
 }
 
-type captureCreateEndUserRoleQuerier struct {
-	dbgen.Querier
-	params           *dbgen.CreateEndUserRoleParams
-	assignmentParams *dbgen.AssignRoleToUserParams
-}
-
-func (q *captureCreateEndUserRoleQuerier) CreateEndUserRole(
-	_ context.Context,
-	arg dbgen.CreateEndUserRoleParams,
-) error {
-	q.params = &arg
-	return nil
-}
-
-func (q *captureCreateEndUserRoleQuerier) AssignRoleToUser(
-	_ context.Context,
-	arg dbgen.AssignRoleToUserParams,
-) error {
-	q.assignmentParams = &arg
-	return nil
-}
-
 func TestProjectAppService_CreateProject_AlreadyExists(t *testing.T) {
 	ctx := context.Background()
 
@@ -144,30 +118,6 @@ func TestProjectAppService_CreateProject_AlreadyExists(t *testing.T) {
 	assert.ErrorAs(t, err, &bizErr)
 	assert.Equal(t, bizerrors.ProjectAlreadyExists.GetCode(), bizErr.Info().GetCode())
 	mockRepo.AssertExpectations(t)
-}
-
-func TestProjectAppService_ProvisionAdminRoleCreatesProtectedAdminRole(t *testing.T) {
-	ctx := ctxutils.SetUserID(context.Background(), "creator-user")
-	service := newTestService(new(MockProjectRepository))
-	querier := &captureCreateEndUserRoleQuerier{}
-
-	err := service.provisionAdminRole(ctx, querier, "luke_a02b", "test", logfacade.GetLogger(ctx))
-	assert.NoError(t, err)
-
-	if assert.NotNil(t, querier.params) {
-		assert.Equal(t, "luke_a02b", querier.params.OrgName)
-		assert.Equal(t, "test", querier.params.ProjectSlug)
-		assert.Equal(t, adminRoleName, querier.params.Name)
-		assert.Equal(t, sql.NullString{}, querier.params.Description)
-		assert.False(t, querier.params.IsImplicit)
-		assert.True(t, querier.params.IsProtected)
-	}
-
-	if assert.NotNil(t, querier.assignmentParams) {
-		assert.Equal(t, "creator-user", querier.assignmentParams.UserID)
-		assert.Equal(t, "luke_a02b", querier.assignmentParams.OrgName)
-		assert.NotEmpty(t, querier.assignmentParams.RoleID)
-	}
 }
 
 func TestProjectAppService_GetProject(t *testing.T) {

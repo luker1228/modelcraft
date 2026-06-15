@@ -19,11 +19,6 @@ blacklist_tables:
   - role_permissions
   - end_user_accounts
   - end_user_role_users
-  - end_user_bundle_data_permission_items
-  - end_user_role_bundles
-  - end_user_user_bundles
-  - end_user_permission_bundle_snapshots
-  - project_role_users
 delete_token_tables:
   - organizations
   - users
@@ -37,8 +32,4 @@ delete_token_tables:
   - field_definitions
   - roles
   - end_user_users
-  - end_user_roles
-  - end_user_data_permissions
-  - end_user_permission_bundles
   - user_orgs
-  - project_roles
