@@ -6,6 +6,7 @@ import (
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/config"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 
@@ -232,7 +233,7 @@ func (h *Handler) handleBusinessError(
 
 // writeAuthError writes a structured error response matching the OpenAPI error schemas.
 func writeAuthError(w http.ResponseWriter, statusCode int, requestID, code, message string) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 	w.WriteHeader(statusCode)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"requestId": requestID,
@@ -245,7 +246,7 @@ func writeAuthError(w http.ResponseWriter, statusCode int, requestID, code, mess
 
 // writeJSON is a helper to write JSON responses.
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strconv"
@@ -46,9 +47,9 @@ func (h *ManagementHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 2. 从 Header 提取 orgName 和 projectSlug
-	orgName := r.Header.Get("X-Org-Name")
-	projectSlug := r.Header.Get("X-Project-Slug")
-	createdBy := r.Header.Get("X-User-Id") // 开发者 ID
+	orgName := r.Header.Get(httpheader.XOrgName)
+	projectSlug := r.Header.Get(httpheader.XProjectSlug)
+	createdBy := r.Header.Get(httpheader.XUserID) // 开发者 ID
 
 	if orgName == "" || projectSlug == "" {
 		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", errMsgOrgProjectRequired)
@@ -89,8 +90,8 @@ func (h *ManagementHandler) List(w http.ResponseWriter, r *http.Request) {
 	requestID := ctxutils.GetRequestID(ctx)
 
 	// 1. 从 Header 提取 orgName 和 projectSlug
-	orgName := r.Header.Get("X-Org-Name")
-	projectSlug := r.Header.Get("X-Project-Slug")
+	orgName := r.Header.Get(httpheader.XOrgName)
+	projectSlug := r.Header.Get(httpheader.XProjectSlug)
 
 	if orgName == "" || projectSlug == "" {
 		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", errMsgOrgProjectRequired)
@@ -172,8 +173,8 @@ func (h *ManagementHandler) UpdateStatus(w http.ResponseWriter, r *http.Request)
 	}
 
 	// 3. 从 Header 提取 orgName 和 projectSlug
-	orgName := r.Header.Get("X-Org-Name")
-	projectSlug := r.Header.Get("X-Project-Slug")
+	orgName := r.Header.Get(httpheader.XOrgName)
+	projectSlug := r.Header.Get(httpheader.XProjectSlug)
 
 	if orgName == "" || projectSlug == "" {
 		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", errMsgOrgProjectRequired)
@@ -220,8 +221,8 @@ func (h *ManagementHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 2. 从 Header 提取 orgName 和 projectSlug
-	orgName := r.Header.Get("X-Org-Name")
-	projectSlug := r.Header.Get("X-Project-Slug")
+	orgName := r.Header.Get(httpheader.XOrgName)
+	projectSlug := r.Header.Get(httpheader.XProjectSlug)
 
 	if orgName == "" || projectSlug == "" {
 		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", errMsgOrgProjectRequired)
@@ -276,7 +277,7 @@ func (h *ManagementHandler) handleBusinessError(
 }
 
 func (h *ManagementHandler) writeError(w http.ResponseWriter, statusCode int, requestID, code, message string) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 	w.WriteHeader(statusCode)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"requestId": requestID,
@@ -288,7 +289,7 @@ func (h *ManagementHandler) writeError(w http.ResponseWriter, statusCode int, re
 }
 
 func (h *ManagementHandler) writeJSON(w http.ResponseWriter, status int, v interface{}) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
 }

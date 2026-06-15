@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -24,7 +25,7 @@ func TestRequestIDInjectorMiddleware(t *testing.T) {
 
 	t.Run("injects requestId when absent", func(t *testing.T) {
 		handler := requestIDInjectorMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"memberships":[]}`))
 		}))
@@ -43,7 +44,7 @@ func TestRequestIDInjectorMiddleware(t *testing.T) {
 
 	t.Run("does not overwrite existing non-empty requestId", func(t *testing.T) {
 		handler := requestIDInjectorMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"requestId":"already-set","memberships":[]}`))
 		}))
@@ -61,7 +62,7 @@ func TestRequestIDInjectorMiddleware(t *testing.T) {
 
 	t.Run("overwrites empty requestId", func(t *testing.T) {
 		handler := requestIDInjectorMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"requestId":"","memberships":[]}`))
 		}))
@@ -80,7 +81,7 @@ func TestRequestIDInjectorMiddleware(t *testing.T) {
 	t.Run("passes through non-JSON response unchanged", func(t *testing.T) {
 		const htmlBody = "<html>ok</html>"
 		handler := requestIDInjectorMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "text/html")
+			w.Header().Set(httpheader.ContentType, "text/html")
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(htmlBody))
 		}))
@@ -93,7 +94,7 @@ func TestRequestIDInjectorMiddleware(t *testing.T) {
 
 	t.Run("passes through empty body unchanged", func(t *testing.T) {
 		handler := requestIDInjectorMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 			w.WriteHeader(http.StatusNoContent)
 		}))
 

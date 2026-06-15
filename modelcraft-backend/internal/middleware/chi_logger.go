@@ -3,6 +3,7 @@ package middleware
 import (
 	"bytes"
 	"io"
+	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strings"
@@ -35,21 +36,21 @@ func ChiLoggerMiddleware(logger logfacade.Logger) func(http.Handler) http.Handle
 			// request_id — forwarded by the Gateway (always present in production)
 			requestID := chimw.GetReqID(r.Context())
 			if requestID == "" {
-				requestID = r.Header.Get("X-Request-Id")
+				requestID = r.Header.Get(httpheader.XRequestID)
 			}
 
 			// Set X-Request-ID response header
-			w.Header().Set("X-Request-Id", requestID)
+			w.Header().Set(httpheader.XRequestID, requestID)
 
 			// Build scoped logger fields: always include request_id; add
 			// client_request_id, trace_id, span_id when present.
 			logFields := []logfacade.Field{logfacade.String("request_id", requestID)}
 
-			if clientReqID := r.Header.Get("X-Client-Request-Id"); clientReqID != "" {
+			if clientReqID := r.Header.Get(httpheader.XClientRequestID); clientReqID != "" {
 				logFields = append(logFields, logfacade.String("client_request_id", clientReqID))
 			}
 
-			if traceID, spanID, ok := parseTraceparent(r.Header.Get("Traceparent")); ok {
+			if traceID, spanID, ok := parseTraceparent(r.Header.Get(httpheader.Traceparent)); ok {
 				logFields = append(logFields,
 					logfacade.String("trace_id", traceID),
 					logfacade.String("span_id", spanID),
@@ -62,7 +63,7 @@ func ChiLoggerMiddleware(logger logfacade.Logger) func(http.Handler) http.Handle
 
 			// Read and capture request body
 			var requestBody string
-			if shouldCaptureChiRequestBody(r.Header.Get("Content-Type")) {
+			if shouldCaptureChiRequestBody(r.Header.Get(httpheader.ContentType)) {
 				body, err := io.ReadAll(r.Body)
 				if err == nil {
 					requestBody = string(body)
@@ -90,7 +91,7 @@ func ChiLoggerMiddleware(logger logfacade.Logger) func(http.Handler) http.Handle
 				duration := time.Since(start)
 
 				var responseBody string
-				if shouldCaptureChiResponseBody(ww.Header().Get("Content-Type")) {
+				if shouldCaptureChiResponseBody(ww.Header().Get(httpheader.ContentType)) {
 					responseBody = responseBuffer.String()
 				}
 

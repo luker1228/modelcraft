@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"modelcraft/pkg/httpheader"
 )
 
 // PlaygroundConfig 配置 GraphQL Playground
@@ -63,7 +64,7 @@ func Handler(config PlaygroundConfig) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		// 设置响应头
-		c.Header("Content-Type", "text/html; charset=utf-8")
+		c.Header(httpheader.ContentType, httpheader.ContentTypeTextHTMLUTF8)
 		c.Status(http.StatusOK)
 
 		// 渲染模板
@@ -85,7 +86,7 @@ func HTTPHandler(config PlaygroundConfig) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set(httpheader.ContentType, httpheader.ContentTypeTextHTMLUTF8)
 		w.WriteHeader(http.StatusOK)
 		if err := tmpl.Execute(w, config); err != nil {
 			http.Error(w, "Failed to render GraphQL Playground", http.StatusInternalServerError)

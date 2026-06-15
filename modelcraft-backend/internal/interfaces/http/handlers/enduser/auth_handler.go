@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strings"
@@ -221,7 +222,7 @@ func (h *AuthHandler) parseEndUserJWT(tokenStr string) (*domainAuth.PlatformClai
 }
 
 func extractBearer(r *http.Request) string {
-	v := r.Header.Get("Authorization")
+	v := r.Header.Get(httpheader.Authorization)
 	if strings.HasPrefix(v, "Bearer ") {
 		return strings.TrimPrefix(v, "Bearer ")
 	}
@@ -431,7 +432,7 @@ func (h *AuthHandler) writeError(w http.ResponseWriter, status int, requestID, c
 }
 
 func (h *AuthHandler) writeJSON(w http.ResponseWriter, status int, v interface{}) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
 }

@@ -12,6 +12,7 @@ import (
 	graphqlutil "modelcraft/internal/interfaces/graphql"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 
@@ -68,7 +69,7 @@ func (h *ModelRuntimeHandler) HandlePlayground(w http.ResponseWriter, r *http.Re
 	model := chi.URLParam(r, "model")
 
 	if orgName == "" || projectSlug == "" || db == "" || model == "" {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"error":   "Missing required parameters",
@@ -100,7 +101,7 @@ func (h *ModelRuntimeHandler) HandleQuery(w http.ResponseWriter, r *http.Request
 	model := chi.URLParam(r, "model")
 
 	if orgName == "" || projectSlug == "" || db == "" || model == "" {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"error": "orgName, projectSlug, db, and model are required",
@@ -110,7 +111,7 @@ func (h *ModelRuntimeHandler) HandleQuery(w http.ResponseWriter, r *http.Request
 
 	var req RuntimeGraphQLRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"error": "Invalid JSON request body",
@@ -138,7 +139,7 @@ func (h *ModelRuntimeHandler) HandleQuery(w http.ResponseWriter, r *http.Request
 			logger.Error(r.Context(), "Runtime GraphQL execution failed", logfacade.Err(err), logfacade.Stack(err))
 		}
 		requestID := ctxutils.GetRequestID(r.Context())
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 		w.WriteHeader(statusCode)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"message":   err.Error(),
@@ -150,7 +151,7 @@ func (h *ModelRuntimeHandler) HandleQuery(w http.ResponseWriter, r *http.Request
 	// Inject requestId into response extensions (consistent with design-time GraphQL handlers)
 	result.Extensions = graphqlutil.SetRequestIDExtension(r.Context(), result.Extensions)
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(result)
 }

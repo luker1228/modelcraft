@@ -3,6 +3,7 @@ package middleware
 import (
 	"encoding/json"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"runtime/debug"
@@ -54,5 +55,5 @@ func resolveRequestID(r *http.Request) string {
 		return requestID
 	}
 
-	return r.Header.Get("X-Request-ID")
+	return r.Header.Get(httpheader.XRequestID)
 }

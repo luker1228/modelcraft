@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"modelcraft/internal/domain/rls"
+	"modelcraft/pkg/httpheader"
 	"net/http"
 	"strings"
 )
@@ -21,11 +22,11 @@ func NewRLSContextMiddleware() *RLSContextMiddleware {
 func (m *RLSContextMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		uc := &rls.UserContext{
-			UserID:   strings.TrimSpace(r.Header.Get("X-MC-Auth-Userid")),
-			UserName: strings.TrimSpace(r.Header.Get("X-MC-Auth-Username")),
+			UserID:   strings.TrimSpace(r.Header.Get(httpheader.XMCAuthUserID)),
+			UserName: strings.TrimSpace(r.Header.Get(httpheader.XMCAuthUserName)),
 		}
 
-		rolesStr := strings.TrimSpace(r.Header.Get("X-MC-Auth-Roles"))
+		rolesStr := strings.TrimSpace(r.Header.Get(httpheader.XMCAuthRoles))
 		if rolesStr != "" {
 			parts := strings.Split(rolesStr, ",")
 			for _, p := range parts {

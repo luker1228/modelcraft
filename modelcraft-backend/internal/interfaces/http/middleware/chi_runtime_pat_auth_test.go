@@ -8,6 +8,7 @@ import (
 	appEnduser "modelcraft/internal/app/enduser"
 	domainEnduser "modelcraft/internal/domain/enduser"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -151,7 +152,7 @@ func TestChiRuntimePATMiddleware(t *testing.T) {
 				nil,
 			)
 			if tc.authHeader != "" {
-				req.Header.Set("Authorization", tc.authHeader)
+				req.Header.Set(httpheader.Authorization, tc.authHeader)
 			}
 			rr := httptest.NewRecorder()
 			handler.ServeHTTP(rr, req)

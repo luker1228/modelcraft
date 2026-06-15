@@ -5,6 +5,8 @@ import (
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strings"
+
+	"modelcraft/pkg/httpheader"
 )
 
 type endUserContextKeyType string
@@ -59,7 +61,7 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 		ctx := r.Context()
 
 		// 1. Extract JWT from Authorization header
-		authHeader := r.Header.Get("Authorization")
+		authHeader := r.Header.Get(httpheader.Authorization)
 		if authHeader == "" {
 			m.logger.Warn(ctx, "Missing Authorization header")
 			http.Error(w, `{"error": "Unauthorized: Missing token"}`, http.StatusUnauthorized)

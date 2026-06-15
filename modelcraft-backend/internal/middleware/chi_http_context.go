@@ -4,6 +4,7 @@ import (
 	"context"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"net/http"
 
 	chimw "github.com/go-chi/chi/v5/middleware"
@@ -20,7 +21,7 @@ func ChiHttpContextMiddleware() func(http.Handler) http.Handler {
 			requestID := chimw.GetReqID(r.Context())
 			if requestID == "" {
 				// Fallback to X-Request-ID header if Chi middleware didn't set it
-				requestID = r.Header.Get("X-Request-ID")
+				requestID = r.Header.Get(httpheader.XRequestID)
 			}
 			if requestID == "" {
 				// Final fallback: generate a random UUID
@@ -28,7 +29,7 @@ func ChiHttpContextMiddleware() func(http.Handler) http.Handler {
 			}
 
 			// Determine language from Accept-Language header; default to English.
-			lang := bizerrors.ParseLanguage(r.Header.Get("Accept-Language"))
+			lang := bizerrors.ParseLanguage(r.Header.Get(httpheader.AcceptLanguage))
 			if lang == "" {
 				lang = bizerrors.LangEN
 			}

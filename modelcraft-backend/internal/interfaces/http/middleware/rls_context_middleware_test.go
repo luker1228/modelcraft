@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"modelcraft/pkg/httpheader"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -18,9 +19,9 @@ func TestRLSContextMiddleware_AllHeaders(t *testing.T) {
 	handler := mw.Middleware(next)
 
 	req := httptest.NewRequest("POST", "/api/data", nil)
-	req.Header.Set("X-MC-Auth-Userid", "user_123")
-	req.Header.Set("X-MC-Auth-Username", "zhangsan")
-	req.Header.Set("X-MC-Auth-Roles", "admin, manager")
+	req.Header.Set(httpheader.XMCAuthUserID, "user_123")
+	req.Header.Set(httpheader.XMCAuthUserName, "zhangsan")
+	req.Header.Set(httpheader.XMCAuthRoles, "admin, manager")
 
 	handler.ServeHTTP(httptest.NewRecorder(), req)
 
@@ -73,7 +74,7 @@ func TestRLSContextMiddleware_EmptyRoles(t *testing.T) {
 	handler := mw.Middleware(next)
 
 	req := httptest.NewRequest("POST", "/api/data", nil)
-	req.Header.Set("X-MC-Auth-Roles", "  , ,  ")
+	req.Header.Set(httpheader.XMCAuthRoles, "  , ,  ")
 	handler.ServeHTTP(httptest.NewRecorder(), req)
 
 	uc := GetUserContext(capturedCtx)

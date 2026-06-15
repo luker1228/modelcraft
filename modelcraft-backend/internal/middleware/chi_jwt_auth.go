@@ -3,6 +3,7 @@ package middleware
 import (
 	"crypto/subtle"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"net/http"
 )
 
@@ -17,7 +18,7 @@ type JWTAuthConfig struct {
 
 // writeJSONError is a helper for writing JSON error responses.
 func writeJSONError(w http.ResponseWriter, status int, errMsg, code string) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 	w.WriteHeader(status)
 	_, _ = w.Write([]byte(`{"error":"` + errMsg + `"}`))
 }
@@ -58,12 +59,12 @@ func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler
 			// - X-User-ID: end-user ID (for end_user tokens, or admin end-user ID for tenant tokens)
 			// - X-User-Type: "tenant" or "end_user"
 			// - X-Is-Admin: "true" / "false" (from is_admin JWT claim, end-user routes only)
-			if userID := r.Header.Get("X-User-ID"); userID != "" {
+			if userID := r.Header.Get(httpheader.XUserID); userID != "" {
 				ctx := ctxutils.SetUserID(r.Context(), userID)
-				if userType := r.Header.Get("X-User-Type"); userType != "" {
+				if userType := r.Header.Get(httpheader.XUserType); userType != "" {
 					ctx = ctxutils.SetUserType(ctx, userType)
 				}
-				if r.Header.Get("X-Is-Admin") == "true" {
+				if r.Header.Get(httpheader.XIsAdmin) == "true" {
 					ctx = ctxutils.SetIsAdmin(ctx, true)
 				}
 				next.ServeHTTP(w, r.WithContext(ctx))
@@ -86,7 +87,7 @@ func tryInternalTokenAuth(config *JWTAuthConfig, w http.ResponseWriter, r *http.
 	if config.InternalToken == "" {
 		return false
 	}
-	provided := r.Header.Get("X-Internal-Token")
+	provided := r.Header.Get(httpheader.XInternalToken)
 	if provided == "" {
 		return false
 	}
@@ -97,7 +98,7 @@ func tryInternalTokenAuth(config *JWTAuthConfig, w http.ResponseWriter, r *http.
 	// Internal token authenticated. Grant wildcard permissions so that @hasPermission
 	// directives pass without a database lookup — internal callers are fully trusted.
 	ctx := ctxutils.SetPermissions(r.Context(), []string{"*"})
-	if userID := r.Header.Get("X-User-ID"); userID != "" {
+	if userID := r.Header.Get(httpheader.XUserID); userID != "" {
 		ctx = ctxutils.SetUserID(ctx, userID)
 	}
 	next.ServeHTTP(w, r.WithContext(ctx))

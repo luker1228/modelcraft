@@ -4,6 +4,7 @@ import (
 	"context"
 	appEnduser "modelcraft/internal/app/enduser"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strings"
@@ -12,7 +13,7 @@ import (
 
 // writeRuntimeJSONError writes a JSON error response for runtime endpoints.
 func writeRuntimeJSONError(w http.ResponseWriter, status int, errMsg, _ string) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 	w.WriteHeader(status)
 	_, _ = w.Write([]byte(`{"error":"` + errMsg + `"}`))
 }
@@ -37,7 +38,7 @@ func ChiRuntimePATMiddleware(
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			bearer := r.Header.Get("Authorization")
+			bearer := r.Header.Get(httpheader.Authorization)
 			if !strings.HasPrefix(bearer, "Bearer mc_pat_") {
 				next.ServeHTTP(w, r)
 				return

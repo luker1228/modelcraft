@@ -3,6 +3,7 @@ package middleware
 import (
 	"modelcraft/internal/app/enduser"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strings"
@@ -18,7 +19,7 @@ func ChiPATAuthMiddleware(
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			bearer := r.Header.Get("Authorization")
+			bearer := r.Header.Get(httpheader.Authorization)
 			if !strings.HasPrefix(bearer, "Bearer "+patPrefix) {
 				next.ServeHTTP(w, r)
 				return

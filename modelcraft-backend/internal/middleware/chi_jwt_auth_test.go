@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -28,7 +29,7 @@ func TestChiJWTAuthMiddleware_GatewayTrustedRequest(t *testing.T) {
 	handler := mw(sentinelHandler(t, &reached, &gotUserID))
 
 	req := httptest.NewRequest(http.MethodPost, "/graphql/org/acme/", nil)
-	req.Header.Set("X-User-ID", "user-abc-123")
+	req.Header.Set(httpheader.XUserID, "user-abc-123")
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
@@ -53,7 +54,7 @@ func TestChiJWTAuthMiddleware_DirectBearerTokenRejected(t *testing.T) {
 	handler := mw(sentinelHandler(t, &reached, &gotUserID))
 
 	req := httptest.NewRequest(http.MethodPost, "/graphql/org/acme/", nil)
-	req.Header.Set("Authorization", "Bearer sometoken.payload.sig")
+	req.Header.Set(httpheader.Authorization, "Bearer sometoken.payload.sig")
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
@@ -114,7 +115,7 @@ func TestChiJWTAuthMiddleware_InternalToken(t *testing.T) {
 	handler := mw(sentinelHandler(t, &reached, &gotUserID))
 
 	req := httptest.NewRequest(http.MethodPost, "/internal/v1/end-user/auth/login", nil)
-	req.Header.Set("X-Internal-Token", "secret-internal-token")
+	req.Header.Set(httpheader.XInternalToken, "secret-internal-token")
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
@@ -135,7 +136,7 @@ func TestChiJWTAuthMiddleware_InvalidInternalToken(t *testing.T) {
 	handler := mw(sentinelHandler(t, &reached, &gotUserID))
 
 	req := httptest.NewRequest(http.MethodPost, "/internal/v1/end-user/auth/login", nil)
-	req.Header.Set("X-Internal-Token", "wrong-token")
+	req.Header.Set(httpheader.XInternalToken, "wrong-token")
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
