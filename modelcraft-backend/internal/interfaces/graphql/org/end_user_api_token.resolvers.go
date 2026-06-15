@@ -6,7 +6,7 @@ package orggraphql
 
 import (
 	"context"
-	appEnduser "modelcraft/internal/app/enduser"
+	"modelcraft/internal/app/apitoken"
 	"modelcraft/internal/interfaces/graphql/org/generated"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
@@ -43,7 +43,7 @@ func (r *mutationResolver) CreateEndUserAPIToken(ctx context.Context, name strin
 		}, nil
 	}
 
-	result, err := svc.CreateAPIToken(ctx, appEnduser.CreateAPITokenCommand{
+	result, err := svc.CreateAPIToken(ctx, apitoken.CreateAPITokenCommand{
 		OrgName:   orgName,
 		EndUserID: endUserID,
 		Name:      name,

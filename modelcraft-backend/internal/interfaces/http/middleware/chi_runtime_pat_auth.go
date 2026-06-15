@@ -2,13 +2,15 @@ package middleware
 
 import (
 	"context"
-	appEnduser "modelcraft/internal/app/enduser"
+	"modelcraft/internal/app/apitoken"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // writeRuntimeJSONError writes a JSON error response for runtime endpoints.
@@ -32,7 +34,7 @@ type IsOrgAdminFn func(ctx context.Context, orgName, userID string) (bool, error
 //
 // Non-PAT requests pass through unchanged (JWT middleware handles them).
 func ChiRuntimePATMiddleware(
-	svc *appEnduser.APITokenService,
+	svc *apitoken.APITokenService,
 	logger logfacade.Logger,
 	isOrgAdminFn IsOrgAdminFn,
 ) func(http.Handler) http.Handler {
@@ -81,6 +83,18 @@ func ChiRuntimePATMiddleware(
 				if admin, adminErr := isOrgAdminFn(ctx, token.OrgName, token.EndUserID); adminErr == nil && admin {
 					ctx = ctxutils.SetIsAdmin(ctx, true)
 				}
+			}
+
+			pathOrgName := chi.URLParam(r, "orgName")
+			if pathOrgName != "" && pathOrgName != token.OrgName {
+				if logger != nil {
+					logger.Warnf(r.Context(),
+						"runtime PAT org mismatch: token org=%s path org=%s endUserID=%s",
+						token.OrgName, pathOrgName, token.EndUserID,
+					)
+				}
+				writeRuntimeJSONError(w, http.StatusForbidden, "forbidden org scope", "FORBIDDEN")
+				return
 			}
 
 			next.ServeHTTP(w, r.WithContext(ctx))

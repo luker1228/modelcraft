@@ -2,7 +2,6 @@ package projectgraphql
 
 import (
 	"modelcraft/internal/app/cluster"
-	appEnduser "modelcraft/internal/app/enduser"
 	appmodeldatabase "modelcraft/internal/app/modeldatabase"
 	"modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/app/permission"
@@ -37,9 +36,6 @@ type Resolver struct {
 
 	// RLS Policy V2
 	PolicyCRUDService *rls.PolicyCRUDService
-
-	// End-User
-	EndUserMgmtAppService *appEnduser.EndUserManagementAppService
 
 	// Database management
 	ModelDatabaseAppService     *appmodeldatabase.ModelDatabaseAppService

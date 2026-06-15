@@ -39,8 +39,8 @@ import (
 	appPermission "modelcraft/internal/app/permission"
 	appProfile "modelcraft/internal/app/profile"
 
-	appEnduser "modelcraft/internal/app/enduser"
 	appRole "modelcraft/internal/app/role"
+	"modelcraft/internal/app/apitoken"
 	domainAuth "modelcraft/internal/domain/auth"
 	domainEndUser "modelcraft/internal/domain/enduser"
 	domainModelDesign "modelcraft/internal/domain/modeldesign"
@@ -49,7 +49,6 @@ import (
 
 	appAuth "modelcraft/internal/app/auth"
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
-	enduserHandlers "modelcraft/internal/interfaces/http/handlers/enduser"
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
 	httpmiddleware "modelcraft/internal/interfaces/http/middleware"
 
@@ -91,9 +90,7 @@ type DesignHandlers struct {
 	ClusterManager  *repository.ClusterConnectionManager
 
 	// End-User Services
-	EndUserAppService      *appEnduser.EndUserManagementAppService
-	EndUserAuthHandler     *enduserHandlers.AuthHandler
-	EndUserAPITokenService *appEnduser.APITokenService
+	EndUserAPITokenService *apitoken.APITokenService
 
 	// Org Creation Service
 	CreateOrgService *appOrg.CreateOrganizationService
@@ -120,37 +117,6 @@ func (a *authEndUserRepoFactory) NewEndUserRepository(
 	orgName string,
 ) domainEndUser.EndUserRepository {
 	return repository.NewSqlEndUserRepository(db, orgName, "")
-}
-
-// endUserTxManager provides SQL transaction support for end-user management services.
-// It satisfies appEnduser.TxManager by wrapping a *sql.DB with a direct transaction.
-type endUserTxManager struct{}
-
-func (m *endUserTxManager) WithTx(
-	ctx context.Context,
-	db *sql.DB,
-	fn func(ctx context.Context, txDB appEnduser.SQLDBTX) error,
-) error {
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
-	}
-	defer func() {
-		if p := recover(); p != nil {
-			_ = tx.Rollback()
-			panic(p)
-		}
-	}()
-	if err := fn(ctx, tx); err != nil {
-		if rbErr := tx.Rollback(); rbErr != nil {
-			return fmt.Errorf("rollback failed: %v (original: %w)", rbErr, err)
-		}
-		return err
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit transaction: %w", err)
-	}
-	return nil
 }
 
 // CreateDesignHandlers creates all handlers and services needed for the design API.
@@ -324,19 +290,10 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	authHandler := authHandlers.NewHandler(tokenService, cfg.Auth.Cookie)
 
 	// Attach end-user repository support to TokenService (unified auth service).
-	endUserTxMgr := &endUserTxManager{}
 	tokenService.WithEndUserSupport(&authEndUserRepoFactory{}, repoFactory.SqlDB)
 
-	endUserAppService := appEnduser.NewEndUserManagementAppService(
-		repoFactory.SqlDB,
-		endUserTxMgr,
-	)
-	endUserAuthHandler := enduserHandlers.NewAuthHandler(
-		tokenService, endUserAppService, jwtSigner, authHandler, logger,
-	)
-
 	apiTokenRepo := repository.NewSqlAPITokenRepository(repoFactory.SqlDB)
-	apiTokenService := appEnduser.NewAPITokenService(apiTokenRepo)
+	apiTokenService := apitoken.NewAPITokenService(apiTokenRepo)
 
 	return &DesignHandlers{
 		AuthHandler:                 authHandler,
@@ -360,8 +317,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		LogicalFKAppService:         logicalFKAppService,
 		RLSPolicyAppService:         nil, // TODO: replace with V2 policy CRUD in task 9
 		AuthSchemaAppService:        authSchemaAppService,
-		EndUserAppService:           endUserAppService,
-		EndUserAuthHandler:          endUserAuthHandler,
 		EndUserAPITokenService:      apiTokenService,
 		CreateOrgService:            createOrgService,
 		ModelDatabaseAppService:     modelDatabaseAppService,
@@ -390,8 +345,6 @@ func SetupOrgGraphQLRoutesOnChi(
 		RoleService:            handlers.PermRoleService,
 		PermissionService:      handlers.PermPermissionService,
 		UserRoleService:        handlers.PermUserRoleService,
-		EndUserMgmtAppService:  handlers.EndUserAppService,
-		MetaUserAppService:     appEnduser.NewMetaUserAppService(handlers.SystemDB),
 		APITokenService:        handlers.EndUserAPITokenService,
 	}
 
@@ -444,7 +397,6 @@ func SetupProjectGraphQLRoutesOnChi(
 		FieldSelectionChecker:       projectgraphql.NewFieldSelectionChecker(),
 		RLSPolicyAppService:         handlers.RLSPolicyAppService,
 		AuthSchemaAppService:        handlers.AuthSchemaAppService,
-		EndUserMgmtAppService:       handlers.EndUserAppService,
 		ModelDatabaseAppService:     handlers.ModelDatabaseAppService,
 		ModelDatabaseSyncAppService: handlers.ModelDatabaseSyncAppService,
 		PolicyCRUDService:           policyCRUDService,
@@ -461,97 +413,9 @@ func SetupProjectGraphQLRoutesOnChi(
 	})
 }
 
-// SetupEndUserOrgGraphQLRoutesOnChi registers Org GraphQL endpoints for end-user callers.
-// Route pattern: /end-user/graphql/org/{orgName}/
-// Uses the same resolver as the tenant route but with end-user identity middleware.
-func SetupEndUserOrgGraphQLRoutesOnChi(
-	router chi.Router,
-	handlers *DesignHandlers,
-	cfg *config.Config,
-	jwtConfig *middleware.JWTAuthConfig,
-) {
-	rlsContextMW := httpmiddleware.NewRLSContextMiddleware().Middleware
-	orgResolver := &orggraphql.Resolver{
-		ProjectAppService:      handlers.ProjectAppService,
-		ClusterAppService:      handlers.ClusterAppService,
-		AuthSchemaAppService:   handlers.AuthSchemaAppService,
-		OrganizationAppService: handlers.OrgAppService,
-		ProfileAppService:      handlers.ProfileAppService,
-		UserRepo:               handlers.UserRepo,
-		RoleAppService:         handlers.RoleAppService,
-		RoleService:            handlers.PermRoleService,
-		PermissionService:      handlers.PermPermissionService,
-		UserRoleService:        handlers.PermUserRoleService,
-		EndUserMgmtAppService:  handlers.EndUserAppService,
-		MetaUserAppService:     appEnduser.NewMetaUserAppService(handlers.SystemDB),
-		APITokenService:        handlers.EndUserAPITokenService,
-	}
-
-	router.Route("/end-user/graphql/org/{orgName}", func(r chi.Router) {
-		r.Use(rlsContextMW)
-		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
-		r.Use(middleware.ChiGraphQLOrgMiddleware())
-		r.Use(middleware.ChiGraphQLActionMiddleware())
-		r.Post("/", orggraphql.OrgGraphQLHandler(orgResolver))
-		r.Get("/", orggraphql.OrgPlaygroundHandler())
-	})
-}
-
-// SetupEndUserProjectGraphQLRoutesOnChi registers Project GraphQL endpoints for end-user callers.
-// Route pattern: /end-user/graphql/org/{orgName}/project/{projectSlug}/
-// Uses the same resolver as the tenant route but with end-user identity middleware.
-func SetupEndUserProjectGraphQLRoutesOnChi(
-	router chi.Router,
-	handlers *DesignHandlers,
-	cfg *config.Config,
-	jwtConfig *middleware.JWTAuthConfig,
-) {
-	rlsContextMW := httpmiddleware.NewRLSContextMiddleware().Middleware
-	typeMapper := domainModelDesign.NewMySQLTypeMapper()
-	schemaComparisonService := domainModelDesign.NewMySQLSchemaComparisonService(typeMapper)
-	deployRepo := ddl.NewDeploymentService(handlers.ClusterManager)
-	repairUseCase := modeldesign.NewRepairModelUseCase(
-		handlers.ModelRepository,
-		handlers.ClusterManager,
-		deployRepo,
-		schemaComparisonService,
-	)
-
-	actualSchemaService := ddl.NewActualSchemaService()
-	actualSchemaQueryUseCase := modeldesign.NewActualSchemaQueryUseCase(actualSchemaService, handlers.ClusterManager)
-
-	// Create RLS policy CRUD service
-	policyRepo := rlsRepo.NewSqlPolicyRepository(dbgen.New(handlers.SystemDB))
-	policyCRUDService := rls.NewPolicyCRUDService(policyRepo)
-
-	projectResolver := &projectgraphql.Resolver{
-		ClusterAppService:           handlers.ClusterAppService,
-		ModelDesignService:          handlers.ModelAppService,
-		ReverseEngineerService:      handlers.ReverseEngineerAppService,
-		RepairModelUseCase:          repairUseCase,
-		ActualSchemaQueryUseCase:    actualSchemaQueryUseCase,
-		GroupAppService:             handlers.GroupAppService,
-		LogicalFKAppService:         handlers.LogicalFKAppService,
-		EnumAppService:              handlers.EnumAppService,
-		UserRoleService:             handlers.PermUserRoleService,
-		FieldSelectionChecker:       projectgraphql.NewFieldSelectionChecker(),
-		RLSPolicyAppService:         handlers.RLSPolicyAppService,
-		AuthSchemaAppService:        handlers.AuthSchemaAppService,
-		EndUserMgmtAppService:       handlers.EndUserAppService,
-		ModelDatabaseAppService:     handlers.ModelDatabaseAppService,
-		ModelDatabaseSyncAppService: handlers.ModelDatabaseSyncAppService,
-		PolicyCRUDService:           policyCRUDService,
-	}
-
-	router.Route("/end-user/graphql/org/{orgName}/project/{projectSlug}", func(r chi.Router) {
-		r.Use(rlsContextMW)
-		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
-		r.Use(middleware.ChiGraphQLOrgMiddleware())
-		r.Use(middleware.ChiGraphQLProjectMiddleware())
-		r.Use(middleware.ChiGraphQLActionMiddleware())
-		r.Post("/", projectgraphql.ProjectGraphQLHandler(projectResolver))
-		r.Get("/", projectgraphql.ProjectPlaygroundHandler())
-	})
+// RuntimeHandlers holds the handler needed for the model runtime GraphQL API.
+type RuntimeHandlers struct {
+	ModelRuntimeHandler *runtime.ModelRuntimeHandler
 }
 
 // LoadRSAPublicKey loads the RSA public key for design API JWT validation.
@@ -559,7 +423,6 @@ func SetupEndUserProjectGraphQLRoutesOnChi(
 // 1. PEM file path (AUTH_JWT_PUBLIC_KEY_PATH)
 // 2. Direct public key string (AUTH_JWT_PUBLIC_KEY)
 // This function is exported for use by both Gin and Chi middleware setup.
-// rsaPublicKeyOnce ensures LoadRSAPublicKey only parses the key once.
 var (
 	rsaPublicKeyOnce             sync.Once
 	rsaPublicKeyCache            *rsa.PublicKey
@@ -643,14 +506,11 @@ func loadRSAPublicKey(cfg *config.Config) (*rsa.PublicKey, error) {
 	return rsaKey, nil
 }
 
-// RuntimeHandlers holds the handler needed for the model runtime GraphQL API.
-type RuntimeHandlers struct {
-	ModelRuntimeHandler *runtime.ModelRuntimeHandler
-}
-
 // CreateRuntimeHandlers initialises repository, application service, and handler
 // for the model runtime API.
-func CreateRuntimeHandlers(loggingDB dbgen.Querier) *RuntimeHandlers {
+func CreateRuntimeHandlers(db *sql.DB) *RuntimeHandlers {
+	loggedDB := repository.NewSqlcLogger(db, repository.SqlcLogInfo, 200*time.Millisecond)
+	loggingDB := dbgen.New(loggedDB)
 	modelRuntimeRepo := repository.NewSqlModelRuntimeRepository(loggingDB)
 	lfkRepo := repository.NewSqlLogicalForeignKeyRepository(loggingDB)
 	permRepo := repository.NewSqlEndUserDataPermissionRepository(loggingDB)
@@ -663,21 +523,16 @@ func CreateRuntimeHandlers(loggingDB dbgen.Querier) *RuntimeHandlers {
 	snapshotBuilder := modelruntime.NewRLSSnapshotBuilder(rlsMatchingSvc)
 	graphqlAppService := modelruntime.NewGraphqlAppService(modelRuntimeRepo, lfkRepo, permService, snapshotBuilder)
 	handler := runtime.NewModelRuntimeHandler(graphqlAppService)
-	return &RuntimeHandlers{ModelRuntimeHandler: handler}
+	return &RuntimeHandlers{
+		ModelRuntimeHandler: handler,
+	}
 }
 
-// SetupRuntimeGraphQLRoutesOnChi registers the runtime GraphQL routes on the Chi router.
-// Routes:
-//
-//	GET  /graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model} → GraphQL Playground
-//	POST /graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model} → GraphQL query execution
-//
-// JWT authentication is enforced when cfg.Auth.Runtime.Enabled is true.
 func SetupRuntimeGraphQLRoutesOnChi(
 	router chi.Router,
 	handlers *RuntimeHandlers,
 	cfg *config.Config,
-	apiTokenSvc *appEnduser.APITokenService,
+	apiTokenSvc *apitoken.APITokenService,
 	isOrgAdminFn httpmiddleware.IsOrgAdminFn,
 ) {
 	jwtConfig := &middleware.JWTAuthConfig{
@@ -704,7 +559,11 @@ func SetupRuntimeGraphQLRoutesOnChi(
 	// End-user runtime: PAT Token takes priority, JWT is fallback
 	var patMW func(http.Handler) http.Handler
 	if apiTokenSvc != nil {
-		patMW = httpmiddleware.ChiRuntimePATMiddleware(apiTokenSvc, logger, isOrgAdminFn)
+		patMW = httpmiddleware.ChiRuntimePATMiddleware(
+			apiTokenSvc,
+			logger,
+			isOrgAdminFn,
+		)
 	} else {
 		patMW = func(next http.Handler) http.Handler { return next }
 	}

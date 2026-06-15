@@ -18,6 +18,12 @@ description: >
 
 目标：**先用日志精准定位根因，再选择合适的验证手段（单测 / 数据库），最后最小化修复**。
 
+硬规则：
+
+- 排查问题必须以**定位根因**为目标，不接受只看到表面报错就直接改代码。
+- 如果现有日志**无法定位根因**，先在最可疑的边界补日志，再重启服务、重放请求。
+- 重放后拿新的 `requestId`，继续按 `apisix -> backend -> agent` 三段链路查，直到根因收敛。
+
 ---
 
 ## 0）环境说明
@@ -130,6 +136,23 @@ docker exec modelcraft-agent sh -c "grep '<requestId>' /app/logs/agent.log"
 - **找最早的 error/panic**——这是根本原因，后续的 error 通常是它的传播
 - **看 `stack` 字段**——只有 Interfaces 层才打 stack，能定位到精确的代码路径
 - **看 SQL 日志**——`[SQLC] query ok` 行带有 `sql` 和 `sql_args` 字段，可以直接拿去数据库重现查询
+- 如果日志只有“失败了”但没有说明**为什么失败**，结论不是“看不出来”，而是**日志不够，需要补日志**
+
+### 如果当前日志不足以定位根因
+
+按下面顺序处理：
+
+1. 判断卡在哪一层：`apisix`、`backend`、`agent`、DB、外部依赖
+2. 在该层的关键边界补日志：入参、分支判断、下游请求、返回状态、错误对象、关键 ID
+3. 重启对应服务
+4. 重放同一个请求
+5. 拿新的 `requestId` 再查三段链路
+
+补日志原则：
+
+- 优先加在**分支点**和**跨服务边界**，不要无脑到处打印
+- 日志要能回答“进没进到这里、拿到了什么参数、为什么走这个分支、下游返回了什么”
+- 补日志是为了缩小范围；一旦根因确认，应转向修复和验证
 
 ---
 
@@ -286,6 +309,22 @@ just run force=true
 docker exec modelcraft-backend sh -c "grep '<requestId>' /app/logs/server.log"
 # dev 模式：
 just log-cat <requestId>
+```
+
+如果前面还没有定位到根因，不要直接修。先补日志，然后按下面步骤继续：
+
+```bash
+# 1. 修改代码补日志
+
+# 2. 重启服务
+cd ../deploy && docker-compose -f compose/docker-compose.local.yml restart backend apisix modelcraft-agent
+
+# 3. 重放请求，拿到新的 requestId
+
+# 4. 用新的 requestId 再查三段链路
+docker exec modelcraft-apisix sh -c "grep '<newRequestId>' /usr/local/apisix/logs/access.log /usr/local/apisix/logs/error.log"
+docker exec modelcraft-backend sh -c "grep '<newRequestId>' /app/logs/server.log"
+docker exec modelcraft-agent sh -c "grep '<newRequestId>' /app/logs/agent.log"
 ```
 
 ---

@@ -1,4 +1,4 @@
-package enduser
+package apitoken
 
 import (
 	"context"

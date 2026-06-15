@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"modelcraft/internal/app/enduser"
+	"modelcraft/internal/app/apitoken"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
@@ -15,7 +15,7 @@ const patPrefix = "mc_pat_"
 // ChiPATAuthMiddleware identifies Bearer mc_pat_xxx tokens, validates them,
 // and injects EndUser identity into context. Non-PAT requests pass through unchanged.
 func ChiPATAuthMiddleware(
-	svc *enduser.APITokenService, logger logfacade.Logger,
+	svc *apitoken.APITokenService, logger logfacade.Logger,
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

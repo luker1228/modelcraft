@@ -14,10 +14,6 @@ type AddFieldsError interface {
 	IsAddFieldsError()
 }
 
-type CreateEndUserError interface {
-	IsCreateEndUserError()
-}
-
 type CreateEnumError interface {
 	IsCreateEnumError()
 }
@@ -36,10 +32,6 @@ type CreateModelError interface {
 
 type DeleteClusterError interface {
 	IsDeleteClusterError()
-}
-
-type DeleteEndUserError interface {
-	IsDeleteEndUserError()
 }
 
 type DeleteEnumError interface {
@@ -77,10 +69,6 @@ type GetEnumError interface {
 
 type GetModelError interface {
 	IsGetModelError()
-}
-
-type InitPrivateDBPayloadError interface {
-	IsInitPrivateDBPayloadError()
 }
 
 type MoveModelToGroupError interface {
@@ -126,10 +114,6 @@ type TestConnectionError interface {
 
 type UpdateClusterError interface {
 	IsUpdateClusterError()
-}
-
-type UpdateEndUserError interface {
-	IsUpdateEndUserError()
 }
 
 type UpdateEnumError interface {
@@ -257,16 +241,6 @@ type ClusterConnectionInput struct {
 	Title          string                   `json:"title"`
 	Description    *string                  `json:"description,omitempty"`
 	ConnectionInfo *DatabaseConnectionInput `json:"connectionInfo"`
-}
-
-type CreateEndUserInput struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type CreateEndUserPayload struct {
-	EndUser *EndUser           `json:"endUser,omitempty"`
-	Error   CreateEndUserError `json:"error,omitempty"`
 }
 
 type CreateEnumInput struct {
@@ -413,15 +387,6 @@ type DeleteClusterPayload struct {
 	Error   DeleteClusterError `json:"error,omitempty"`
 }
 
-type DeleteEndUserInput struct {
-	UserID string `json:"userId"`
-}
-
-type DeleteEndUserPayload struct {
-	Success bool               `json:"success"`
-	Error   DeleteEndUserError `json:"error,omitempty"`
-}
-
 type DeleteEnumPayload struct {
 	Success bool            `json:"success"`
 	Error   DeleteEnumError `json:"error,omitempty"`
@@ -451,37 +416,6 @@ type DeleteRlsPolicyPayload struct {
 	Success bool                 `json:"success"`
 	Error   DeleteRlsPolicyError `json:"error,omitempty"`
 }
-
-type EndUser struct {
-	ID          string    `json:"id"`
-	Username    string    `json:"username"`
-	IsForbidden bool      `json:"isForbidden"`
-	CreatedBy   string    `json:"createdBy"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-}
-
-func (EndUser) IsNode()            {}
-func (this EndUser) GetID() string { return this.ID }
-
-type EndUserAlreadyExists struct {
-	Message string `json:"message"`
-}
-
-func (EndUserAlreadyExists) IsError()                {}
-func (this EndUserAlreadyExists) GetMessage() string { return this.Message }
-
-func (EndUserAlreadyExists) IsCreateEndUserError() {}
-
-type EndUserPasswordTooWeak struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (EndUserPasswordTooWeak) IsError()                {}
-func (this EndUserPasswordTooWeak) GetMessage() string { return this.Message }
-
-func (EndUserPasswordTooWeak) IsCreateEndUserError() {}
 
 type EndUserRefAlreadyExists struct {
 	Message    string  `json:"message"`
@@ -653,20 +587,6 @@ type ImportModelPayload struct {
 	SkippedFields []string `json:"skippedFields"`
 }
 
-type InitPrivateDBError struct {
-	Message string `json:"message"`
-}
-
-func (InitPrivateDBError) IsError()                {}
-func (this InitPrivateDBError) GetMessage() string { return this.Message }
-
-func (InitPrivateDBError) IsInitPrivateDBPayloadError() {}
-
-type InitPrivateDBPayload struct {
-	Success bool                      `json:"success"`
-	Error   InitPrivateDBPayloadError `json:"error,omitempty"`
-}
-
 type InvalidAuthVariable struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -702,10 +622,6 @@ func (InvalidInput) IsUpdateClusterError() {}
 func (InvalidInput) IsRegisteredDatabasesError() {}
 
 func (InvalidInput) IsRegisterModelDatabaseResult() {}
-
-func (InvalidInput) IsCreateEndUserError() {}
-
-func (InvalidInput) IsUpdateEndUserError() {}
 
 func (InvalidInput) IsCreateEnumError() {}
 
@@ -1035,14 +951,6 @@ func (ResourceNotFound) IsRegisteredDatabasesError() {}
 
 func (ResourceNotFound) IsRegisterModelDatabaseResult() {}
 
-func (ResourceNotFound) IsCreateEndUserError() {}
-
-func (ResourceNotFound) IsUpdateEndUserError() {}
-
-func (ResourceNotFound) IsDeleteEndUserError() {}
-
-func (ResourceNotFound) IsInitPrivateDBPayloadError() {}
-
 func (ResourceNotFound) IsGetEnumError() {}
 
 func (ResourceNotFound) IsCreateEnumError() {}
@@ -1188,16 +1096,6 @@ type UpdateClusterConnectionInput struct {
 type UpdateClusterPayload struct {
 	Cluster *DatabaseCluster   `json:"cluster,omitempty"`
 	Error   UpdateClusterError `json:"error,omitempty"`
-}
-
-type UpdateEndUserStatusInput struct {
-	UserID      string `json:"userId"`
-	IsForbidden bool   `json:"isForbidden"`
-}
-
-type UpdateEndUserStatusPayload struct {
-	EndUser *EndUser           `json:"endUser,omitempty"`
-	Error   UpdateEndUserError `json:"error,omitempty"`
 }
 
 type UpdateEnumInput struct {

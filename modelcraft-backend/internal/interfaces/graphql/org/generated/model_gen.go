@@ -22,10 +22,6 @@ type CreateCustomRoleError interface {
 	IsCreateCustomRoleError()
 }
 
-type CreateEndUserError interface {
-	IsCreateEndUserError()
-}
-
 type CreateProjectError interface {
 	IsCreateProjectError()
 }
@@ -34,16 +30,8 @@ type CreateRoleError interface {
 	IsCreateRoleError()
 }
 
-type CreateUserError interface {
-	IsCreateUserError()
-}
-
 type DeleteClusterError interface {
 	IsDeleteClusterError()
-}
-
-type DeleteEndUserError interface {
-	IsDeleteEndUserError()
 }
 
 type DeletePermissionRoleError interface {
@@ -79,10 +67,6 @@ type GetProjectError interface {
 	IsGetProjectError()
 }
 
-type ListEndUsersError interface {
-	IsListEndUsersError()
-}
-
 type Node interface {
 	IsNode()
 	GetID() string
@@ -92,10 +76,6 @@ type PermissionManagementError interface {
 	IsPermissionManagementError()
 	GetMessage() string
 	GetSuggestion() *string
-}
-
-type ResetEndUserPasswordError interface {
-	IsResetEndUserPasswordError()
 }
 
 type RevokeAPITokenError interface {
@@ -120,10 +100,6 @@ type TestConnectionError interface {
 
 type UpdateClusterError interface {
 	IsUpdateClusterError()
-}
-
-type UpdateEndUserError interface {
-	IsUpdateEndUserError()
 }
 
 type UpdateMyProfileError interface {
@@ -194,26 +170,6 @@ type AuthVariableInput struct {
 	Type AuthVariableType `json:"type"`
 }
 
-type BuiltinUserCannotBeDeleted struct {
-	Message string `json:"message"`
-}
-
-func (BuiltinUserCannotBeDeleted) IsError()                {}
-func (this BuiltinUserCannotBeDeleted) GetMessage() string { return this.Message }
-
-func (BuiltinUserCannotBeDeleted) IsDeleteEndUserError() {}
-
-type BuiltinUserCannotBeDisabled struct {
-	Message string `json:"message"`
-}
-
-func (BuiltinUserCannotBeDisabled) IsError()                {}
-func (this BuiltinUserCannotBeDisabled) GetMessage() string { return this.Message }
-
-func (BuiltinUserCannotBeDisabled) IsUpdateEndUserError() {}
-
-func (BuiltinUserCannotBeDisabled) IsResetEndUserPasswordError() {}
-
 type CannotDeleteDefaultProject struct {
 	Message string `json:"message"`
 }
@@ -271,17 +227,6 @@ type CreateCustomRolePayload struct {
 	Error CreateCustomRoleError `json:"error,omitempty"`
 }
 
-type CreateEndUserInput struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Phone    string `json:"phone"`
-}
-
-type CreateEndUserPayload struct {
-	EndUser *EndUser           `json:"endUser,omitempty"`
-	Error   CreateEndUserError `json:"error,omitempty"`
-}
-
 type CreateProjectInput struct {
 	Slug               string                  `json:"slug"`
 	Title              string                  `json:"title"`
@@ -304,17 +249,6 @@ type CreateRoleInput struct {
 type CreateRolePayload struct {
 	Role  *Role           `json:"role,omitempty"`
 	Error CreateRoleError `json:"error,omitempty"`
-}
-
-type CreateUserInput struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	IsAdmin  bool   `json:"isAdmin"`
-}
-
-type CreateUserPayload struct {
-	User  *EndUser        `json:"user,omitempty"`
-	Error CreateUserError `json:"error,omitempty"`
 }
 
 type CurrentUser struct {
@@ -373,24 +307,9 @@ type DatabaseConnectionInput struct {
 	ConnectionTimeout *int32 `json:"connectionTimeout,omitempty"`
 }
 
-type DateTimeFilter struct {
-	Eq  *string `json:"eq,omitempty"`
-	Gte *string `json:"gte,omitempty"`
-	Lte *string `json:"lte,omitempty"`
-}
-
 type DeleteClusterPayload struct {
 	Success bool               `json:"success"`
 	Error   DeleteClusterError `json:"error,omitempty"`
-}
-
-type DeleteEndUserInput struct {
-	UserID string `json:"userId"`
-}
-
-type DeleteEndUserPayload struct {
-	Success bool               `json:"success"`
-	Error   DeleteEndUserError `json:"error,omitempty"`
 }
 
 type DeletePermissionRolePayload struct {
@@ -408,63 +327,12 @@ type DeleteRolePayload struct {
 	Error   DeleteRoleError `json:"error,omitempty"`
 }
 
-type EndUser struct {
-	ID          string    `json:"id"`
-	Username    string    `json:"username"`
-	IsForbidden bool      `json:"isForbidden"`
-	IsBuiltin   bool      `json:"isBuiltin"`
-	CreatedBy   *string   `json:"createdBy,omitempty"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-}
-
-func (EndUser) IsNode()            {}
-func (this EndUser) GetID() string { return this.ID }
-
 type EndUserAPIToken struct {
 	ID         string     `json:"id"`
 	Name       string     `json:"name"`
 	CreatedAt  time.Time  `json:"createdAt"`
 	ExpiresAt  *time.Time `json:"expiresAt,omitempty"`
 	LastUsedAt *time.Time `json:"lastUsedAt,omitempty"`
-}
-
-type EndUserAlreadyExists struct {
-	Message string `json:"message"`
-}
-
-func (EndUserAlreadyExists) IsError()                {}
-func (this EndUserAlreadyExists) GetMessage() string { return this.Message }
-
-func (EndUserAlreadyExists) IsCreateEndUserError() {}
-
-func (EndUserAlreadyExists) IsCreateUserError() {}
-
-type EndUserConnection struct {
-	Nodes      []*EndUser `json:"nodes"`
-	PageInfo   *PageInfo  `json:"pageInfo"`
-	TotalCount int32      `json:"totalCount"`
-}
-
-type EndUserPasswordTooWeak struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (EndUserPasswordTooWeak) IsError()                {}
-func (this EndUserPasswordTooWeak) GetMessage() string { return this.Message }
-
-func (EndUserPasswordTooWeak) IsCreateEndUserError() {}
-
-func (EndUserPasswordTooWeak) IsResetEndUserPasswordError() {}
-
-func (EndUserPasswordTooWeak) IsCreateUserError() {}
-
-type EndUserPublic struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
-	IsBuiltin bool      `json:"isBuiltin"`
-	CreatedAt time.Time `json:"createdAt"`
 }
 
 type GetClusterPayload struct {
@@ -487,11 +355,6 @@ type GetProjectPayload struct {
 	Error   GetProjectError `json:"error,omitempty"`
 }
 
-type IDFilter struct {
-	Eq *string  `json:"eq,omitempty"`
-	In []string `json:"in,omitempty"`
-}
-
 type InvalidInput struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -499,16 +362,6 @@ type InvalidInput struct {
 
 func (InvalidInput) IsError()                {}
 func (this InvalidInput) GetMessage() string { return this.Message }
-
-func (InvalidInput) IsCreateEndUserError() {}
-
-func (InvalidInput) IsUpdateEndUserError() {}
-
-func (InvalidInput) IsListEndUsersError() {}
-
-func (InvalidInput) IsResetEndUserPasswordError() {}
-
-func (InvalidInput) IsCreateUserError() {}
 
 func (InvalidInput) IsCreateAPITokenError() {}
 
@@ -533,17 +386,6 @@ func (InvalidInput) IsUpdateClusterError() {}
 func (InvalidInput) IsSetProjectAuthSchemaError() {}
 
 func (InvalidInput) IsCreateRoleError() {}
-
-type ListEndUsersInput struct {
-	Search *string `json:"search,omitempty"`
-	First  *int32  `json:"first,omitempty"`
-	After  *string `json:"after,omitempty"`
-}
-
-type ListEndUsersPayload struct {
-	Connection *EndUserConnection `json:"connection,omitempty"`
-	Error      ListEndUsersError  `json:"error,omitempty"`
-}
 
 type ListProjectsInput struct {
 	Status *ProjectStatus `json:"status,omitempty"`
@@ -686,16 +528,6 @@ type RemoveRolePermissionPayload struct {
 	Error   RolePermissionError `json:"error,omitempty"`
 }
 
-type ResetEndUserPasswordInput struct {
-	UserID      string `json:"userId"`
-	NewPassword string `json:"newPassword"`
-}
-
-type ResetEndUserPasswordPayload struct {
-	Success bool                      `json:"success"`
-	Error   ResetEndUserPasswordError `json:"error,omitempty"`
-}
-
 type ResourceNotFound struct {
 	Message      string       `json:"message"`
 	ResourceType ResourceType `json:"resourceType"`
@@ -703,12 +535,6 @@ type ResourceNotFound struct {
 
 func (ResourceNotFound) IsError()                {}
 func (this ResourceNotFound) GetMessage() string { return this.Message }
-
-func (ResourceNotFound) IsUpdateEndUserError() {}
-
-func (ResourceNotFound) IsDeleteEndUserError() {}
-
-func (ResourceNotFound) IsResetEndUserPasswordError() {}
 
 func (ResourceNotFound) IsUpdatePermissionRoleError() {}
 
@@ -785,13 +611,6 @@ type SetProjectAuthSchemaPayload struct {
 	Error      SetProjectAuthSchemaError `json:"error,omitempty"`
 }
 
-type StringFilter struct {
-	Eq         *string  `json:"eq,omitempty"`
-	Contains   *string  `json:"contains,omitempty"`
-	StartsWith *string  `json:"startsWith,omitempty"`
-	In         []string `json:"in,omitempty"`
-}
-
 type TestConnectionPayload struct {
 	Success        bool                `json:"success"`
 	ConnectionTime *float64            `json:"connectionTime,omitempty"`
@@ -813,16 +632,6 @@ type UpdateClusterConnectionInput struct {
 type UpdateClusterPayload struct {
 	Cluster *DatabaseCluster   `json:"cluster,omitempty"`
 	Error   UpdateClusterError `json:"error,omitempty"`
-}
-
-type UpdateEndUserStatusInput struct {
-	UserID      string `json:"userId"`
-	IsForbidden bool   `json:"isForbidden"`
-}
-
-type UpdateEndUserStatusPayload struct {
-	EndUser *EndUser           `json:"endUser,omitempty"`
-	Error   UpdateEndUserError `json:"error,omitempty"`
 }
 
 type UpdateMyProfileInput struct {
@@ -879,30 +688,12 @@ type User struct {
 func (User) IsNode()            {}
 func (this User) GetID() string { return this.ID }
 
-type UserFindManyResult struct {
-	Items      []*EndUserPublic `json:"items"`
-	NextCursor *string          `json:"nextCursor,omitempty"`
-	HasMore    bool             `json:"hasMore"`
-	ReqID      string           `json:"reqId"`
-}
-
-type UserFindOneResult struct {
-	Item  *EndUserPublic `json:"item,omitempty"`
-	ReqID string         `json:"reqId"`
-}
-
 type UserRoleAssignment struct {
 	ID        int32     `json:"id"`
 	UserID    string    `json:"userId"`
 	RoleID    int32     `json:"roleId"`
 	OrgName   string    `json:"orgName"`
 	CreatedAt time.Time `json:"createdAt"`
-}
-
-type UserWhereInput struct {
-	ID        *IDFilter       `json:"id,omitempty"`
-	Username  *StringFilter   `json:"username,omitempty"`
-	CreatedAt *DateTimeFilter `json:"createdAt,omitempty"`
 }
 
 type AuthVariableType string

@@ -15,7 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 
-	appEnduser "modelcraft/internal/app/enduser"
+	"modelcraft/internal/app/apitoken"
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
 )
@@ -40,7 +40,7 @@ type ChiRouterConfig struct {
 	JWTConfig *middleware.JWTAuthConfig
 
 	// APITokenService for PAT Bearer token validation (nil = disabled)
-	APITokenService *appEnduser.APITokenService
+	APITokenService *apitoken.APITokenService
 }
 
 func NewChiRouterConfig(
@@ -118,8 +118,6 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	// ============================================================
 	// GraphQL Routes - End-User (Org + Project, same resolvers)
 	// ============================================================
-	SetupEndUserOrgGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
-	SetupEndUserProjectGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
 
 	// ============================================================
 	// GraphQL Routes - Runtime API
@@ -127,16 +125,6 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	var isOrgAdminFn httpmiddleware.IsOrgAdminFn
 	isOrgAdminFn = cfg.DesignHandlers.IsOrgAdminFn
 	SetupRuntimeGraphQLRoutesOnChi(r, cfg.RuntimeHandlers, cfg.Config, cfg.APITokenService, isOrgAdminFn)
-
-	// ============================================================
-	// ============================================================
-	// PAT-authenticated tenant whoami route (shared by gateway callers)
-	// ============================================================
-	h := cfg.DesignHandlers.EndUserAuthHandler
-	r.Group(func(gr chi.Router) {
-		gr.Use(middleware.ChiPATAuthMiddleware(cfg.APITokenService, cfg.Logger))
-		gr.Get("/api/tenant/auth/whoami", h.Whoami)
-	})
 
 	// ============================================================
 	// OpenAPI Routes via Generated Chi Handler

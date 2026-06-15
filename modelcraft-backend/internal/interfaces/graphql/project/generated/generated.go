@@ -101,11 +101,6 @@ type ComplexityRoot struct {
 		Suggestion func(childComplexity int) int
 	}
 
-	CreateEndUserPayload struct {
-		EndUser func(childComplexity int) int
-		Error   func(childComplexity int) int
-	}
-
 	CreateEnumPayload struct {
 		Enum  func(childComplexity int) int
 		Error func(childComplexity int) int
@@ -196,11 +191,6 @@ type ComplexityRoot struct {
 		Success func(childComplexity int) int
 	}
 
-	DeleteEndUserPayload struct {
-		Error   func(childComplexity int) int
-		Success func(childComplexity int) int
-	}
-
 	DeleteEnumPayload struct {
 		Error   func(childComplexity int) int
 		Success func(childComplexity int) int
@@ -227,24 +217,6 @@ type ComplexityRoot struct {
 	DeleteRlsPolicyPayload struct {
 		Error   func(childComplexity int) int
 		Success func(childComplexity int) int
-	}
-
-	EndUser struct {
-		CreatedAt   func(childComplexity int) int
-		CreatedBy   func(childComplexity int) int
-		ID          func(childComplexity int) int
-		IsForbidden func(childComplexity int) int
-		UpdatedAt   func(childComplexity int) int
-		Username    func(childComplexity int) int
-	}
-
-	EndUserAlreadyExists struct {
-		Message func(childComplexity int) int
-	}
-
-	EndUserPasswordTooWeak struct {
-		Message    func(childComplexity int) int
-		Suggestion func(childComplexity int) int
 	}
 
 	EndUserRefAlreadyExists struct {
@@ -368,15 +340,6 @@ type ComplexityRoot struct {
 		ModelID       func(childComplexity int) int
 		ModelName     func(childComplexity int) int
 		SkippedFields func(childComplexity int) int
-	}
-
-	InitPrivateDBError struct {
-		Message func(childComplexity int) int
-	}
-
-	InitPrivateDBPayload struct {
-		Error   func(childComplexity int) int
-		Success func(childComplexity int) int
 	}
 
 	InvalidAuthVariable struct {
@@ -712,11 +675,6 @@ type ComplexityRoot struct {
 		Error   func(childComplexity int) int
 	}
 
-	UpdateEndUserStatusPayload struct {
-		EndUser func(childComplexity int) int
-		Error   func(childComplexity int) int
-	}
-
 	UpdateEnumPayload struct {
 		Enum  func(childComplexity int) int
 		Error func(childComplexity int) int
@@ -1000,19 +958,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ClusterAlreadyExistsForProject.Suggestion(childComplexity), true
-
-	case "CreateEndUserPayload.endUser":
-		if e.complexity.CreateEndUserPayload.EndUser == nil {
-			break
-		}
-
-		return e.complexity.CreateEndUserPayload.EndUser(childComplexity), true
-	case "CreateEndUserPayload.error":
-		if e.complexity.CreateEndUserPayload.Error == nil {
-			break
-		}
-
-		return e.complexity.CreateEndUserPayload.Error(childComplexity), true
 
 	case "CreateEnumPayload.enum":
 		if e.complexity.CreateEnumPayload.Enum == nil {
@@ -1299,19 +1244,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.DeleteClusterPayload.Success(childComplexity), true
 
-	case "DeleteEndUserPayload.error":
-		if e.complexity.DeleteEndUserPayload.Error == nil {
-			break
-		}
-
-		return e.complexity.DeleteEndUserPayload.Error(childComplexity), true
-	case "DeleteEndUserPayload.success":
-		if e.complexity.DeleteEndUserPayload.Success == nil {
-			break
-		}
-
-		return e.complexity.DeleteEndUserPayload.Success(childComplexity), true
-
 	case "DeleteEnumPayload.error":
 		if e.complexity.DeleteEnumPayload.Error == nil {
 			break
@@ -1377,63 +1309,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.DeleteRlsPolicyPayload.Success(childComplexity), true
-
-	case "EndUser.createdAt":
-		if e.complexity.EndUser.CreatedAt == nil {
-			break
-		}
-
-		return e.complexity.EndUser.CreatedAt(childComplexity), true
-	case "EndUser.createdBy":
-		if e.complexity.EndUser.CreatedBy == nil {
-			break
-		}
-
-		return e.complexity.EndUser.CreatedBy(childComplexity), true
-	case "EndUser.id":
-		if e.complexity.EndUser.ID == nil {
-			break
-		}
-
-		return e.complexity.EndUser.ID(childComplexity), true
-	case "EndUser.isForbidden":
-		if e.complexity.EndUser.IsForbidden == nil {
-			break
-		}
-
-		return e.complexity.EndUser.IsForbidden(childComplexity), true
-	case "EndUser.updatedAt":
-		if e.complexity.EndUser.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.EndUser.UpdatedAt(childComplexity), true
-	case "EndUser.username":
-		if e.complexity.EndUser.Username == nil {
-			break
-		}
-
-		return e.complexity.EndUser.Username(childComplexity), true
-
-	case "EndUserAlreadyExists.message":
-		if e.complexity.EndUserAlreadyExists.Message == nil {
-			break
-		}
-
-		return e.complexity.EndUserAlreadyExists.Message(childComplexity), true
-
-	case "EndUserPasswordTooWeak.message":
-		if e.complexity.EndUserPasswordTooWeak.Message == nil {
-			break
-		}
-
-		return e.complexity.EndUserPasswordTooWeak.Message(childComplexity), true
-	case "EndUserPasswordTooWeak.suggestion":
-		if e.complexity.EndUserPasswordTooWeak.Suggestion == nil {
-			break
-		}
-
-		return e.complexity.EndUserPasswordTooWeak.Suggestion(childComplexity), true
 
 	case "EndUserRefAlreadyExists.message":
 		if e.complexity.EndUserRefAlreadyExists.Message == nil {
@@ -1849,26 +1724,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ImportModelPayload.SkippedFields(childComplexity), true
-
-	case "InitPrivateDBError.message":
-		if e.complexity.InitPrivateDBError.Message == nil {
-			break
-		}
-
-		return e.complexity.InitPrivateDBError.Message(childComplexity), true
-
-	case "InitPrivateDBPayload.error":
-		if e.complexity.InitPrivateDBPayload.Error == nil {
-			break
-		}
-
-		return e.complexity.InitPrivateDBPayload.Error(childComplexity), true
-	case "InitPrivateDBPayload.success":
-		if e.complexity.InitPrivateDBPayload.Success == nil {
-			break
-		}
-
-		return e.complexity.InitPrivateDBPayload.Success(childComplexity), true
 
 	case "InvalidAuthVariable.message":
 		if e.complexity.InvalidAuthVariable.Message == nil {
@@ -3421,19 +3276,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.UpdateClusterPayload.Error(childComplexity), true
 
-	case "UpdateEndUserStatusPayload.endUser":
-		if e.complexity.UpdateEndUserStatusPayload.EndUser == nil {
-			break
-		}
-
-		return e.complexity.UpdateEndUserStatusPayload.EndUser(childComplexity), true
-	case "UpdateEndUserStatusPayload.error":
-		if e.complexity.UpdateEndUserStatusPayload.Error == nil {
-			break
-		}
-
-		return e.complexity.UpdateEndUserStatusPayload.Error(childComplexity), true
-
 	case "UpdateEnumPayload.enum":
 		if e.complexity.UpdateEnumPayload.Enum == nil {
 			break
@@ -3586,14 +3428,12 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputAuthVariableInput,
 		ec.unmarshalInputBatchRegisterModelDatabaseInput,
 		ec.unmarshalInputClusterConnectionInput,
-		ec.unmarshalInputCreateEndUserInput,
 		ec.unmarshalInputCreateEnumInput,
 		ec.unmarshalInputCreateGroupInput,
 		ec.unmarshalInputCreateLogicalForeignKeyInput,
 		ec.unmarshalInputCreateModelFromSchemaInput,
 		ec.unmarshalInputCreateModelInput,
 		ec.unmarshalInputDatabaseConnectionInput,
-		ec.unmarshalInputDeleteEndUserInput,
 		ec.unmarshalInputEnumOptionInput,
 		ec.unmarshalInputImportModelInput,
 		ec.unmarshalInputListDatabasesInput,
@@ -3611,7 +3451,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputSyncModelSchemaInput,
 		ec.unmarshalInputTestDatabaseConnectionInput,
 		ec.unmarshalInputUpdateClusterConnectionInput,
-		ec.unmarshalInputUpdateEndUserStatusInput,
 		ec.unmarshalInputUpdateEnumInput,
 		ec.unmarshalInputUpdateFieldInput,
 		ec.unmarshalInputUpdateModelDatabaseInput,
@@ -4138,96 +3977,6 @@ extend type Mutation {
   updateModelDatabase(id: ID!, input: UpdateModelDatabaseInput!): ModelDatabase!
   unregisterModelDatabase(id: ID!): Boolean!
   startModelDatabaseSync(databaseId: ID!): StartModelDatabaseSyncPayload!
-}
-`, BuiltIn: false},
-	{Name: "../../../../../api/graph/project/schema/end_user.graphql", Input: `# End-User related types, inputs and mutations
-#
-# Dependencies (defined in other files, referenced here):
-#   - interface Error           → cluster.graphql
-#   - type InvalidInput         → field.graphql
-#   - type ResourceNotFound     → base.graphql
-#   - scalar Time               → base.graphql
-#   - interface Node            → base.graphql
-#   - type PageInfo             → base.graphql
-
-# ============================================
-# End User Error Types (new types only)
-# ============================================
-
-type EndUserAlreadyExists implements Error {
-  message: String!
-}
-
-type EndUserPasswordTooWeak implements Error {
-  message: String!
-  suggestion: String
-}
-
-# ClusterNotFound is now ResourceNotFound with resourceType=CLUSTER
-union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | ResourceNotFound | InvalidInput
-union UpdateEndUserError = ResourceNotFound | InvalidInput
-union DeleteEndUserError = ResourceNotFound
-
-# InitPrivateDBError indicates private DB initialization failures.
-type InitPrivateDBError implements Error {
-  message: String!
-}
-
-union InitPrivateDBPayloadError = InitPrivateDBError | ResourceNotFound
-
-# ============================================
-# End User Types
-# ============================================
-
-type EndUser implements Node {
-  id: ID!
-  username: String!
-  isForbidden: Boolean!
-  createdBy: String!
-  createdAt: Time!
-  updatedAt: Time!
-}
-
-# ============================================
-# Payload Types
-# ============================================
-
-type CreateEndUserPayload {
-  endUser: EndUser
-  error: CreateEndUserError
-}
-
-type UpdateEndUserStatusPayload {
-  endUser: EndUser
-  error: UpdateEndUserError
-}
-
-type DeleteEndUserPayload {
-  success: Boolean!
-  error: DeleteEndUserError
-}
-
-type InitPrivateDBPayload {
-  success: Boolean!
-  error: InitPrivateDBPayloadError
-}
-
-# ============================================
-# Input Types
-# ============================================
-
-input CreateEndUserInput {
-  username: String!   # 3–64 chars, ^[a-zA-Z0-9_-]+$
-  password: String!   # at least 8 chars, must contain letter + digit
-}
-
-input UpdateEndUserStatusInput {
-  userId: ID!
-  isForbidden: Boolean!
-}
-
-input DeleteEndUserInput {
-  userId: ID!
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/project/schema/enum.graphql", Input: `# Enum-related types, inputs and mutations
@@ -6865,78 +6614,6 @@ func (ec *executionContext) fieldContext_ClusterAlreadyExistsForProject_suggesti
 	return fc, nil
 }
 
-func (ec *executionContext) _CreateEndUserPayload_endUser(ctx context.Context, field graphql.CollectedField, obj *CreateEndUserPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_CreateEndUserPayload_endUser,
-		func(ctx context.Context) (any, error) {
-			return obj.EndUser, nil
-		},
-		nil,
-		ec.marshalOEndUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUser,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_CreateEndUserPayload_endUser(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CreateEndUserPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_EndUser_id(ctx, field)
-			case "username":
-				return ec.fieldContext_EndUser_username(ctx, field)
-			case "isForbidden":
-				return ec.fieldContext_EndUser_isForbidden(ctx, field)
-			case "createdBy":
-				return ec.fieldContext_EndUser_createdBy(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_EndUser_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_EndUser_updatedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type EndUser", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _CreateEndUserPayload_error(ctx context.Context, field graphql.CollectedField, obj *CreateEndUserPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_CreateEndUserPayload_error,
-		func(ctx context.Context) (any, error) {
-			return obj.Error, nil
-		},
-		nil,
-		ec.marshalOCreateEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐCreateEndUserError,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_CreateEndUserPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CreateEndUserPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type CreateEndUserError does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _CreateEnumPayload_enum(ctx context.Context, field graphql.CollectedField, obj *CreateEnumPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -8398,64 +8075,6 @@ func (ec *executionContext) fieldContext_DeleteClusterPayload_error(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _DeleteEndUserPayload_success(ctx context.Context, field graphql.CollectedField, obj *DeleteEndUserPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_DeleteEndUserPayload_success,
-		func(ctx context.Context) (any, error) {
-			return obj.Success, nil
-		},
-		nil,
-		ec.marshalNBoolean2bool,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_DeleteEndUserPayload_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DeleteEndUserPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DeleteEndUserPayload_error(ctx context.Context, field graphql.CollectedField, obj *DeleteEndUserPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_DeleteEndUserPayload_error,
-		func(ctx context.Context) (any, error) {
-			return obj.Error, nil
-		},
-		nil,
-		ec.marshalODeleteEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDeleteEndUserError,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_DeleteEndUserPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DeleteEndUserPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DeleteEndUserError does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _DeleteEnumPayload_success(ctx context.Context, field graphql.CollectedField, obj *DeleteEnumPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -8741,267 +8360,6 @@ func (ec *executionContext) fieldContext_DeleteRlsPolicyPayload_error(_ context.
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type DeleteRlsPolicyError does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUser_id(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUser_id,
-		func(ctx context.Context) (any, error) {
-			return obj.ID, nil
-		},
-		nil,
-		ec.marshalNID2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUser_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUser",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUser_username(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUser_username,
-		func(ctx context.Context) (any, error) {
-			return obj.Username, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUser_username(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUser",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUser_isForbidden(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUser_isForbidden,
-		func(ctx context.Context) (any, error) {
-			return obj.IsForbidden, nil
-		},
-		nil,
-		ec.marshalNBoolean2bool,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUser_isForbidden(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUser",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUser_createdBy(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUser_createdBy,
-		func(ctx context.Context) (any, error) {
-			return obj.CreatedBy, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUser_createdBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUser",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUser_createdAt(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUser_createdAt,
-		func(ctx context.Context) (any, error) {
-			return obj.CreatedAt, nil
-		},
-		nil,
-		ec.marshalNTime2timeᚐTime,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUser_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUser",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUser_updatedAt(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUser_updatedAt,
-		func(ctx context.Context) (any, error) {
-			return obj.UpdatedAt, nil
-		},
-		nil,
-		ec.marshalNTime2timeᚐTime,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUser_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUser",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserAlreadyExists_message(ctx context.Context, field graphql.CollectedField, obj *EndUserAlreadyExists) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserAlreadyExists_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserAlreadyExists_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserAlreadyExists",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserPasswordTooWeak_message(ctx context.Context, field graphql.CollectedField, obj *EndUserPasswordTooWeak) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserPasswordTooWeak_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserPasswordTooWeak_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserPasswordTooWeak",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserPasswordTooWeak_suggestion(ctx context.Context, field graphql.CollectedField, obj *EndUserPasswordTooWeak) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserPasswordTooWeak_suggestion,
-		func(ctx context.Context) (any, error) {
-			return obj.Suggestion, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserPasswordTooWeak_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserPasswordTooWeak",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -11074,93 +10432,6 @@ func (ec *executionContext) fieldContext_ImportModelPayload_skippedFields(_ cont
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InitPrivateDBError_message(ctx context.Context, field graphql.CollectedField, obj *InitPrivateDBError) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InitPrivateDBError_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_InitPrivateDBError_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InitPrivateDBError",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InitPrivateDBPayload_success(ctx context.Context, field graphql.CollectedField, obj *InitPrivateDBPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InitPrivateDBPayload_success,
-		func(ctx context.Context) (any, error) {
-			return obj.Success, nil
-		},
-		nil,
-		ec.marshalNBoolean2bool,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_InitPrivateDBPayload_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InitPrivateDBPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InitPrivateDBPayload_error(ctx context.Context, field graphql.CollectedField, obj *InitPrivateDBPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InitPrivateDBPayload_error,
-		func(ctx context.Context) (any, error) {
-			return obj.Error, nil
-		},
-		nil,
-		ec.marshalOInitPrivateDBPayloadError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐInitPrivateDBPayloadError,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_InitPrivateDBPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InitPrivateDBPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type InitPrivateDBPayloadError does not have child fields")
 		},
 	}
 	return fc, nil
@@ -19977,78 +19248,6 @@ func (ec *executionContext) fieldContext_UpdateClusterPayload_error(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _UpdateEndUserStatusPayload_endUser(ctx context.Context, field graphql.CollectedField, obj *UpdateEndUserStatusPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_UpdateEndUserStatusPayload_endUser,
-		func(ctx context.Context) (any, error) {
-			return obj.EndUser, nil
-		},
-		nil,
-		ec.marshalOEndUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUser,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_UpdateEndUserStatusPayload_endUser(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "UpdateEndUserStatusPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_EndUser_id(ctx, field)
-			case "username":
-				return ec.fieldContext_EndUser_username(ctx, field)
-			case "isForbidden":
-				return ec.fieldContext_EndUser_isForbidden(ctx, field)
-			case "createdBy":
-				return ec.fieldContext_EndUser_createdBy(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_EndUser_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_EndUser_updatedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type EndUser", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _UpdateEndUserStatusPayload_error(ctx context.Context, field graphql.CollectedField, obj *UpdateEndUserStatusPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_UpdateEndUserStatusPayload_error,
-		func(ctx context.Context) (any, error) {
-			return obj.Error, nil
-		},
-		nil,
-		ec.marshalOUpdateEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateEndUserError,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_UpdateEndUserStatusPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "UpdateEndUserStatusPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type UpdateEndUserError does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _UpdateEnumPayload_enum(ctx context.Context, field graphql.CollectedField, obj *UpdateEnumPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -22497,40 +21696,6 @@ func (ec *executionContext) unmarshalInputClusterConnectionInput(ctx context.Con
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateEndUserInput(ctx context.Context, obj any) (CreateEndUserInput, error) {
-	var it CreateEndUserInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"username", "password"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "username":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Username = data
-		case "password":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Password = data
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputCreateEnumInput(ctx context.Context, obj any) (CreateEnumInput, error) {
 	var it CreateEnumInput
 	asMap := map[string]any{}
@@ -22810,33 +21975,6 @@ func (ec *executionContext) unmarshalInputDatabaseConnectionInput(ctx context.Co
 				return it, err
 			}
 			it.ConnectionTimeout = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputDeleteEndUserInput(ctx context.Context, obj any) (DeleteEndUserInput, error) {
-	var it DeleteEndUserInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"userId"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "userId":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			data, err := ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.UserID = data
 		}
 	}
 
@@ -23565,40 +22703,6 @@ func (ec *executionContext) unmarshalInputUpdateClusterConnectionInput(ctx conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateEndUserStatusInput(ctx context.Context, obj any) (UpdateEndUserStatusInput, error) {
-	var it UpdateEndUserStatusInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"userId", "isForbidden"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "userId":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			data, err := ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.UserID = data
-		case "isForbidden":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isForbidden"))
-			data, err := ec.unmarshalNBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IsForbidden = data
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputUpdateEnumInput(ctx context.Context, obj any) (UpdateEnumInput, error) {
 	var it UpdateEnumInput
 	asMap := map[string]any{}
@@ -23893,43 +22997,6 @@ func (ec *executionContext) _AddFieldsError(ctx context.Context, sel ast.Selecti
 	}
 }
 
-func (ec *executionContext) _CreateEndUserError(ctx context.Context, sel ast.SelectionSet, obj CreateEndUserError) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case ResourceNotFound:
-		return ec._ResourceNotFound(ctx, sel, &obj)
-	case *ResourceNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ResourceNotFound(ctx, sel, obj)
-	case InvalidInput:
-		return ec._InvalidInput(ctx, sel, &obj)
-	case *InvalidInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._InvalidInput(ctx, sel, obj)
-	case EndUserPasswordTooWeak:
-		return ec._EndUserPasswordTooWeak(ctx, sel, &obj)
-	case *EndUserPasswordTooWeak:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPasswordTooWeak(ctx, sel, obj)
-	case EndUserAlreadyExists:
-		return ec._EndUserAlreadyExists(ctx, sel, &obj)
-	case *EndUserAlreadyExists:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserAlreadyExists(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
-
 func (ec *executionContext) _CreateEnumError(ctx context.Context, sel ast.SelectionSet, obj CreateEnumError) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -24051,22 +23118,6 @@ func (ec *executionContext) _CreateModelError(ctx context.Context, sel ast.Selec
 }
 
 func (ec *executionContext) _DeleteClusterError(ctx context.Context, sel ast.SelectionSet, obj DeleteClusterError) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case ResourceNotFound:
-		return ec._ResourceNotFound(ctx, sel, &obj)
-	case *ResourceNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ResourceNotFound(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
-
-func (ec *executionContext) _DeleteEndUserError(ctx context.Context, sel ast.SelectionSet, obj DeleteEndUserError) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
@@ -24271,13 +23322,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._InvalidAuthVariable(ctx, sel, obj)
-	case InitPrivateDBError:
-		return ec._InitPrivateDBError(ctx, sel, &obj)
-	case *InitPrivateDBError:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._InitPrivateDBError(ctx, sel, obj)
 	case GroupAlreadyExists:
 		return ec._GroupAlreadyExists(ctx, sel, &obj)
 	case *GroupAlreadyExists:
@@ -24313,20 +23357,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._EndUserRefAlreadyExists(ctx, sel, obj)
-	case EndUserPasswordTooWeak:
-		return ec._EndUserPasswordTooWeak(ctx, sel, &obj)
-	case *EndUserPasswordTooWeak:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPasswordTooWeak(ctx, sel, obj)
-	case EndUserAlreadyExists:
-		return ec._EndUserAlreadyExists(ctx, sel, &obj)
-	case *EndUserAlreadyExists:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserAlreadyExists(ctx, sel, obj)
 	case DatabaseConnectionFailed:
 		return ec._DatabaseConnectionFailed(ctx, sel, &obj)
 	case *DatabaseConnectionFailed:
@@ -24429,29 +23459,6 @@ func (ec *executionContext) _GetModelError(ctx context.Context, sel ast.Selectio
 	}
 }
 
-func (ec *executionContext) _InitPrivateDBPayloadError(ctx context.Context, sel ast.SelectionSet, obj InitPrivateDBPayloadError) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case ResourceNotFound:
-		return ec._ResourceNotFound(ctx, sel, &obj)
-	case *ResourceNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ResourceNotFound(ctx, sel, obj)
-	case InitPrivateDBError:
-		return ec._InitPrivateDBError(ctx, sel, &obj)
-	case *InitPrivateDBError:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._InitPrivateDBError(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
-
 func (ec *executionContext) _MoveModelToGroupError(ctx context.Context, sel ast.SelectionSet, obj MoveModelToGroupError) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -24479,13 +23486,6 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Model(ctx, sel, obj)
-	case EndUser:
-		return ec._EndUser(ctx, sel, &obj)
-	case *EndUser:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUser(ctx, sel, obj)
 	case DatabaseCluster:
 		return ec._DatabaseCluster(ctx, sel, &obj)
 	case *DatabaseCluster:
@@ -24728,29 +23728,6 @@ func (ec *executionContext) _UpdateClusterError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._DatabaseConnectionFailed(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
-
-func (ec *executionContext) _UpdateEndUserError(ctx context.Context, sel ast.SelectionSet, obj UpdateEndUserError) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case ResourceNotFound:
-		return ec._ResourceNotFound(ctx, sel, &obj)
-	case *ResourceNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ResourceNotFound(ctx, sel, obj)
-	case InvalidInput:
-		return ec._InvalidInput(ctx, sel, &obj)
-	case *InvalidInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -25298,44 +24275,6 @@ func (ec *executionContext) _ClusterAlreadyExistsForProject(ctx context.Context,
 			}
 		case "suggestion":
 			out.Values[i] = ec._ClusterAlreadyExistsForProject_suggestion(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var createEndUserPayloadImplementors = []string{"CreateEndUserPayload"}
-
-func (ec *executionContext) _CreateEndUserPayload(ctx context.Context, sel ast.SelectionSet, obj *CreateEndUserPayload) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, createEndUserPayloadImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("CreateEndUserPayload")
-		case "endUser":
-			out.Values[i] = ec._CreateEndUserPayload_endUser(ctx, field, obj)
-		case "error":
-			out.Values[i] = ec._CreateEndUserPayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -26052,47 +24991,6 @@ func (ec *executionContext) _DeleteClusterPayload(ctx context.Context, sel ast.S
 	return out
 }
 
-var deleteEndUserPayloadImplementors = []string{"DeleteEndUserPayload"}
-
-func (ec *executionContext) _DeleteEndUserPayload(ctx context.Context, sel ast.SelectionSet, obj *DeleteEndUserPayload) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, deleteEndUserPayloadImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("DeleteEndUserPayload")
-		case "success":
-			out.Values[i] = ec._DeleteEndUserPayload_success(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "error":
-			out.Values[i] = ec._DeleteEndUserPayload_error(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var deleteEnumPayloadImplementors = []string{"DeleteEnumPayload"}
 
 func (ec *executionContext) _DeleteEnumPayload(ctx context.Context, sel ast.SelectionSet, obj *DeleteEnumPayload) graphql.Marshaler {
@@ -26312,150 +25210,6 @@ func (ec *executionContext) _DeleteRlsPolicyPayload(ctx context.Context, sel ast
 			}
 		case "error":
 			out.Values[i] = ec._DeleteRlsPolicyPayload_error(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var endUserImplementors = []string{"EndUser", "Node"}
-
-func (ec *executionContext) _EndUser(ctx context.Context, sel ast.SelectionSet, obj *EndUser) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, endUserImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("EndUser")
-		case "id":
-			out.Values[i] = ec._EndUser_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "username":
-			out.Values[i] = ec._EndUser_username(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "isForbidden":
-			out.Values[i] = ec._EndUser_isForbidden(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "createdBy":
-			out.Values[i] = ec._EndUser_createdBy(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "createdAt":
-			out.Values[i] = ec._EndUser_createdAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updatedAt":
-			out.Values[i] = ec._EndUser_updatedAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var endUserAlreadyExistsImplementors = []string{"EndUserAlreadyExists", "Error", "CreateEndUserError"}
-
-func (ec *executionContext) _EndUserAlreadyExists(ctx context.Context, sel ast.SelectionSet, obj *EndUserAlreadyExists) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, endUserAlreadyExistsImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("EndUserAlreadyExists")
-		case "message":
-			out.Values[i] = ec._EndUserAlreadyExists_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var endUserPasswordTooWeakImplementors = []string{"EndUserPasswordTooWeak", "Error", "CreateEndUserError"}
-
-func (ec *executionContext) _EndUserPasswordTooWeak(ctx context.Context, sel ast.SelectionSet, obj *EndUserPasswordTooWeak) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, endUserPasswordTooWeakImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("EndUserPasswordTooWeak")
-		case "message":
-			out.Values[i] = ec._EndUserPasswordTooWeak_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "suggestion":
-			out.Values[i] = ec._EndUserPasswordTooWeak_suggestion(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -27389,86 +26143,6 @@ func (ec *executionContext) _ImportModelPayload(ctx context.Context, sel ast.Sel
 	return out
 }
 
-var initPrivateDBErrorImplementors = []string{"InitPrivateDBError", "Error", "InitPrivateDBPayloadError"}
-
-func (ec *executionContext) _InitPrivateDBError(ctx context.Context, sel ast.SelectionSet, obj *InitPrivateDBError) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, initPrivateDBErrorImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("InitPrivateDBError")
-		case "message":
-			out.Values[i] = ec._InitPrivateDBError_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var initPrivateDBPayloadImplementors = []string{"InitPrivateDBPayload"}
-
-func (ec *executionContext) _InitPrivateDBPayload(ctx context.Context, sel ast.SelectionSet, obj *InitPrivateDBPayload) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, initPrivateDBPayloadImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("InitPrivateDBPayload")
-		case "success":
-			out.Values[i] = ec._InitPrivateDBPayload_success(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "error":
-			out.Values[i] = ec._InitPrivateDBPayload_error(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var invalidAuthVariableImplementors = []string{"InvalidAuthVariable", "Error", "SetModelRLSPolicyError", "ValidateRLSExprError"}
 
 func (ec *executionContext) _InvalidAuthVariable(ctx context.Context, sel ast.SelectionSet, obj *InvalidAuthVariable) graphql.Marshaler {
@@ -27553,7 +26227,7 @@ func (ec *executionContext) _InvalidGroupName(ctx context.Context, sel ast.Selec
 	return out
 }
 
-var invalidInputImplementors = []string{"InvalidInput", "UpdateClusterError", "RegisteredDatabasesError", "RegisterModelDatabaseResult", "CreateEndUserError", "UpdateEndUserError", "CreateEnumError", "UpdateEnumError", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "GetModelError", "CreateModelError", "UpdateModelError", "SetProjectAuthSchemaError", "UpsertRlsPolicyError"}
+var invalidInputImplementors = []string{"InvalidInput", "UpdateClusterError", "RegisteredDatabasesError", "RegisterModelDatabaseResult", "CreateEnumError", "UpdateEnumError", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "GetModelError", "CreateModelError", "UpdateModelError", "SetProjectAuthSchemaError", "UpsertRlsPolicyError"}
 
 func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidInput) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, invalidInputImplementors)
@@ -29714,7 +28388,7 @@ func (ec *executionContext) _RepairModelPayload(ctx context.Context, sel ast.Sel
 	return out
 }
 
-var resourceNotFoundImplementors = []string{"ResourceNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "RegisteredDatabasesError", "RegisterModelDatabaseResult", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "InitPrivateDBPayloadError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "RenameGroupError", "DeleteGroupError", "ReorderGroupError", "MoveModelToGroupError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError", "UpsertRlsPolicyError", "DeleteRlsPolicyError"}
+var resourceNotFoundImplementors = []string{"ResourceNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "RegisteredDatabasesError", "RegisterModelDatabaseResult", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "RenameGroupError", "DeleteGroupError", "ReorderGroupError", "MoveModelToGroupError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError", "UpsertRlsPolicyError", "DeleteRlsPolicyError"}
 
 func (ec *executionContext) _ResourceNotFound(ctx context.Context, sel ast.SelectionSet, obj *ResourceNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, resourceNotFoundImplementors)
@@ -30230,44 +28904,6 @@ func (ec *executionContext) _UpdateClusterPayload(ctx context.Context, sel ast.S
 			out.Values[i] = ec._UpdateClusterPayload_cluster(ctx, field, obj)
 		case "error":
 			out.Values[i] = ec._UpdateClusterPayload_error(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var updateEndUserStatusPayloadImplementors = []string{"UpdateEndUserStatusPayload"}
-
-func (ec *executionContext) _UpdateEndUserStatusPayload(ctx context.Context, sel ast.SelectionSet, obj *UpdateEndUserStatusPayload) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, updateEndUserStatusPayloadImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("UpdateEndUserStatusPayload")
-		case "endUser":
-			out.Values[i] = ec._UpdateEndUserStatusPayload_endUser(ctx, field, obj)
-		case "error":
-			out.Values[i] = ec._UpdateEndUserStatusPayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -33386,13 +32022,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) marshalOCreateEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐCreateEndUserError(ctx context.Context, sel ast.SelectionSet, v CreateEndUserError) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._CreateEndUserError(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalOCreateEnumError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐCreateEnumError(ctx context.Context, sel ast.SelectionSet, v CreateEnumError) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -33475,13 +32104,6 @@ func (ec *executionContext) marshalODeleteClusterError2modelcraftᚋinternalᚋi
 	return ec._DeleteClusterError(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalODeleteEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDeleteEndUserError(ctx context.Context, sel ast.SelectionSet, v DeleteEndUserError) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._DeleteEndUserError(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalODeleteEnumError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDeleteEnumError(ctx context.Context, sel ast.SelectionSet, v DeleteEnumError) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -33508,13 +32130,6 @@ func (ec *executionContext) marshalODeleteRlsPolicyError2modelcraftᚋinternal�
 		return graphql.Null
 	}
 	return ec._DeleteRlsPolicyError(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOEndUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUser(ctx context.Context, sel ast.SelectionSet, v *EndUser) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._EndUser(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOEnumDefinition2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEnumDefinition(ctx context.Context, sel ast.SelectionSet, v *EnumDefinition) graphql.Marshaler {
@@ -33612,13 +32227,6 @@ func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.Se
 	_ = ctx
 	res := graphql.MarshalID(*v)
 	return res
-}
-
-func (ec *executionContext) marshalOInitPrivateDBPayloadError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐInitPrivateDBPayloadError(ctx context.Context, sel ast.SelectionSet, v InitPrivateDBPayloadError) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._InitPrivateDBPayloadError(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint32(ctx context.Context, v any) (*int32, error) {
@@ -33892,13 +32500,6 @@ func (ec *executionContext) marshalOUpdateClusterError2modelcraftᚋinternalᚋi
 		return graphql.Null
 	}
 	return ec._UpdateClusterError(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOUpdateEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateEndUserError(ctx context.Context, sel ast.SelectionSet, v UpdateEndUserError) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._UpdateEndUserError(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOUpdateEnumError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateEnumError(ctx context.Context, sel ast.SelectionSet, v UpdateEnumError) graphql.Marshaler {

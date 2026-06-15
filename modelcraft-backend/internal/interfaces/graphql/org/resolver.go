@@ -1,8 +1,8 @@
 package orggraphql
 
 import (
+	"modelcraft/internal/app/apitoken"
 	"modelcraft/internal/app/cluster"
-	appEnduser "modelcraft/internal/app/enduser"
 	"modelcraft/internal/app/organization"
 	"modelcraft/internal/app/permission"
 	appProfile "modelcraft/internal/app/profile"
@@ -30,10 +30,6 @@ type Resolver struct {
 	PermissionService *permission.PermissionService
 	UserRoleService   *permission.UserRoleService
 
-	// EndUser management
-	EndUserMgmtAppService *appEnduser.EndUserManagementAppService
-	MetaUserAppService    *appEnduser.MetaUserAppService
-
 	// EndUser PAT management
-	APITokenService *appEnduser.APITokenService
+	APITokenService *apitoken.APITokenService
 }
