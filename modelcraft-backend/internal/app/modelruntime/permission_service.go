@@ -2,99 +2,70 @@ package modelruntime
 
 import (
 	"context"
-	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/modelruntime"
-	"modelcraft/internal/domain/project"
-	"modelcraft/internal/domain/rbac"
-
-	rbacapp "modelcraft/internal/app/rbac"
+	"modelcraft/internal/domain/rls"
+	"strings"
 )
 
-// endUserPermissionServiceImpl 实现 modelruntime.EndUserPermissionService。
-// 依赖 rbacapp.EndUserAuthzService，支持 CUSTOM 和 PRESET 两种 grant_type。
-type endUserPermissionServiceImpl struct {
-	authzSvc *rbacapp.EndUserAuthzService
-	rbacRepo rbac.EndUserPermissionRepository
+// PolicyPermissionResolver converts V2 RLS policies into a lightweight action summary.
+type PolicyPermissionResolver struct {
+	policyRepo rls.PolicyRepositoryV2
 }
 
-// NewEndUserPermissionService 创建 EndUserPermissionService 实例。
-// modelRepo 可选：传入后支持 PRESET=READ_WRITE_OWNER 等需要 owner 字段的预设展开；
-// 传 nil 时 PRESET owner-scoped 类型会被跳过（不影响 READ_ALL / READ_WRITE_ALL）。
-func NewEndUserPermissionService(
-	rbacRepo rbac.EndUserPermissionRepository,
-	modelRepo modeldesign.ModelRepository,
-) modelruntime.EndUserPermissionService {
-	svc := rbacapp.NewEndUserAuthzService(rbacRepo, modelRepo)
-	return &endUserPermissionServiceImpl{authzSvc: svc, rbacRepo: rbacRepo}
+func NewPolicyPermissionResolver(policyRepo rls.PolicyRepositoryV2) *PolicyPermissionResolver {
+	return &PolicyPermissionResolver{policyRepo: policyRepo}
 }
 
-// Resolve 查询 end-user 在指定 model 上的有效权限，返回权限快照。
-// endUserID 为空时（tenant admin）直接返回 nil, nil。
-// 以下情况返回全量通配权限，无需绑定 bundle：
-//  1. user_orgs.is_admin=true：org 级别管理员，对 org 下所有 project/model 拥有全量权限。
-//  2. is_protected=true && name="admin" 的 project 角色：project 级别通配角色。
-func (s *endUserPermissionServiceImpl) Resolve(
-	ctx context.Context, orgName, projectSlug, endUserID, modelID string,
+// ResolveFromV2Policy loads V2 policies for a model and summarizes action availability.
+func (r *PolicyPermissionResolver) ResolveFromV2Policy(
+	ctx context.Context, orgName, projectSlug, modelID string, endUserRoles []string,
 ) (*modelruntime.ResolvedModelPermissions, error) {
-	if endUserID == "" {
-		return nil, nil //nolint:nilnil // nil ResolvedModelPermissions is the tenant-admin sentinel (skip all checks)
-	}
-
-	// Check org-level admin first (user_orgs.is_admin=true) — broadest privilege.
-	orgAdmin, err := s.rbacRepo.IsOrgAdmin(ctx, orgName, endUserID)
-	if err != nil {
-		return nil, err
-	}
-	if orgAdmin {
-		return adminWildcardPermissions(), nil
-	}
-
-	isAdmin, err := s.rbacRepo.HasProtectedAdminRole(ctx, orgName, projectSlug, endUserID)
-	if err != nil {
-		return nil, err
-	}
-	if isAdmin {
-		return adminWildcardPermissions(), nil
-	}
-
-	eps, err := s.authzSvc.GetEffectivePermissions(ctx, rbacapp.GetEffectivePermissionsQuery{
-		ProjectScope: project.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
-		UserID:       endUserID,
-	})
+	policies, err := r.policyRepo.ListByModel(ctx, orgName, projectSlug, modelID)
 	if err != nil {
 		return nil, err
 	}
 
-	return toResolvedModelPermissions(eps, modelID), nil
+	roleSet := make(map[string]struct{}, len(endUserRoles)+1)
+	for _, role := range endUserRoles {
+		roleSet[role] = struct{}{}
+	}
+	roleSet[""] = struct{}{}
+
+	perms := &modelruntime.ResolvedModelPermissions{}
+	for _, p := range policies {
+		if _, ok := roleSet[p.Role]; !ok {
+			continue
+		}
+		switch p.Action {
+		case rls.ActionRead:
+			perms.Select = mergeActionPermission(perms.Select, p)
+		case rls.ActionCreate:
+			perms.Insert = mergeActionPermission(perms.Insert, p)
+		case rls.ActionUpdate:
+			perms.Update = mergeActionPermission(perms.Update, p)
+		case rls.ActionDelete:
+			perms.Delete = mergeActionPermission(perms.Delete, p)
+		}
+	}
+	return perms, nil
 }
 
-// toResolvedModelPermissions 将 EffectivePermissionSet 映射为 ResolvedModelPermissions。
-// rowScope 映射规则：
-//   - RowScopeAll  → IsSelf=false（不注入 WHERE）
-//   - RowScopeSelf → IsSelf=true（注入 WHERE <EndUserRef> = $endUserID）
-func toResolvedModelPermissions(
-	eps rbac.EffectivePermissionSet, modelID string,
-) *modelruntime.ResolvedModelPermissions {
-	return &modelruntime.ResolvedModelPermissions{
-		Select: toActionPermission(eps.GetPermission(modelID, rbac.ActionSelect)),
-		Insert: toActionPermission(eps.GetPermission(modelID, rbac.ActionInsert)),
-		Update: toActionPermission(eps.GetPermission(modelID, rbac.ActionUpdate)),
-		Delete: toActionPermission(eps.GetPermission(modelID, rbac.ActionDelete)),
+func mergeActionPermission(curr modelruntime.ActionPermission, policy *rls.Policy) modelruntime.ActionPermission {
+	curr.Allowed = true
+	if looksLikeSelfScoped(policy) {
+		curr.IsSelf = true
 	}
+	return curr
 }
 
-func toActionPermission(ep *rbac.EffectivePermission) modelruntime.ActionPermission {
-	if ep == nil {
-		return modelruntime.ActionPermission{Allowed: false}
+func looksLikeSelfScoped(policy *rls.Policy) bool {
+	if policy == nil {
+		return false
 	}
-	return modelruntime.ActionPermission{
-		Allowed: true,
-		IsSelf:  ep.RowScope == rbac.RowScopeSelf,
-	}
+	return strings.Contains(string(policy.UsingExpr), "$endUserId") ||
+		strings.Contains(string(policy.WithCheckExpr), "$endUserId")
 }
 
-// adminWildcardPermissions 返回通配 admin 角色的全量权限快照。
-// is_protected=true && name="admin" 的角色无需绑定 bundle，对所有 model 拥有全部操作权限。
 func adminWildcardPermissions() *modelruntime.ResolvedModelPermissions {
 	all := modelruntime.ActionPermission{Allowed: true, IsSelf: false}
 	return &modelruntime.ResolvedModelPermissions{

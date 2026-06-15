@@ -22,12 +22,11 @@ type ModelRLSPolicy struct {
 
 // RLSResolver RLS 过滤器解析器
 type RLSResolver interface {
-	// Resolve 根据身份和 Model 策略解析 RLSFilter
-	// - identity.isEndUser() == false → nil（不过滤，Developer 访问）
+	// Resolve 根据 runtime end-user 语义和 Model 策略解析 RLSFilter
+	// - 上下文中无 EndUserID → nil / deny（取决于具体实现）
 	// - model.getPolicy() == nil → DENY ALL（无 Policy = Default Deny）
 	// - 否则 → RLSFilter { 五件套 JsonExpr, endUserId }
-	Resolve(ctx context.Context, identity *EndUserIdentity,
-		model PolicyProvider) (*RLSFilter, error)
+	Resolve(ctx context.Context, model PolicyProvider) (*RLSFilter, error)
 }
 
 // DenyAllFilter 返回 DENY ALL 过滤器（全 false）

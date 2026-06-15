@@ -27,8 +27,7 @@ type IsOrgAdminFn func(ctx context.Context, orgName, userID string) (bool, error
 
 // ChiRuntimePATMiddleware handles mc_pat_* Bearer tokens for /end-user/ runtime routes.
 // On success it injects:
-//   - EndUserIdentity into context (read by rls_resolver.go via GetEndUserIdentity)
-//   - ctxutils user fields (UserID, OrgName, UserType) so the JWT middleware short-circuits
+//   - ctxutils end-user fields (EndUserID, OrgName, UserType) so the JWT middleware short-circuits
 //   - ctxutils IsAdmin flag when the user's user_orgs.is_admin=true, mirroring the
 //     APISIX/JWT path so graphql_app.go can skip permission checks for org admins
 //
@@ -65,15 +64,11 @@ func ChiRuntimePATMiddleware(
 				}
 			}()
 
-			// Inject EndUserIdentity for RLS resolver (GetEndUserIdentity reads this)
-			identity := &EndUserIdentity{
-				EndUserID: token.EndUserID,
-				Issuer:    issuerPlatform,
-			}
-			ctx := context.WithValue(r.Context(), endUserContextKey, identity)
+			ctx := r.Context()
 
-			// Also inject ctxutils fields so ChiJWTAuthMiddleware short-circuits
-			ctx = ctxutils.SetUserID(ctx, token.EndUserID)
+			// Inject ctxutils fields so downstream handlers can distinguish internal user
+			// identity from end-user identity without overloading ContextKeyUserID.
+			ctx = ctxutils.SetEndUserID(ctx, token.EndUserID)
 			ctx = ctxutils.SetOrgName(ctx, token.OrgName)
 			ctx = ctxutils.SetUserType(ctx, ctxutils.UserTypeEndUser)
 

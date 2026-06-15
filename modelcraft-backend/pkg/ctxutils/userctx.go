@@ -15,6 +15,7 @@ const (
 	// User context keys - these are the standard keys for storing user data in context
 	// Use the typed Set*/Get* functions below rather than these constants directly.
 	ContextKeyUserID      contextKey = "user_id"
+	ContextKeyEndUserID   contextKey = "end_user_id"
 	ContextKeyOrgName     contextKey = "org_name"
 	ContextKeyPermissions contextKey = "permissions"
 
@@ -78,6 +79,11 @@ func SetUserID(ctx context.Context, userID string) context.Context {
 	return context.WithValue(ctx, ContextKeyUserID, userID)
 }
 
+// SetEndUserID stores the end-user ID in context.
+func SetEndUserID(ctx context.Context, endUserID string) context.Context {
+	return context.WithValue(ctx, ContextKeyEndUserID, endUserID)
+}
+
 // SetOrgName stores the organization name in context.
 func SetOrgName(ctx context.Context, orgName string) context.Context {
 	return context.WithValue(ctx, ContextKeyOrgName, orgName)
@@ -134,6 +140,19 @@ func GetUserIDFromContext(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("user ID not found in context")
 	}
 	return userID, nil
+}
+
+// GetEndUserIDFromContext extracts end-user ID from context.
+func GetEndUserIDFromContext(ctx context.Context) (string, error) {
+	val := ctx.Value(ContextKeyEndUserID)
+	if val == nil {
+		return "", fmt.Errorf("end-user ID not found in context")
+	}
+	endUserID, ok := val.(string)
+	if !ok || endUserID == "" {
+		return "", fmt.Errorf("end-user ID not found in context")
+	}
+	return endUserID, nil
 }
 
 // GetPermissionsFromContext extracts permissions from context.

@@ -23,7 +23,7 @@ import (
 type GraphqlAppService struct {
 	modelRepo            modelruntime.ModelRepository
 	graphqlSchemaManager *modelruntime.GraphqlSchemaManager
-	permService          modelruntime.EndUserPermissionService
+	permResolver         *PolicyPermissionResolver
 	snapshotBuilder      *RLSSnapshotBuilder
 }
 
@@ -94,6 +94,22 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 		return nil, err
 	}
 
+	var rlsCtx *modelruntime.RLSContext
+	if ctxutils.GetIsAdminFromContext(ctx) {
+		rlsCtx = &modelruntime.RLSContext{IsAdmin: true}
+	} else {
+		rlsCtx, err = s.buildRLSContext(ctx, orgName, projectSlug, modelID)
+		if err != nil {
+			return nil, err
+		}
+		if rlsCtx.FastFail {
+			return nil, bizerrors.NewError(bizerrors.PermissionDenied, rlsCtx.FastFailReason)
+		}
+		if rlsCtx.Snapshot != nil {
+			ctx = modelruntime.WithRLSSnapshot(ctx, rlsCtx.Snapshot)
+		}
+	}
+
 	// 创建请求级 DB 连接
 	clientSqlDB, err := repository.DefaultClusterManager.GetConnectionWithDatabase(
 		ctx, orgName, modelLocator.ProjectSlug, modelLocator.DatabaseName,
@@ -105,41 +121,8 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 	// Wrap with RLS intercept layer
 	clientRepo := dml.NewRLSInterceptDB(dml.NewClientDB(clientSqlDB))
 
-	// 提取 endUserID
-	endUserID := ""
-	if ctxutils.IsEndUser(ctx) && !ctxutils.GetIsAdminFromContext(ctx) {
-		if uid, err := ctxutils.GetUserIDFromContext(ctx); err == nil {
-			endUserID = uid
-		}
-	}
-
-	// 解析 end-user 权限快照
-	var endUserPerms *modelruntime.ResolvedModelPermissions
-	if endUserID != "" {
-		endUserPerms, err = s.permService.Resolve(ctx, orgName, projectSlug, endUserID, modelID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Build RLS snapshot at entry
-	identity := middleware.GetEndUserIdentity(ctx)
-	isDeveloper := identity == nil || identity.IsDeveloper()
-	userCtx := middleware.GetUserContext(ctx)
-	snap, err := s.snapshotBuilder.Build(ctx, orgName, projectSlug, modelID, isDeveloper, userCtx)
-	if err != nil {
-		return nil, err
-	}
-	if snap != nil && snap.DenyAll {
-		return nil, bizerrors.NewError(bizerrors.PermissionDenied, "RLS: no matching policy")
-	}
-	if snap != nil {
-		ctx = modelruntime.WithRLSSnapshot(ctx, snap)
-	}
-
-	endUserAdminID, _ := ctxutils.GetUserIDFromContext(ctx)
 	reqCtx := modelruntime.WithGraphqlRequestContext(
-		ctx, clientRepo, orgName, projectSlug, endUserID, endUserAdminID, endUserPerms,
+		ctx, clientRepo, orgName, projectSlug, rlsCtx,
 	)
 
 	// 执行GraphQL查询
@@ -162,14 +145,51 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 func NewGraphqlAppService(
 	modelRepo modelruntime.ModelRepository,
 	lfkRepo modeldesign.LogicalForeignKeyRepository,
-	permService modelruntime.EndUserPermissionService,
+	permResolver *PolicyPermissionResolver,
 	snapshotBuilder *RLSSnapshotBuilder,
 ) *GraphqlAppService {
 	schemaManager := modelruntime.NewGraphqlSchemaManager(modelRepo, lfkRepo)
 	return &GraphqlAppService{
 		modelRepo:            modelRepo,
 		graphqlSchemaManager: schemaManager,
-		permService:          permService,
+		permResolver:         permResolver,
 		snapshotBuilder:      snapshotBuilder,
 	}
+}
+
+func (s *GraphqlAppService) buildRLSContext(
+	ctx context.Context,
+	orgName, projectSlug, modelID string,
+) (*modelruntime.RLSContext, error) {
+	rlsCtx := &modelruntime.RLSContext{
+		IsAdmin:     ctxutils.GetIsAdminFromContext(ctx),
+		UserContext: middleware.GetUserContext(ctx),
+	}
+	if rlsCtx.IsAdmin {
+		return rlsCtx, nil
+	}
+
+	endUserID, err := ctxutils.GetEndUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rlsCtx.EndUserID = endUserID
+	rlsCtx.Permissions, err = s.permResolver.ResolveFromV2Policy(
+		ctx, orgName, projectSlug, modelID, rlsCtx.UserContext.Roles,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	snap, err := s.snapshotBuilder.Build(ctx, orgName, projectSlug, modelID, rlsCtx.EndUserID == "", rlsCtx.UserContext)
+	if err != nil {
+		return nil, err
+	}
+	rlsCtx.Snapshot = snap
+	if snap != nil && snap.DenyAll {
+		rlsCtx.FastFail = true
+		rlsCtx.FastFailReason = "RLS: no matching policy"
+	}
+
+	return rlsCtx, nil
 }

@@ -1,7 +1,6 @@
 package modelruntime
 
 import (
-	"context"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/pkg/bizerrors"
 )
@@ -72,14 +71,6 @@ func (p *ResolvedModelPermissions) CheckAction(action Action) error {
 	return nil
 }
 
-// EndUserPermissionService 依赖倒置接口，app 层实现。
-// domain/modelruntime 只依赖此接口，不感知 domain/rbac 包细节。
-type EndUserPermissionService interface {
-	// Resolve 查询并合并 end-user 在指定 model 上的有效权限。
-	// endUserID 为空（tenant admin）时返回 nil, nil。
-	Resolve(ctx context.Context, orgName, projectSlug, endUserID, modelID string) (*ResolvedModelPermissions, error)
-}
-
 // enforceOwnerOnCreate injects the current end-user ID into the END_USER_REF field
 // of the create payload. When Insert.IsSelf=true (SELF-scoped permission), it also
 // validates that the caller has not supplied a different end-user's ID as the owner;
@@ -101,7 +92,7 @@ func enforceOwnerOnCreate(
 		}
 		provided := data[field.Name]
 		if provided != nil && provided != "" && provided != ownerID {
-			if rctx.EndUserPerms.Get(ActionInsert).IsSelf {
+			if rctx.RLS != nil && rctx.RLS.Permissions.Get(ActionInsert).IsSelf {
 				return bizerrors.NewError(
 					bizerrors.PermissionDenied,
 					"insert: owner must match current user",

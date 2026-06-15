@@ -47,21 +47,30 @@ func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler
 				return
 			}
 
-			// Short-circuit: PAT middleware already authenticated this request
-			// (UserID set in context by ChiRuntimePATMiddleware).
+			// Short-circuit: upstream middleware already authenticated this request.
 			if uid, err := ctxutils.GetUserIDFromContext(r.Context()); err == nil && uid != "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			if endUserID, err := ctxutils.GetEndUserIDFromContext(r.Context()); err == nil && endUserID != "" {
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			// Gateway-trusted identity: the gateway validates the bearer token,
 			// strips the Authorization header, and injects:
-			// - X-User-ID: end-user ID (for end_user tokens, or admin end-user ID for tenant tokens)
+			// - X-User-ID: system user ID for tenant tokens; end-user ID for end_user tokens
 			// - X-User-Type: "tenant" or "end_user"
 			// - X-Is-Admin: "true" / "false" (from is_admin JWT claim, end-user routes only)
 			if userID := r.Header.Get(httpheader.XUserID); userID != "" {
-				ctx := ctxutils.SetUserID(r.Context(), userID)
-				if userType := r.Header.Get(httpheader.XUserType); userType != "" {
+				ctx := r.Context()
+				userType := r.Header.Get(httpheader.XUserType)
+				if userType == ctxutils.UserTypeEndUser {
+					ctx = ctxutils.SetEndUserID(ctx, userID)
+				} else {
+					ctx = ctxutils.SetUserID(ctx, userID)
+				}
+				if userType != "" {
 					ctx = ctxutils.SetUserType(ctx, userType)
 				}
 				if r.Header.Get(httpheader.XIsAdmin) == "true" {

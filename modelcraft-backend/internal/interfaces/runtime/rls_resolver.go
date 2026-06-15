@@ -7,6 +7,7 @@ import (
 	"modelcraft/internal/domain/modelruntime"
 	"modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/http/middleware"
+	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
 )
 
@@ -44,51 +45,34 @@ type ResolveResult struct {
 // Returns nil DenyAll=false ShouldApply=false for Developer access (no RLS).
 // Returns DenyAll=true when no matching policy exists (default deny).
 func (r *RLSResolver) Resolve(ctx context.Context, action rls.Action, modelID string) (*ResolveResult, error) {
-	// Get end-user identity from context
-	identity := middleware.GetEndUserIdentity(ctx)
-
-	// No identity found - deny all to be safe
-	if identity == nil {
+	endUserID, _ := ctxutils.GetEndUserIDFromContext(ctx)
+	if endUserID == "" {
 		r.logger.Warn(ctx, "No end-user identity found in context")
 		return &ResolveResult{ShouldApply: true, DenyAll: true}, nil
 	}
 
-	// Developer JWT — no RLS applied
-	if identity.IsDeveloper() {
-		return &ResolveResult{ShouldApply: false}, nil
+	rctx, ok := getRuntimeContext(ctx)
+	if !ok {
+		r.logger.Warn(ctx, "No runtime context found")
+		return &ResolveResult{ShouldApply: true, DenyAll: true}, nil
 	}
 
-	// EndUser JWT — apply RLS
-	if identity.IsEndUser() {
-		rctx, ok := getRuntimeContext(ctx)
-		if !ok {
-			r.logger.Warn(ctx, "No runtime context found")
-			return &ResolveResult{ShouldApply: true, DenyAll: true}, nil
-		}
-
-		// Get UserContext from headers
-		userCtx := middleware.GetUserContext(ctx)
-		if userCtx == nil {
-			userCtx = &rls.UserContext{}
-		}
-
-		// Resolve USING expression
-		usingSQL, usingParams, err := r.matchingSvc.ResolveUsing(ctx, rctx.OrgName, rctx.ProjectSlug, modelID, action, userCtx)
-		if err != nil {
-			r.logger.Debug(ctx, "RLS policy denied", logfacade.Err(err))
-			return &ResolveResult{ShouldApply: true, DenyAll: true}, nil
-		}
-
-		return &ResolveResult{
-			UsingSQL:    usingSQL,
-			UsingParams: usingParams,
-			ShouldApply: true,
-		}, nil
+	userCtx := middleware.GetUserContext(ctx)
+	if userCtx == nil {
+		userCtx = &rls.UserContext{}
 	}
 
-	// Unknown issuer - deny all
-	r.logger.Warn(ctx, "Unknown JWT issuer", logfacade.String("issuer", identity.Issuer))
-	return &ResolveResult{ShouldApply: true, DenyAll: true}, nil
+	usingSQL, usingParams, err := r.matchingSvc.ResolveUsing(ctx, rctx.OrgName, rctx.ProjectSlug, modelID, action, userCtx)
+	if err != nil {
+		r.logger.Debug(ctx, "RLS policy denied", logfacade.Err(err))
+		return &ResolveResult{ShouldApply: true, DenyAll: true}, nil
+	}
+
+	return &ResolveResult{
+		UsingSQL:    usingSQL,
+		UsingParams: usingParams,
+		ShouldApply: true,
+	}, nil
 }
 
 func (r *RLSResolver) ValidateInput(ctx context.Context, modelID string, action modelruntime.Action, input map[string]any) error {

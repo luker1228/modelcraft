@@ -49,7 +49,7 @@ func ChiPATAuthMiddleware(
 				}
 			}()
 
-			ctx := ctxutils.SetUserID(r.Context(), token.EndUserID)
+			ctx := ctxutils.SetEndUserID(r.Context(), token.EndUserID)
 			ctx = ctxutils.SetOrgName(ctx, token.OrgName)
 			ctx = ctxutils.SetUserType(ctx, "end_user")
 

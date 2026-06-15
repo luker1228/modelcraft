@@ -36,10 +36,10 @@ func (r *mutationResolver) CreateEndUserAPIToken(ctx context.Context, name strin
 		}, nil
 	}
 
-	endUserID, err := ctxutils.GetUserIDFromContext(ctx)
+	endUserID, err := ctxutils.GetEndUserIDFromContext(ctx)
 	if err != nil {
 		return &generated.CreateAPITokenPayload{
-			Error: &generated.InvalidInput{Message: "user ID not found in context"},
+			Error: &generated.InvalidInput{Message: "end-user ID not found in context"},
 		}, nil
 	}
 
@@ -78,10 +78,10 @@ func (r *mutationResolver) RevokeEndUserAPIToken(ctx context.Context, id string)
 		}, nil
 	}
 
-	endUserID, err := ctxutils.GetUserIDFromContext(ctx)
+	endUserID, err := ctxutils.GetEndUserIDFromContext(ctx)
 	if err != nil {
 		return &generated.RevokeAPITokenPayload{
-			Error: &generated.InvalidInput{Message: "user ID not found in context"},
+			Error: &generated.InvalidInput{Message: "end-user ID not found in context"},
 		}, nil
 	}
 
@@ -107,7 +107,7 @@ func (r *queryResolver) EndUserAPITokens(ctx context.Context) ([]*generated.EndU
 		return nil, err
 	}
 
-	endUserID, err := ctxutils.GetUserIDFromContext(ctx)
+	endUserID, err := ctxutils.GetEndUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}

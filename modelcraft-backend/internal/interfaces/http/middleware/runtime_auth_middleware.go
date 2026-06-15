@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"context"
+	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strings"
@@ -9,31 +9,8 @@ import (
 	"modelcraft/pkg/httpheader"
 )
 
-type endUserContextKeyType string
-
-// endUserContextKey is the context key for end-user identity.
-const endUserContextKey endUserContextKeyType = "end_user_identity"
-
 // issuerPlatform 是统一 token 体系的 issuer 标识（与 domain/auth.IssuerPlatform 一致）。
 const issuerPlatform = "mc-platform"
-
-// EndUserIdentity represents the authenticated end-user identity.
-type EndUserIdentity struct {
-	EndUserID string `json:"endUserId"`
-	Issuer    string `json:"issuer"` // 统一为 mc-platform
-}
-
-// IsEndUser 判断是否为可访问 Runtime 的身份（统一 token 体系后检查 mc-platform issuer）。
-// 阶段 1：所有 mc-platform token 均可访问 runtime；scope 强制校验由阶段 2 引入。
-func (e *EndUserIdentity) IsEndUser() bool {
-	return e.Issuer == issuerPlatform
-}
-
-// IsDeveloper Deprecated：统一 token 体系后，developer/enduser 概念消失。
-// 保留以兼容下游调用，将在阶段 2 重命名为 HasOrgScope。
-func (e *EndUserIdentity) IsDeveloper() bool {
-	return e.Issuer == issuerPlatform
-}
 
 // RuntimeAuthMiddleware validates JWT for Runtime endpoints.
 // Only accepts tokens with iss="mc-platform"（统一 Token 体系后，所有 token 均使用此 issuer）。
@@ -115,11 +92,8 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 		// 5. 从 Gateway 注入的 X-Token-Scope header 读取 scope 验证已移除。
 		// 端点级鉴权将通过 aud 字段实现（后续迭代）。
 
-		identity := &EndUserIdentity{
-			EndUserID: endUserID,
-			Issuer:    issuer,
-		}
-		ctx = context.WithValue(ctx, endUserContextKey, identity)
+		ctx = ctxutils.SetEndUserID(ctx, endUserID)
+		ctx = ctxutils.SetUserType(ctx, ctxutils.UserTypeEndUser)
 
 		m.logger.Debug(ctx, "EndUser authenticated",
 			logfacade.String("endUserId", endUserID),
@@ -127,24 +101,4 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-// GetEndUserIdentity retrieves the end-user identity from context.
-// Returns nil if no identity is found.
-func GetEndUserIdentity(ctx context.Context) *EndUserIdentity {
-	identity, ok := ctx.Value(endUserContextKey).(*EndUserIdentity)
-	if !ok {
-		return nil
-	}
-	return identity
-}
-
-// GetEndUserID retrieves the end-user ID from context.
-// Returns empty string if no identity is found.
-func GetEndUserID(ctx context.Context) string {
-	identity := GetEndUserIdentity(ctx)
-	if identity == nil {
-		return ""
-	}
-	return identity.EndUserID
 }
