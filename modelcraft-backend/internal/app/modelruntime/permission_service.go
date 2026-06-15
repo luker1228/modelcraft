@@ -64,13 +64,3 @@ func mapAction(a rls.Action) modelruntime.Action {
 	}
 }
 
-func adminWildcardPermissions() *modelruntime.ResolvedModelPermissions {
-	return &modelruntime.ResolvedModelPermissions{
-		Policies: []modelruntime.ResolvedPolicy{
-			{Action: modelruntime.ActionSelect},
-			{Action: modelruntime.ActionInsert},
-			{Action: modelruntime.ActionUpdate},
-			{Action: modelruntime.ActionDelete},
-		},
-	}
-}

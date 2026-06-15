@@ -167,9 +167,11 @@ func (s *GraphqlAppService) buildRLSContext(
 	orgName, projectSlug, modelID string,
 	action modelruntime.Action,
 ) (*modelruntime.RLSContext, error) {
+	logger := logfacade.GetLogger(ctx)
+
 	rlsCtx := &modelruntime.RLSContext{
-		Action:     action,
-		IsAdmin:    ctxutils.GetIsAdminFromContext(ctx),
+		Action:      action,
+		IsAdmin:     ctxutils.GetIsAdminFromContext(ctx),
 		UserContext: middleware.GetUserContext(ctx),
 	}
 	if rlsCtx.IsAdmin {
@@ -190,6 +192,7 @@ func (s *GraphqlAppService) buildRLSContext(
 	if rlsCtx.Permissions != nil && rlsCtx.Permissions.IsEmpty() {
 		rlsCtx.FastFail = true
 		rlsCtx.FastFailReason = "permissions: no permissions granted"
+		logger.Debugf(ctx, "RLS fast-fail: model=%s action=%s reason=%s", modelID, action, rlsCtx.FastFailReason)
 		return rlsCtx, nil
 	}
 
@@ -198,10 +201,9 @@ func (s *GraphqlAppService) buildRLSContext(
 		return nil, err
 	}
 	rlsCtx.Snapshot = snap
-	if snap != nil && snap.DenyAll {
-		rlsCtx.FastFail = true
-		rlsCtx.FastFailReason = "RLS: no matching policy"
-	}
+	logger.Debugf(ctx, "RLS context built: model=%s action=%s endUser=%s policies=%d using=%v checks=%d",
+		modelID, action, endUserID, len(rlsCtx.Permissions.Policies),
+		snap.USING != nil, len(snap.CHECKs))
 
 	return rlsCtx, nil
 }

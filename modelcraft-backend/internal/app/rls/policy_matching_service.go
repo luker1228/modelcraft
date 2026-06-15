@@ -32,6 +32,13 @@ func NewPolicyMatchingService(repo PolicyRepository, usingCompiler usingCompiler
 	return &PolicyMatchingService{repo: repo, usingCompiler: usingCompiler, checkEvaluator: checkEvaluator}
 }
 
+// CompileUsingExpr compiles a single USING expression string to parameterised SQL.
+func (s *PolicyMatchingService) CompileUsingExpr(
+	ctx context.Context, usingExpr string, userCtx *rls.UserContext,
+) (*rls.CompiledPolicy, error) {
+	return s.usingCompiler.CompileUsing(ctx, usingExpr, userCtx)
+}
+
 // ResolveUsing 匹配策略并 OR 合并 using 表达式
 func (s *PolicyMatchingService) ResolveUsing(
 	ctx context.Context, orgName, projectSlug, modelID string,

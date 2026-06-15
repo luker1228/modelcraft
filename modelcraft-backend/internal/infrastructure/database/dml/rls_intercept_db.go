@@ -4,6 +4,7 @@ import (
 	"context"
 	"modelcraft/internal/domain/modelruntime"
 	"modelcraft/pkg/bizerrors"
+	"modelcraft/pkg/logfacade"
 )
 
 // RLSInterceptDB wraps ClientDatabaseRepository to apply RLS policies
@@ -19,44 +20,54 @@ func NewRLSInterceptDB(inner modelruntime.ClientDatabaseRepository) *RLSIntercep
 }
 
 // injectUSING appends the USING filter to RawFilters if present.
-func injectUSING(filters *[]modelruntime.RawSQLFilter, using *modelruntime.RawSQLFilter) {
+func injectUSING(ctx context.Context, filters *[]modelruntime.RawSQLFilter, using *modelruntime.RawSQLFilter) {
 	if using != nil {
+		logfacade.GetLogger(ctx).Debugf(ctx, "RLS inject USING: sql=%s params=%d", using.SQL, len(using.Params))
 		*filters = append(*filters, *using)
 	}
 }
 
-// evalCHECK evaluates a CHECK expression if present.
-func evalCHECK(
-	check *modelruntime.CheckProgram, input, auth map[string]any,
+// evalCHECKs evaluates CHECK expressions with OR logic:
+// any single program passing is sufficient. Returns error only if all fail.
+func evalCHECKs(
+	ctx context.Context, checks []*modelruntime.CheckProgram, input, auth map[string]any,
 ) error {
-	if check == nil {
+	if len(checks) == 0 {
 		return nil
 	}
-	if err := check.Eval(input, auth); err != nil {
-		return bizerrors.NewError(bizerrors.PermissionDenied, err.Error())
+	logger := logfacade.GetLogger(ctx)
+	for i, check := range checks {
+		if check == nil {
+			continue
+		}
+		if err := check.Eval(input, auth); err == nil {
+			logger.Debugf(ctx, "RLS CHECK passed: index=%d/%d", i, len(checks))
+			return nil // any one passing is sufficient
+		}
 	}
-	return nil
+	logger.Debugf(ctx, "RLS CHECK failed: all %d checks rejected", len(checks))
+	return bizerrors.NewError(bizerrors.PermissionDenied, "all CHECK expressions failed")
 }
 
 // ---- Read operations ----
 
 func (r *RLSInterceptDB) FindUnique(ctx context.Context, input *modelruntime.FindUniqueInput) (map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(&input.RawFilters, snap.SelectUSING)
+		injectUSING(ctx, &input.RawFilters, snap.USING)
 	}
 	return r.inner.FindUnique(ctx, input)
 }
 
 func (r *RLSInterceptDB) FindFirst(ctx context.Context, input *modelruntime.FindFirstInput) (map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(&input.RawFilters, snap.SelectUSING)
+		injectUSING(ctx, &input.RawFilters, snap.USING)
 	}
 	return r.inner.FindFirst(ctx, input)
 }
 
 func (r *RLSInterceptDB) FindMany(ctx context.Context, input *modelruntime.FindManyInput) ([]map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(&input.RawFilters, snap.SelectUSING)
+		injectUSING(ctx, &input.RawFilters, snap.USING)
 	}
 	return r.inner.FindMany(ctx, input)
 }
@@ -65,21 +76,21 @@ func (r *RLSInterceptDB) ListByCursor(
 	ctx context.Context, input *modelruntime.ListByCursorInput,
 ) ([]map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(&input.RawFilters, snap.SelectUSING)
+		injectUSING(ctx, &input.RawFilters, snap.USING)
 	}
 	return r.inner.ListByCursor(ctx, input)
 }
 
 func (r *RLSInterceptDB) Aggregate(ctx context.Context, input *modelruntime.AggregateInput) (map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(&input.RawFilters, snap.SelectUSING)
+		injectUSING(ctx, &input.RawFilters, snap.USING)
 	}
 	return r.inner.Aggregate(ctx, input)
 }
 
 func (r *RLSInterceptDB) Count(ctx context.Context, input *modelruntime.CountInput) (map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(&input.RawFilters, snap.SelectUSING)
+		injectUSING(ctx, &input.RawFilters, snap.USING)
 	}
 	return r.inner.Count(ctx, input)
 }
@@ -95,7 +106,7 @@ func (r *RLSInterceptDB) FindManyIn(
 
 func (r *RLSInterceptDB) CreateOne(ctx context.Context, input *modelruntime.CreateOneInput) (string, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		if err := evalCHECK(snap.InsertCHECK, input.Data, snap.Auth); err != nil {
+		if err := evalCHECKs(ctx, snap.CHECKs, input.Data, snap.Auth); err != nil {
 			return "", err
 		}
 	}
@@ -105,7 +116,7 @@ func (r *RLSInterceptDB) CreateOne(ctx context.Context, input *modelruntime.Crea
 func (r *RLSInterceptDB) CreateMany(ctx context.Context, input *modelruntime.CreateManyInput) (interface{}, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
 		for _, dataItem := range input.Data {
-			if err := evalCHECK(snap.InsertCHECK, dataItem, snap.Auth); err != nil {
+			if err := evalCHECKs(ctx, snap.CHECKs, dataItem, snap.Auth); err != nil {
 				return nil, err
 			}
 		}
@@ -117,8 +128,8 @@ func (r *RLSInterceptDB) CreateMany(ctx context.Context, input *modelruntime.Cre
 
 func (r *RLSInterceptDB) UpdateOne(ctx context.Context, input *modelruntime.UpdateOneInput) (map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(&input.RawFilters, snap.UpdateUSING)
-		if err := evalCHECK(snap.UpdateCHECK, input.Data, snap.Auth); err != nil {
+		injectUSING(ctx, &input.RawFilters, snap.USING)
+		if err := evalCHECKs(ctx, snap.CHECKs, input.Data, snap.Auth); err != nil {
 			return nil, err
 		}
 	}
@@ -127,8 +138,8 @@ func (r *RLSInterceptDB) UpdateOne(ctx context.Context, input *modelruntime.Upda
 
 func (r *RLSInterceptDB) UpdateMany(ctx context.Context, input *modelruntime.UpdateManyInput) (interface{}, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(&input.RawFilters, snap.UpdateUSING)
-		if err := evalCHECK(snap.UpdateCHECK, input.Data, snap.Auth); err != nil {
+		injectUSING(ctx, &input.RawFilters, snap.USING)
+		if err := evalCHECKs(ctx, snap.CHECKs, input.Data, snap.Auth); err != nil {
 			return nil, err
 		}
 	}
@@ -139,14 +150,14 @@ func (r *RLSInterceptDB) UpdateMany(ctx context.Context, input *modelruntime.Upd
 
 func (r *RLSInterceptDB) DeleteOne(ctx context.Context, input *modelruntime.DeleteOneInput) (map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(&input.RawFilters, snap.DeleteUSING)
+		injectUSING(ctx, &input.RawFilters, snap.USING)
 	}
 	return r.inner.DeleteOne(ctx, input)
 }
 
 func (r *RLSInterceptDB) DeleteMany(ctx context.Context, input *modelruntime.DeleteManyInput) (interface{}, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(&input.RawFilters, snap.DeleteUSING)
+		injectUSING(ctx, &input.RawFilters, snap.USING)
 	}
 	return r.inner.DeleteMany(ctx, input)
 }

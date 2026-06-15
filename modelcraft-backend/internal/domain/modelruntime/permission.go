@@ -23,6 +23,7 @@ type ActionPermission struct {
 
 // ResolvedPolicy 单条匹配的策略摘要。
 type ResolvedPolicy struct {
+	Name          string // 策略名称（对应 RLS 策略表中的 policyName）
 	Action        Action
 	UsingExpr     string // 原始 USING 表达式（JSON）
 	WithCheckExpr string // 原始 WITH CHECK 表达式（JSON）

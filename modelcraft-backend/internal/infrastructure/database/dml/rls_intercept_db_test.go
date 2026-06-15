@@ -127,7 +127,7 @@ func TestRLSInterceptDB_FindMany_InjectsUSING(t *testing.T) {
 	db := NewRLSInterceptDB(mock)
 
 	snap := &modelruntime.RLSPolicySnapshot{
-		SelectUSING: &modelruntime.RawSQLFilter{SQL: "owner_id = ?", Params: []any{"u_123"}},
+		USING: &modelruntime.RawSQLFilter{SQL: "owner_id = ?", Params: []any{"u_123"}},
 	}
 	ctx := modelruntime.WithRLSSnapshot(context.Background(), snap)
 
@@ -180,7 +180,7 @@ func TestRLSInterceptDB_CreateOne_CHECKAcepted(t *testing.T) {
 	db := NewRLSInterceptDB(mock)
 
 	snap := &modelruntime.RLSPolicySnapshot{
-		InsertCHECK: makeTrueCheckProgram(t),
+		CHECKs: []*modelruntime.CheckProgram{makeTrueCheckProgram(t)},
 		Auth:        map[string]any{"userid": "u_123"},
 	}
 	ctx := modelruntime.WithRLSSnapshot(context.Background(), snap)
@@ -207,7 +207,7 @@ func TestRLSInterceptDB_CreateOne_CHECKRejected(t *testing.T) {
 	db := NewRLSInterceptDB(mock)
 
 	snap := &modelruntime.RLSPolicySnapshot{
-		InsertCHECK: makeFalseCheckProgram(t),
+		CHECKs: []*modelruntime.CheckProgram{makeFalseCheckProgram(t)},
 		Auth:        map[string]any{"userid": "u_123"},
 	}
 	ctx := modelruntime.WithRLSSnapshot(context.Background(), snap)
@@ -231,8 +231,8 @@ func TestRLSInterceptDB_UpdateMany_USINGAndCHECK(t *testing.T) {
 	db := NewRLSInterceptDB(mock)
 
 	snap := &modelruntime.RLSPolicySnapshot{
-		UpdateUSING: &modelruntime.RawSQLFilter{SQL: "owner_id = ?", Params: []any{"u_123"}},
-		UpdateCHECK: makeTrueCheckProgram(t),
+		USING: &modelruntime.RawSQLFilter{SQL: "owner_id = ?", Params: []any{"u_123"}},
+		CHECKs: []*modelruntime.CheckProgram{makeTrueCheckProgram(t)},
 		Auth:        map[string]any{"userid": "u_123"},
 	}
 	ctx := modelruntime.WithRLSSnapshot(context.Background(), snap)
