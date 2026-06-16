@@ -170,6 +170,7 @@ func FieldDefinitionToDomain(row dbgen.FieldDefinition) (*modeldesign.FieldDefin
 		Metadata:      metadata,
 		BelongsToFKID: sqlerr.NullStrToPtr(row.BelongsToFkID),
 		RelateFKID:    sqlerr.NullStrToPtr(row.RelateFkID),
+		StorageHint:   sqlerr.NullStrToPtr(row.StorageHint),
 		CreatedAt:     createdAt,
 		UpdatedAt:     updatedAt,
 	}, nil
@@ -214,6 +215,7 @@ func FieldDefinitionToCreateParams(
 		Metadata:      ptrJSON(metadataJSON),
 		RelateFkID:    sqlerr.PtrToNullStr(fd.RelateFKID),
 		BelongsToFkID: sqlerr.PtrToNullStr(fd.BelongsToFKID),
+		StorageHint:   sqlerr.PtrToNullStr(fd.StorageHint),
 	}, nil
 }
 
@@ -241,6 +243,7 @@ func FieldDefinitionToUpdateParams(fd *modeldesign.FieldDefinition) (dbgen.Updat
 		Validation:   ptrJSON(validationJSON),
 		DisplayOrder: fd.DisplayOrder,
 		Metadata:     ptrJSON(metadataJSON),
+		StorageHint:  sqlerr.PtrToNullStr(fd.StorageHint),
 		ModelID:      fd.ModelID,
 		Name:         fd.Name,
 	}, nil

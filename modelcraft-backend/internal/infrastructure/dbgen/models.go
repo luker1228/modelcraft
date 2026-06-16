@@ -12,92 +12,6 @@ import (
 	"time"
 )
 
-type EndUserBundleDataPermissionItemsGrantType string
-
-const (
-	EndUserBundleDataPermissionItemsGrantTypePRESET EndUserBundleDataPermissionItemsGrantType = "PRESET"
-	EndUserBundleDataPermissionItemsGrantTypeCUSTOM EndUserBundleDataPermissionItemsGrantType = "CUSTOM"
-)
-
-func (e *EndUserBundleDataPermissionItemsGrantType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = EndUserBundleDataPermissionItemsGrantType(s)
-	case string:
-		*e = EndUserBundleDataPermissionItemsGrantType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for EndUserBundleDataPermissionItemsGrantType: %T", src)
-	}
-	return nil
-}
-
-type NullEndUserBundleDataPermissionItemsGrantType struct {
-	EndUserBundleDataPermissionItemsGrantType EndUserBundleDataPermissionItemsGrantType
-	Valid                                     bool // Valid is true if EndUserBundleDataPermissionItemsGrantType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullEndUserBundleDataPermissionItemsGrantType) Scan(value interface{}) error {
-	if value == nil {
-		ns.EndUserBundleDataPermissionItemsGrantType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.EndUserBundleDataPermissionItemsGrantType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullEndUserBundleDataPermissionItemsGrantType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.EndUserBundleDataPermissionItemsGrantType), nil
-}
-
-type EndUserBundleDataPermissionItemsPreset string
-
-const (
-	EndUserBundleDataPermissionItemsPresetREADWRITEALL      EndUserBundleDataPermissionItemsPreset = "READ_WRITE_ALL"
-	EndUserBundleDataPermissionItemsPresetREADALL           EndUserBundleDataPermissionItemsPreset = "READ_ALL"
-	EndUserBundleDataPermissionItemsPresetREADWRITEOWNER    EndUserBundleDataPermissionItemsPreset = "READ_WRITE_OWNER"
-	EndUserBundleDataPermissionItemsPresetREADALLWRITEOWNER EndUserBundleDataPermissionItemsPreset = "READ_ALL_WRITE_OWNER"
-)
-
-func (e *EndUserBundleDataPermissionItemsPreset) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = EndUserBundleDataPermissionItemsPreset(s)
-	case string:
-		*e = EndUserBundleDataPermissionItemsPreset(s)
-	default:
-		return fmt.Errorf("unsupported scan type for EndUserBundleDataPermissionItemsPreset: %T", src)
-	}
-	return nil
-}
-
-type NullEndUserBundleDataPermissionItemsPreset struct {
-	EndUserBundleDataPermissionItemsPreset EndUserBundleDataPermissionItemsPreset
-	Valid                                  bool // Valid is true if EndUserBundleDataPermissionItemsPreset is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullEndUserBundleDataPermissionItemsPreset) Scan(value interface{}) error {
-	if value == nil {
-		ns.EndUserBundleDataPermissionItemsPreset, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.EndUserBundleDataPermissionItemsPreset.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullEndUserBundleDataPermissionItemsPreset) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.EndUserBundleDataPermissionItemsPreset), nil
-}
-
 type LogicalForeignKeysDirection string
 
 const (
@@ -401,56 +315,6 @@ type EndUserApiToken struct {
 	DeleteToken uint64
 }
 
-// Bundle 数据权限 Item：bundle 在某模型上的唯一数据权限配置
-type EndUserBundleDataPermissionItem struct {
-	// Item UUID
-	ID string
-	// 所属权限包 ID，FK → end_user_permission_bundles.id
-	BundleID string
-	// 目标模型 ID，FK → models.id
-	ModelID string
-	// 授权来源类型
-	GrantType EndUserBundleDataPermissionItemsGrantType
-	// PRESET 模板枚举值（仅 grant_type=PRESET 时有值）
-	Preset NullEndUserBundleDataPermissionItemsPreset
-	// 自定义权限实体 ID（仅 grant_type=CUSTOM 时有值），FK → end_user_data_permissions.id
-	CustomPermissionID sql.NullString
-	// 显示排序权重（ASC）
-	SortOrder int32
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
-
-// 自定义数据权限实体：管理员手工定义的模型级行列策略（仅 CUSTOM）
-type EndUserDataPermission struct {
-	// 权限实体 UUID
-	ID string
-	// 所属组织（冗余，不做 FK）
-	OrgName string
-	// 所属项目（冗余，不做 FK）
-	ProjectSlug string
-	// 数据源名称（可空，预留按数据源授权能力）
-	DatabaseName sql.NullString
-	// 模型名称（可空，预留按模型名授权能力）
-	ModelName sql.NullString
-	// 关联模型 ID，FK → models.id
-	ModelID string
-	// 权限名称，人类可读
-	Name string
-	// 权限描述
-	Description sql.NullString
-	// 列策略 JSON
-	ColumnPolicy *json.RawMessage
-	// 行策略 JSON，谓词为 GraphQL Runtime where 条件
-	RowPolicy *json.RawMessage
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	// 软删除时间戳，0 表示活跃
-	DeletedAt uint64
-	// 唯一键避让位，0 表示活跃
-	DeleteToken uint64
-}
-
 // 模型字段定义表
 type FieldDefinition struct {
 	// 所属模型ID
@@ -487,6 +351,8 @@ type FieldDefinition struct {
 	IsPrimary sql.NullBool
 	// 是否已废弃
 	IsDeprecated sql.NullBool
+	// 存储优化提示，通常为 DB 列名；非空表示该字段映射到实际 DB 列，参与 syncModelsFromDB 的 full sync
+	StorageHint sql.NullString
 	// 字段状态：init/active/inactive
 	Status string
 	// 字段验证规则配置
@@ -845,46 +711,6 @@ type ProjectAuthSchema struct {
 	Variables json.RawMessage
 	CreatedAt time.Time
 	UpdatedAt time.Time
-}
-
-// Project 级数据角色表
-type ProjectRole struct {
-	// 角色 ID (UUID)
-	ID string
-	// 所属 Org
-	OrgName string
-	// 所属项目
-	ProjectSlug string
-	// Project 内唯一角色名
-	Name string
-	// 角色描述
-	Description sql.NullString
-	// 内置隐式角色标志
-	IsImplicit bool
-	// 受保护角色：不可删除、不可改名、不可修改权限包关联
-	IsProtected bool
-	// 创建时间
-	CreatedAt time.Time
-	// 更新时间
-	UpdatedAt time.Time
-	// 软删除时间戳
-	DeletedAt uint64
-	// 唯一键避让位
-	DeleteToken uint64
-}
-
-// Project 级角色-用户关联表（纯关联，不可修改，删除重建）
-type ProjectRoleUser struct {
-	// 关联 ID (UUID)
-	ID string
-	// 所属 Org
-	OrgName string
-	// 角色 ID（引用 project_roles.id）
-	RoleID string
-	// 用户 ID（引用 users.id）
-	UserID string
-	// 创建时间
-	CreatedAt time.Time
 }
 
 type RefreshToken struct {
