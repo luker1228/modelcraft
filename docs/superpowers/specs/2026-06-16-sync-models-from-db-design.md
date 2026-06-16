@@ -184,7 +184,26 @@ CREATE TABLE model_sync_job (
 
 ---
 
-## Section 4：与现有代码的关系
+## Section 4：前置 DB Schema 变更
+
+`field_definitions` 表当前缺少 `storage_hint` 列，需先补充：
+
+```sql
+-- field_definitions 新增列
+ALTER TABLE field_definitions
+  ADD COLUMN `storage_hint` VARCHAR(128) NULL
+    COMMENT '存储优化提示，通常为 DB 列名；非空表示该字段映射到实际 DB 列，参与 syncModelsFromDB 的 full sync'
+    AFTER `is_deprecated`;
+```
+
+对应变更：
+- `db/schema/mysql/03_model_domain.sql`：`field_definitions` 表定义加 `storage_hint` 列
+- `db/queries/field.sql`：`CreateFieldDefinition` 和 `UpdateField` 加 `storage_hint` 参数
+- sqlc 重新生成后，infrastructure 层的 `CreateFieldDefinitionParams` / `UpdateFieldParams` 自动包含该字段
+
+---
+
+## Section 5：与现有代码的关系
 
 | 现有能力 | 复用方式 |
 |---------|---------|
@@ -195,7 +214,7 @@ CREATE TABLE model_sync_job (
 
 ---
 
-## Section 5：废弃 `importModel`
+## Section 6：废弃 `importModel`
 
 - `importModel` 唯一调用方：`ImportModelDialog.tsx`
 - 迁移方案：将 Dialog 改为调用 `syncModelsFromDB`（传 `tableNames: [tableName]`）
@@ -203,7 +222,7 @@ CREATE TABLE model_sync_job (
 
 ---
 
-## Section 6：测试策略
+## Section 7：测试策略
 
 ### 后端
 
@@ -225,12 +244,14 @@ CREATE TABLE model_sync_job (
 
 ---
 
-## Section 7：文件变更清单
+## Section 8：文件变更清单
 
 ### 后端
 
 | 文件 | 操作 |
 |------|------|
+| `db/schema/mysql/03_model_domain.sql` | 修改，`field_definitions` 加 `storage_hint` 列 |
+| `db/queries/field.sql` | 修改，`CreateFieldDefinition` / `UpdateField` 加 `storage_hint` |
 | `api/graph/project/schema/model.graphql` | 新增 `syncModelsFromDB` mutation、`ModelSyncJob` 类型、`modelSyncJob` query |
 | `internal/domain/modeldatabase/` | 新增 `ModelSyncJob` domain entity 和 repository 接口 |
 | `internal/app/modeldatabase/` | 新增 `SyncModelsFromDBUseCase`（触发 + 执行） |
@@ -249,13 +270,14 @@ CREATE TABLE model_sync_job (
 
 ---
 
-## 实施顺序
+## Section 9：实施顺序
 
-1. 后端：GraphQL schema（`model.graphql`）+ codegen
-2. 后端：DB 表 + sqlc 查询
-3. 后端：domain entity + repository
-4. 后端：app usecase（触发 + 执行逻辑）
-5. 后端：resolver
-6. 前端：contract 同步 + hooks
-7. 前端：`ImportModelDialog` 迁移
-8. 后续：移除 `importModel`
+1. **DB schema**：`03_model_domain.sql` 加 `storage_hint` 列 + sqlc 重新生成
+2. 后端：GraphQL schema（`model.graphql`）+ codegen
+3. 后端：`model_sync_job` 表 + sqlc 查询
+4. 后端：domain entity + repository
+5. 后端：app usecase（触发 + 执行逻辑）
+6. 后端：resolver
+7. 前端：contract 同步 + hooks
+8. 前端：`ImportModelDialog` 迁移
+9. 后续：移除 `importModel`

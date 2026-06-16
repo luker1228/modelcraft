@@ -224,6 +224,9 @@ CREATE TABLE IF NOT EXISTS `field_definitions` (
   `is_primary` TINYINT(1) NULL DEFAULT 0 COMMENT '是否主键',
   `is_deprecated` TINYINT(1) NULL DEFAULT 0 COMMENT '是否已废弃',
   
+  -- 存储提示（对应 DB 列名，非空表示该字段由 DB 同步而来）
+  `storage_hint` VARCHAR(128) NULL COMMENT '存储优化提示，通常为 DB 列名；非空表示该字段映射到实际 DB 列，参与 syncModelsFromDB 的 full sync',
+
   -- 状态和验证配置
   `status` VARCHAR(20) NOT NULL DEFAULT 'init' COMMENT '字段状态：init/active/inactive',
   `validation` JSON NULL COMMENT '字段验证规则配置',

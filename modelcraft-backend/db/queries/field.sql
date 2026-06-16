@@ -1,6 +1,6 @@
 -- name: CreateFieldDefinition :exec
-INSERT INTO field_definitions (model_id, org_name, project_slug, model_name, database_name, name, enum_name, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, relate_fk_id, belongs_to_fk_id, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
+INSERT INTO field_definitions (model_id, org_name, project_slug, model_name, database_name, name, enum_name, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, relate_fk_id, belongs_to_fk_id, storage_hint, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: GetFieldByModelIDAndName :one
 SELECT * FROM field_definitions
@@ -18,7 +18,7 @@ SELECT COUNT(*) FROM field_definitions WHERE model_id = ? AND name = ? AND `fiel
 
 -- name: UpdateField :execresult
 UPDATE field_definitions
-SET title = ?, description = ?, non_null = ?, required = ?, is_unique = ?, is_primary = ?, is_deprecated = ?, status = ?, validation = ?, display_order = ?, metadata = ?, updated_at = NOW(3)
+SET title = ?, description = ?, non_null = ?, required = ?, is_unique = ?, is_primary = ?, is_deprecated = ?, status = ?, validation = ?, display_order = ?, metadata = ?, storage_hint = ?, updated_at = NOW(3)
 WHERE model_id = ? AND name = ?;
 
 -- name: UpdateFieldDisplayOrder :exec
