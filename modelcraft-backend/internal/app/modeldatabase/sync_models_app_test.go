@@ -19,9 +19,9 @@ import (
 // ── fakes ────────────────────────────────────────────────────────────────────
 
 type fakeSyncModelsJobRepo struct {
-	jobs        map[string]*domaindb.ModelSyncJob
-	activeByDB  map[string]*domaindb.ModelSyncJob // key: databaseName
-	snapshots   []*domaindb.ModelSyncJob
+	jobs       map[string]*domaindb.ModelSyncJob
+	activeByDB map[string]*domaindb.ModelSyncJob // key: databaseName
+	snapshots  []*domaindb.ModelSyncJob
 }
 
 func newFakeSyncModelsJobRepo() *fakeSyncModelsJobRepo {

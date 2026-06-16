@@ -21,6 +21,8 @@ type ModelSyncFailedTable struct {
 
 type ModelSyncJob struct {
 	ID              string
+	BatchID         string
+	DatabaseID      string
 	OrgName         string
 	ProjectSlug     string
 	DatabaseName    string

@@ -30,6 +30,8 @@ func (r *SqlModelSyncJobRepository) Create(ctx context.Context, job *domaindb.Mo
 	}
 	return r.q.CreateModelSyncJob(ctx, dbgen.CreateModelSyncJobParams{
 		ID:              job.ID,
+		BatchID:         job.BatchID,
+		DatabaseID:      job.DatabaseID,
 		OrgName:         job.OrgName,
 		ProjectSlug:     job.ProjectSlug,
 		DatabaseName:    job.DatabaseName,
@@ -67,10 +69,10 @@ func (r *SqlModelSyncJobRepository) GetActiveByDatabase(
 	ctx context.Context, orgName, projectSlug, databaseName string, staleBefore time.Time,
 ) (*domaindb.ModelSyncJob, error) {
 	row, err := r.q.GetActiveModelSyncJobByDatabase(ctx, dbgen.GetActiveModelSyncJobByDatabaseParams{
-		OrgName:      orgName,
-		ProjectSlug:  projectSlug,
-		DatabaseName: databaseName,
-		UpdatedAt:    staleBefore,
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		DatabaseID:  databaseName,
+		UpdatedAt:   staleBefore,
 	})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
@@ -113,6 +115,8 @@ func modelSyncJobToDomain(row dbgen.ModelSyncJob) (*domaindb.ModelSyncJob, error
 	}
 	return &domaindb.ModelSyncJob{
 		ID:              row.ID,
+		BatchID:         row.BatchID,
+		DatabaseID:      row.DatabaseID,
 		OrgName:         row.OrgName,
 		ProjectSlug:     row.ProjectSlug,
 		DatabaseName:    row.DatabaseName,
