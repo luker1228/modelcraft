@@ -74,6 +74,45 @@ func (f *fakeSyncModelsJobRepo) Update(_ context.Context, job *domaindb.ModelSyn
 	return nil
 }
 
+func (f *fakeSyncModelsJobRepo) GetByIDs(
+	_ context.Context, orgName, projectSlug string, jobIDs []string,
+) ([]*domaindb.ModelSyncJob, error) {
+	var result []*domaindb.ModelSyncJob
+	for _, id := range jobIDs {
+		job := f.jobs[id]
+		if job == nil || job.OrgName != orgName || job.ProjectSlug != projectSlug {
+			continue
+		}
+		cloned := *job
+		result = append(result, &cloned)
+	}
+	return result, nil
+}
+
+func (f *fakeSyncModelsJobRepo) GetByBatchID(
+	_ context.Context, orgName, projectSlug, batchID string,
+) ([]*domaindb.ModelSyncJob, error) {
+	var result []*domaindb.ModelSyncJob
+	for _, job := range f.jobs {
+		if job.BatchID != batchID || job.OrgName != orgName || job.ProjectSlug != projectSlug {
+			continue
+		}
+		cloned := *job
+		result = append(result, &cloned)
+	}
+	return result, nil
+}
+
+func (f *fakeSyncModelsJobRepo) FailStalePendingJobs(_ context.Context, staleBefore time.Time) error {
+	for _, job := range f.jobs {
+		if (job.Status == domaindb.ModelSyncJobStatusPending || job.Status == domaindb.ModelSyncJobStatusRunning) &&
+			job.UpdatedAt.Before(staleBefore) {
+			job.Status = domaindb.ModelSyncJobStatusFailed
+		}
+	}
+	return nil
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 type fakeSyncModelsReverseEngineer struct {

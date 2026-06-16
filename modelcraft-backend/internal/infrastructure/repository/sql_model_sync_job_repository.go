@@ -179,5 +179,56 @@ func unmarshalModelSyncFailedTables(data json.RawMessage) ([]domaindb.ModelSyncF
 	return items, nil
 }
 
+func (r *SqlModelSyncJobRepository) GetByIDs(
+	ctx context.Context, orgName, projectSlug string, jobIDs []string,
+) ([]*domaindb.ModelSyncJob, error) {
+	if len(jobIDs) == 0 {
+		return nil, nil
+	}
+	rows, err := r.q.GetModelSyncJobsByIDs(ctx, dbgen.GetModelSyncJobsByIDsParams{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		Ids:         jobIDs,
+	})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*domaindb.ModelSyncJob, 0, len(rows))
+	for _, row := range rows {
+		job, err := modelSyncJobToDomain(row)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, job)
+	}
+	return result, nil
+}
+
+func (r *SqlModelSyncJobRepository) GetByBatchID(
+	ctx context.Context, orgName, projectSlug, batchID string,
+) ([]*domaindb.ModelSyncJob, error) {
+	rows, err := r.q.GetModelSyncJobsByBatchID(ctx, dbgen.GetModelSyncJobsByBatchIDParams{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		BatchID:     batchID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*domaindb.ModelSyncJob, 0, len(rows))
+	for _, row := range rows {
+		job, err := modelSyncJobToDomain(row)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, job)
+	}
+	return result, nil
+}
+
+func (r *SqlModelSyncJobRepository) FailStalePendingJobs(ctx context.Context, staleBefore time.Time) error {
+	return r.q.FailStaleModelSyncJobs(ctx, staleBefore)
+}
+
 // Ensure interface is fully implemented
 var _ domaindb.ModelSyncJobRepository = (*SqlModelSyncJobRepository)(nil)
