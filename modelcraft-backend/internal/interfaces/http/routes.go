@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"log"
 	"modelcraft/internal/app/auth"
 	"modelcraft/internal/app/cluster"
 	"modelcraft/internal/app/modeldesign"
@@ -200,10 +201,20 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	syncModelsSyncJobRepo := repository.NewSqlModelSyncJobRepository(dbgen.New(loggingDB))
 	syncModelsAppService := appmodeldatabase.NewSyncModelsAppService(appmodeldatabase.SyncModelsAppServiceDeps{
 		SyncJobRepo:     syncModelsSyncJobRepo,
+		DBRepo:          modelDatabaseRepo,
 		ReverseEngineer: reverseEngineerApp,
 		ModelRepo:       modelRepository,
 		FieldSyncer:     appService,
+		GroupService:    importGroupService,
 	})
+
+	// Recover stale model sync jobs on startup (non-blocking)
+	go func() {
+		ctx := context.Background()
+		if err := syncModelsAppService.RecoverStaleJobs(ctx); err != nil {
+			log.Printf("failed to recover stale model sync jobs: %v", err)
+		}
+	}()
 
 	// Create RLS related services (V2: multi-policy matching)
 	policyRepo := rlsRepo.NewSqlPolicyRepository(dbgen.New(loggingDB))

@@ -550,7 +550,30 @@ func (r *mutationResolver) MoveModelToGroup(ctx context.Context, input generated
 
 // StartModelSync is the resolver for the startModelSync field.
 func (r *mutationResolver) StartModelSync(ctx context.Context, targets []*generated.ModelSyncTargetInput) (*generated.StartModelSyncPayload, error) {
-	panic(fmt.Errorf("not implemented: StartModelSync - startModelSync"))
+	syncTargets := make([]appmodeldatabase.SyncTarget, len(targets))
+	for i, t := range targets {
+		tableNames := make([]string, len(t.TableNames))
+		copy(tableNames, t.TableNames)
+		syncTargets[i] = appmodeldatabase.SyncTarget{
+			DatabaseID: t.DatabaseID,
+			TableNames: tableNames,
+		}
+	}
+	batchID, jobs, err := r.SyncModelsAppService.StartModelSync(ctx, syncTargets)
+	if err != nil {
+		return nil, err
+	}
+	refs := make([]*generated.ModelSyncJobRef, len(jobs))
+	for i, job := range jobs {
+		refs[i] = &generated.ModelSyncJobRef{
+			DatabaseID: job.DatabaseID,
+			JobID:      job.ID,
+		}
+	}
+	return &generated.StartModelSyncPayload{
+		BatchID: batchID,
+		Jobs:    refs,
+	}, nil
 }
 
 // SyncModelsFromDb is the resolver for the syncModelsFromDB field.
@@ -891,7 +914,19 @@ func (r *queryResolver) ModelGroups(ctx context.Context) ([]*generated.ModelGrou
 
 // ModelSyncJobs is the resolver for the modelSyncJobs field.
 func (r *queryResolver) ModelSyncJobs(ctx context.Context, jobIds []string, batchID *string) ([]*generated.ModelSyncJob, error) {
-	panic(fmt.Errorf("not implemented: ModelSyncJobs - modelSyncJobs"))
+	bID := ""
+	if batchID != nil {
+		bID = *batchID
+	}
+	jobs, err := r.SyncModelsAppService.GetJobs(ctx, jobIds, bID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*generated.ModelSyncJob, len(jobs))
+	for i, job := range jobs {
+		result[i] = modelSyncJobToGQL(job)
+	}
+	return result, nil
 }
 
 // ModelSyncJob is the resolver for the modelSyncJob field.

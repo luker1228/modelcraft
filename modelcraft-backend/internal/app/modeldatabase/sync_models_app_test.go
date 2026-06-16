@@ -35,7 +35,11 @@ func (f *fakeSyncModelsJobRepo) Create(_ context.Context, job *domaindb.ModelSyn
 	cloned := *job
 	f.jobs[job.ID] = &cloned
 	if job.Status == domaindb.ModelSyncJobStatusPending || job.Status == domaindb.ModelSyncJobStatusRunning {
-		f.activeByDB[job.DatabaseName] = &cloned
+		key := job.DatabaseID
+		if key == "" {
+			key = job.DatabaseName
+		}
+		f.activeByDB[key] = &cloned
 	}
 	return nil
 }
@@ -67,8 +71,13 @@ func (f *fakeSyncModelsJobRepo) Update(_ context.Context, job *domaindb.ModelSyn
 	f.jobs[job.ID] = &cloned
 	f.snapshots = append(f.snapshots, &cloned)
 	if job.Status == domaindb.ModelSyncJobStatusPending || job.Status == domaindb.ModelSyncJobStatusRunning {
-		f.activeByDB[job.DatabaseName] = &cloned
+		key := job.DatabaseID
+		if key == "" {
+			key = job.DatabaseName
+		}
+		f.activeByDB[key] = &cloned
 	} else {
+		delete(f.activeByDB, job.DatabaseID)
 		delete(f.activeByDB, job.DatabaseName)
 	}
 	return nil
@@ -403,3 +412,66 @@ func TestSyncModels_SingleTableFailureContinues(t *testing.T) {
 	require.Len(t, saved.FailedTables, 1)
 	assert.Equal(t, "broken_table", saved.FailedTables[0].TableName)
 }
+func TestStartModelSync_BatchCreatesMultipleJobs(t *testing.T) {
+	jobRepo := newFakeSyncModelsJobRepo()
+	dbRepo := &fakeModelDatabaseRepo{byID: map[string]*domaindb.ModelDatabase{
+		"db-1": {ID: "db-1", Name: "mydb1", OrgName: "org-a", ProjectSlug: "proj-a"},
+		"db-2": {ID: "db-2", Name: "mydb2", OrgName: "org-a", ProjectSlug: "proj-a"},
+	}}
+	svc := NewSyncModelsAppService(SyncModelsAppServiceDeps{
+		SyncJobRepo:     jobRepo,
+		DBRepo:          dbRepo,
+		ReverseEngineer: &fakeSyncModelsReverseEngineer{},
+		ModelRepo:       &fakeSyncModelsModelRepo{},
+		FieldSyncer:     &fakeFieldSyncer{},
+		Runner:          syncRunner(),
+		Now:             syncNow,
+	})
+	ctx := syncModelsProjectCtx()
+
+	batchID, jobs, err := svc.StartModelSync(ctx, []SyncTarget{
+		{DatabaseID: "db-1", TableNames: nil},
+		{DatabaseID: "db-2", TableNames: []string{"orders"}},
+	})
+	require.NoError(t, err)
+	assert.NotEmpty(t, batchID)
+	assert.Len(t, jobs, 2)
+	assert.Equal(t, batchID, jobs[0].BatchID)
+	assert.Equal(t, batchID, jobs[1].BatchID)
+	assert.Equal(t, "db-1", jobs[0].DatabaseID)
+	assert.Equal(t, "mydb1", jobs[0].DatabaseName)
+	assert.Equal(t, "db-2", jobs[1].DatabaseID)
+	assert.Equal(t, []string{"orders"}, jobs[1].TableNames)
+}
+
+func TestStartModelSync_RejectsActiveJob(t *testing.T) {
+	jobRepo := newFakeSyncModelsJobRepo()
+	dbRepo := &fakeModelDatabaseRepo{byID: map[string]*domaindb.ModelDatabase{
+		"db-1": {ID: "db-1", Name: "mydb1", OrgName: "org-a", ProjectSlug: "proj-a"},
+	}}
+	// Seed active job for db-1
+	jobRepo.jobs["existing-job"] = &domaindb.ModelSyncJob{
+		ID:          "existing-job",
+		DatabaseID:  "db-1",
+		OrgName:     "org-a",
+		ProjectSlug: "proj-a",
+		Status:      domaindb.ModelSyncJobStatusRunning,
+	}
+	jobRepo.activeByDB["db-1"] = jobRepo.jobs["existing-job"]
+
+	svc := NewSyncModelsAppService(SyncModelsAppServiceDeps{
+		SyncJobRepo:     jobRepo,
+		DBRepo:          dbRepo,
+		ReverseEngineer: &fakeSyncModelsReverseEngineer{},
+		ModelRepo:       &fakeSyncModelsModelRepo{},
+		FieldSyncer:     &fakeFieldSyncer{},
+		Runner:          syncRunner(),
+		Now:             syncNow,
+	})
+	ctx := syncModelsProjectCtx()
+
+	_, _, err := svc.StartModelSync(ctx, []SyncTarget{{DatabaseID: "db-1"}})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "already running")
+}
+
