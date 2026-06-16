@@ -19,6 +19,7 @@ blacklist_tables:
   - role_permissions
   - end_user_accounts
   - end_user_role_users
+  - model_sync_job
 delete_token_tables:
   - organizations
   - users

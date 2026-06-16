@@ -185,6 +185,51 @@ func (ns NullModelRlsPoliciesAction) Value() (driver.Value, error) {
 	return string(ns.ModelRlsPoliciesAction), nil
 }
 
+type ModelSyncJobStatus string
+
+const (
+	ModelSyncJobStatusPending        ModelSyncJobStatus = "pending"
+	ModelSyncJobStatusRunning        ModelSyncJobStatus = "running"
+	ModelSyncJobStatusSucceeded      ModelSyncJobStatus = "succeeded"
+	ModelSyncJobStatusPartialSuccess ModelSyncJobStatus = "partial_success"
+	ModelSyncJobStatusFailed         ModelSyncJobStatus = "failed"
+)
+
+func (e *ModelSyncJobStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ModelSyncJobStatus(s)
+	case string:
+		*e = ModelSyncJobStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ModelSyncJobStatus: %T", src)
+	}
+	return nil
+}
+
+type NullModelSyncJobStatus struct {
+	ModelSyncJobStatus ModelSyncJobStatus
+	Valid              bool // Valid is true if ModelSyncJobStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullModelSyncJobStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ModelSyncJobStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ModelSyncJobStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullModelSyncJobStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ModelSyncJobStatus), nil
+}
+
 type ModelsCreatedVia string
 
 const (
@@ -610,6 +655,42 @@ type ModelRlsPolicy struct {
 	WithCheckExpr sql.NullString
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+}
+
+// syncModelsFromDB 异步任务表
+type ModelSyncJob struct {
+	// 任务唯一标识符
+	ID string
+	// 所属组织名称
+	OrgName string
+	// 所属项目标识符
+	ProjectSlug string
+	// 目标数据库名称
+	DatabaseName string
+	// 指定同步的表名列表，空数组表示全量
+	TableNames json.RawMessage
+	// 任务状态
+	Status ModelSyncJobStatus
+	// 扫描到的总表数
+	TotalTables int32
+	// 已处理表数
+	ProcessedTables int32
+	// 新建模型数
+	CreatedModels int32
+	// 已同步模型数
+	SyncedModels int32
+	// 失败表数
+	FailedCount int32
+	// 失败明细，格式：[{tableName, message}]
+	FailedTables json.RawMessage
+	// worker 开始时间
+	StartedAt sql.NullTime
+	// 任务结束时间
+	FinishedAt sql.NullTime
+	// 创建时间
+	CreatedAt time.Time
+	// 更新时间
+	UpdatedAt time.Time
 }
 
 // 组织表（多租户容器）

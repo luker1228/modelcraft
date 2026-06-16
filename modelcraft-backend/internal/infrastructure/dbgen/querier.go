@@ -28,6 +28,7 @@ type Querier interface {
 	CreateModelDatabase(ctx context.Context, arg CreateModelDatabaseParams) error
 	CreateModelDatabaseSyncJob(ctx context.Context, arg CreateModelDatabaseSyncJobParams) error
 	CreateModelGroup(ctx context.Context, arg CreateModelGroupParams) error
+	CreateModelSyncJob(ctx context.Context, arg CreateModelSyncJobParams) error
 	CreateOrganization(ctx context.Context, arg CreateOrganizationParams) error
 	CreatePermission(ctx context.Context, arg CreatePermissionParams) error
 	CreateProject(ctx context.Context, arg CreateProjectParams) error
@@ -71,6 +72,7 @@ type Querier interface {
 	FindLogicalForeignKeysByRefModelID(ctx context.Context, arg FindLogicalForeignKeysByRefModelIDParams) ([]FindLogicalForeignKeysByRefModelIDRow, error)
 	FindModelsByDeploymentStatus(ctx context.Context, statuses []sql.NullString) ([]Model, error)
 	GetActiveModelDatabaseSyncJobByDatabase(ctx context.Context, arg GetActiveModelDatabaseSyncJobByDatabaseParams) (ModelDatabaseSyncJob, error)
+	GetActiveModelSyncJobByDatabase(ctx context.Context, arg GetActiveModelSyncJobByDatabaseParams) (ModelSyncJob, error)
 	GetAllModels(ctx context.Context) ([]Model, error)
 	GetDatabaseClusterByID(ctx context.Context, arg GetDatabaseClusterByIDParams) (DatabaseCluster, error)
 	GetDatabaseClusterByProjectKey(ctx context.Context, arg GetDatabaseClusterByProjectKeyParams) (DatabaseCluster, error)
@@ -92,6 +94,7 @@ type Querier interface {
 	GetModelGroupByID(ctx context.Context, id string) (ModelGroup, error)
 	GetModelGroupByName(ctx context.Context, arg GetModelGroupByNameParams) (ModelGroup, error)
 	GetModelMetaByIDs(ctx context.Context, arg GetModelMetaByIDsParams) ([]Model, error)
+	GetModelSyncJobByID(ctx context.Context, arg GetModelSyncJobByIDParams) (ModelSyncJob, error)
 	GetOrganizationByName(ctx context.Context, name string) (Organization, error)
 	GetOrganizationByPhone(ctx context.Context, phone string) (Organization, error)
 	GetProfileByUserID(ctx context.Context, arg GetProfileByUserIDParams) (GetProfileByUserIDRow, error)
@@ -161,6 +164,7 @@ type Querier interface {
 	UpdateModelDatabaseSyncJob(ctx context.Context, arg UpdateModelDatabaseSyncJobParams) error
 	UpdateModelDeploymentStatus(ctx context.Context, arg UpdateModelDeploymentStatusParams) error
 	UpdateModelGroup(ctx context.Context, arg UpdateModelGroupParams) error
+	UpdateModelSyncJob(ctx context.Context, arg UpdateModelSyncJobParams) error
 	UpdateModelWithVersion(ctx context.Context, arg UpdateModelWithVersionParams) (sql.Result, error)
 	UpdateModelsGroupID(ctx context.Context, arg UpdateModelsGroupIDParams) error
 	UpdateOrganization(ctx context.Context, arg UpdateOrganizationParams) error
