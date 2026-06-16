@@ -115,6 +115,32 @@ paths:
               schema:
                 $ref: "common.yaml#/schemas/SystemError"
 
+  /api/tenant/auth/whoami:
+    get:
+      operationId: whoami
+      summary: Resolve current identity from a PAT token
+      tags: [Auth]
+      security: []
+      responses:
+        "200":
+          description: PAT identity resolved
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/WhoamiResponse"
+        "401":
+          description: Invalid or expired PAT token
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/WhoamiUnauthorizedError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/schemas/SystemError"
+
 schemas:
   # -- Auth domain errors --
   AuthInvalidInputError:
@@ -198,6 +224,27 @@ schemas:
             type: string
             enum:
               - AUTHENTICATION_FAILED
+          message:
+            type: string
+
+  WhoamiUnauthorizedError:
+    type: object
+    required:
+      - requestId
+      - error
+    properties:
+      requestId:
+        type: string
+      error:
+        type: object
+        required:
+          - code
+          - message
+        properties:
+          code:
+            type: string
+            enum:
+              - UNAUTHENTICATED
           message:
             type: string
 
@@ -334,3 +381,19 @@ schemas:
           expiresIn:
             type: integer
             description: Access token TTL in seconds
+
+  WhoamiResponse:
+    allOf:
+      - $ref: "common.yaml#/schemas/BaseResponse"
+      - type: object
+        required:
+          - userId
+          - orgName
+          - isAdmin
+        properties:
+          userId:
+            type: string
+          orgName:
+            type: string
+          isAdmin:
+            type: boolean

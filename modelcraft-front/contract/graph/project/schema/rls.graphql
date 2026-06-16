@@ -210,6 +210,13 @@ type SetModelRLSPolicyPayload {
 type ValidateRLSExprPayload {
   result: ValidationResult!
   error: ValidateRLSExprError
+  dryRun: RLSExprDryRun
+}
+
+type RLSExprDryRun {
+  sql: String
+  params: [String!]
+  result: Boolean
 }
 
 type SetProjectAuthSchemaPayload {
@@ -268,6 +275,11 @@ input ValidateRLSExprInput {
   表达式 JSON 字符串
   """
   expression: String!
+
+  """
+  check 表达式 dry run 时使用的示例输入 JSON
+  """
+  sampleInput: String
 }
 
 input AuthVariableInput {

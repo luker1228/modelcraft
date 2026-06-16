@@ -986,3 +986,35 @@ export const DELETE_LOGICAL_FOREIGN_KEY = gql`
     }
   }
 `
+
+export const SYNC_MODELS_FROM_DB_MUTATION = gql`
+  mutation SyncModelsFromDB($input: SyncModelsFromDBInput!) {
+    syncModelsFromDB(input: $input) {
+      jobId
+    }
+  }
+`
+
+export const MODEL_SYNC_JOB_QUERY = gql`
+  query ModelSyncJob($jobId: ID!) {
+    modelSyncJob(jobId: $jobId) {
+      id
+      databaseName
+      tableNames
+      status
+      totalTables
+      processedTables
+      createdModels
+      syncedModels
+      failedCount
+      failedTables {
+        tableName
+        message
+      }
+      startedAt
+      finishedAt
+      createdAt
+      updatedAt
+    }
+  }
+`

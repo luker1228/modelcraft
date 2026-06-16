@@ -5,7 +5,7 @@ const config: CodegenConfig = {
     'contract/graph/org/schema/*.graphql',
     'contract/graph/project/schema/*.graphql',
   ],
-  documents: 'src/api-client/**/*.ts',
+  documents: ['src/api-client/**/*.ts', '!src/api-client/rbac/**'],
   generates: {
     // 1. TypeScript 类型生成
     'src/generated/graphql.ts': {
@@ -31,6 +31,9 @@ const config: CodegenConfig = {
       schema: 'contract/graph/org/schema/*.graphql',
       plugins: ['typescript', 'typescript-operations', 'typescript-msw'],
       config: {
+        skipDocumentsValidation: {
+          skipValidationAgainstSchema: true,
+        },
         scalars: {
           DateTime: 'string',
           ID: 'string',
@@ -42,6 +45,9 @@ const config: CodegenConfig = {
       schema: 'contract/graph/project/schema/*.graphql',
       plugins: ['typescript', 'typescript-operations', 'typescript-msw'],
       config: {
+        skipDocumentsValidation: {
+          skipValidationAgainstSchema: true,
+        },
         scalars: {
           DateTime: 'string',
           ID: 'string',
