@@ -1018,3 +1018,41 @@ export const MODEL_SYNC_JOB_QUERY = gql`
     }
   }
 `
+
+export const MODEL_SYNC_JOBS_QUERY = gql`
+  query ModelSyncJobs($jobIds: [ID!], $batchId: ID) {
+    modelSyncJobs(jobIds: $jobIds, batchId: $batchId) {
+      id
+      batchId
+      databaseId
+      databaseName
+      tableNames
+      status
+      totalTables
+      processedTables
+      createdModels
+      syncedModels
+      failedCount
+      failedTables {
+        tableName
+        message
+      }
+      startedAt
+      finishedAt
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const START_MODEL_SYNC_MUTATION = gql`
+  mutation StartModelSync($targets: [ModelSyncTargetInput!]!) {
+    startModelSync(targets: $targets) {
+      batchId
+      jobs {
+        databaseId
+        jobId
+      }
+    }
+  }
+`

@@ -1,13 +1,13 @@
 import { useMutation, useQuery } from '@apollo/client'
 import {
-  MODEL_SYNC_JOB_QUERY,
+  MODEL_SYNC_JOBS_QUERY,
   SYNC_MODELS_FROM_DB_MUTATION,
 } from '@/api-client/model'
 import type {
   SyncModelsFromDbMutation,
   SyncModelsFromDbMutationVariables,
-  ModelSyncJobQuery,
-  ModelSyncJobQueryVariables,
+  ModelSyncJobsQuery,
+  ModelSyncJobsQueryVariables,
 } from '@/generated/graphql'
 import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 
@@ -24,9 +24,9 @@ export function useModelSyncJob(
   projectSlug: string | null | undefined
 ) {
   const client = useProjectScopedClient(projectSlug)
-  return useQuery<ModelSyncJobQuery, ModelSyncJobQueryVariables>(MODEL_SYNC_JOB_QUERY, {
+  return useQuery<ModelSyncJobsQuery, ModelSyncJobsQueryVariables>(MODEL_SYNC_JOBS_QUERY, {
     client,
-    variables: { jobId: jobId! },
+    variables: { jobIds: jobId ? [jobId] : [] },
     skip: !jobId,
     pollInterval: 2000,
   })

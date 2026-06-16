@@ -84,8 +84,9 @@ export function ImportModelDialog({
 
   // Watch async job status
   useEffect(() => {
-    if (!jobData?.modelSyncJob) return
-    const status = jobData.modelSyncJob.status
+    const job = jobData?.modelSyncJobs?.[0]
+    if (!job) return
+    const status = job.status
     if (status === 'SUCCEEDED' || status === 'PARTIAL_SUCCESS') {
       toast.success('模型导入成功')
       setJobId(null)
