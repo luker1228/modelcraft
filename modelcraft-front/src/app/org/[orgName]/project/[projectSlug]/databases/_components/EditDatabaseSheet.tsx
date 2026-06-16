@@ -13,12 +13,10 @@ import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
 import { Label } from '@web/components/ui/label'
 import { Textarea } from '@web/components/ui/textarea'
-import { RadioGroup, RadioGroupItem } from '@web/components/ui/radio-group'
 import { Loader2 } from 'lucide-react'
 import {
   useUpdateModelDatabase,
   type ModelDatabase,
-  type DatabaseMode,
 } from '@web/hooks/model-database/use-model-databases'
 
 interface EditDatabaseSheetProps {
@@ -32,19 +30,17 @@ export function EditDatabaseSheet({ database, onClose }: EditDatabaseSheetProps)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [mode, setMode] = useState<DatabaseMode>('MANAGED')
 
   useEffect(() => {
     if (database) {
       setTitle(database.title)
       setDescription(database.description)
-      setMode(database.mode)
     }
   }, [database])
 
   const handleSave = async () => {
     if (!database) return
-    await update(database.id, { title, description, mode })
+    await update(database.id, { title, description })
     onClose()
   }
 
@@ -75,29 +71,6 @@ export function EditDatabaseSheet({ database, onClose }: EditDatabaseSheetProps)
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
             />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label>访问模式</Label>
-            <RadioGroup value={mode} onValueChange={(v) => setMode(v as DatabaseMode)}>
-              <div className="flex items-start gap-3 rounded-md border border-border p-3">
-                <RadioGroupItem value="SELF_HOSTED" id="edit-mode-self" className="mt-0.5" />
-                <div>
-                  <label htmlFor="edit-mode-self" className="cursor-pointer text-sm font-medium">
-                    自建
-                  </label>
-                  <p className="text-xs text-muted-foreground">可读写，支持新建和导入模型</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-md border border-border p-3">
-                <RadioGroupItem value="MANAGED" id="edit-mode-managed" className="mt-0.5" />
-                <div>
-                  <label htmlFor="edit-mode-managed" className="cursor-pointer text-sm font-medium">
-                    托管
-                  </label>
-                  <p className="text-xs text-muted-foreground">禁止写请求，仅支持同步现有表</p>
-                </div>
-              </div>
-            </RadioGroup>
           </div>
         </div>
         <SheetFooter>

@@ -723,13 +723,14 @@ func (this ModelAlreadyExists) GetMessage() string { return this.Message }
 func (ModelAlreadyExists) IsCreateModelError() {}
 
 type ModelDatabase struct {
-	ID          string       `json:"id"`
-	Name        string       `json:"name"`
-	Title       string       `json:"title"`
-	Description string       `json:"description"`
-	Mode        DatabaseMode `json:"mode"`
-	CreatedAt   time.Time    `json:"createdAt"`
-	UpdatedAt   time.Time    `json:"updatedAt"`
+	ID              string       `json:"id"`
+	Name            string       `json:"name"`
+	Title           string       `json:"title"`
+	Description     string       `json:"description"`
+	Mode            DatabaseMode `json:"mode"`
+	LatestSyncJobID *string      `json:"latestSyncJobId,omitempty"`
+	CreatedAt       time.Time    `json:"createdAt"`
+	UpdatedAt       time.Time    `json:"updatedAt"`
 }
 
 func (ModelDatabase) IsRegisterModelDatabaseResult() {}

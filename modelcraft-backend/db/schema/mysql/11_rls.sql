@@ -12,37 +12,6 @@ ALTER TABLE models
 
 CREATE INDEX idx_models_created_via ON models(created_via);
 
--- ----------------------------------------
--- 2. 创建 model_rls_policies 表
--- ----------------------------------------
-CREATE TABLE IF NOT EXISTS model_rls_policies (
-    id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    model_id            VARCHAR(36) NOT NULL COMMENT '模型 ID',
-
-    -- 五件套 JSON 表达式（存储为 JSON 字符串）
-    select_predicate    TEXT NOT NULL COMMENT 'SELECT USING 谓词 JSON',
-    insert_check        TEXT NOT NULL COMMENT 'INSERT WITH CHECK 谓词 JSON',
-    update_predicate    TEXT NOT NULL COMMENT 'UPDATE USING 谓词 JSON',
-    update_check        TEXT NOT NULL COMMENT 'UPDATE WITH CHECK 谓词 JSON',
-    delete_predicate    TEXT NOT NULL COMMENT 'DELETE USING 谓词 JSON',
-
-    -- 元数据
-    created_at          DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    updated_at          DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
-
-    -- 外键约束
-    CONSTRAINT fk_mrp_model
-        FOREIGN KEY (model_id) REFERENCES models(id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
-
-    -- 唯一约束：每个模型只有一个 Policy
-    UNIQUE KEY uk_model_id (model_id)
-
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Model RLS 策略配置';
-
-CREATE INDEX idx_mrp_model_id ON model_rls_policies(model_id);
 
 -- ----------------------------------------
 -- 3. 创建 project_auth_schemas 表

@@ -4,9 +4,28 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ImportModelDialog } from './ImportModelDialog'
 
-const mockUseQuery = vi.fn()
-const mockUseModelSyncJob = vi.fn()
-const mockStartSync = vi.fn()
+type UseQueryResult = {
+  data?: {
+    listTables?: {
+      items: Array<{ name: string }>
+      totalCount: number
+    }
+  }
+  loading: boolean
+}
+
+type UseModelSyncJobResult = {
+  data?: {
+    modelSyncJobs: Array<{ status: string }>
+  }
+  loading: boolean
+}
+
+const mockUseQuery = vi.fn<(...args: unknown[]) => UseQueryResult>()
+const mockUseModelSyncJob = vi.fn<(...args: unknown[]) => UseModelSyncJobResult>()
+const mockStartSync = vi.fn<
+  (...args: unknown[]) => Promise<{ batchId: string; jobs: Array<{ databaseId: string; jobId: string }> }>
+>()
 const mockToastError = vi.fn()
 const mockToastSuccess = vi.fn()
 
@@ -35,8 +54,12 @@ vi.mock('@api-client/apollo/develop-client', () => ({
 
 vi.mock('sonner', () => ({
   toast: {
-    error: (...args: unknown[]) => mockToastError(...args),
-    success: (...args: unknown[]) => mockToastSuccess(...args),
+    error: (...args: unknown[]) => {
+      mockToastError(...args)
+    },
+    success: (...args: unknown[]) => {
+      mockToastSuccess(...args)
+    },
   },
 }))
 

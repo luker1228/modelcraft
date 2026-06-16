@@ -14,14 +14,15 @@ const (
 
 // ModelDatabase 项目数据库注册实体
 type ModelDatabase struct {
-	ID          string
-	OrgName     string
-	ProjectSlug string
-	ClusterID   string
-	Name        string
-	Title       string
-	Description string
-	Mode        DatabaseMode
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID              string
+	OrgName         string
+	ProjectSlug     string
+	ClusterID       string
+	Name            string
+	Title           string
+	Description     string
+	Mode            DatabaseMode
+	LatestSyncJobID *string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }

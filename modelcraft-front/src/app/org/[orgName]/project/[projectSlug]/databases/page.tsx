@@ -42,8 +42,10 @@ import {
   useUnregisterModelDatabase,
   useStartModelDatabaseSync,
   useFetchModelDatabaseSyncJob,
+  useModelSyncJobs,
   type ModelDatabase,
   type ModelDatabaseSyncJob,
+  type ModelSyncJob,
 } from '@web/hooks/model-database/use-model-databases'
 import { RegisterDatabaseDialog } from './_components/RegisterDatabaseDialog'
 import { EditDatabaseSheet } from './_components/EditDatabaseSheet'
@@ -65,6 +67,7 @@ export default function DatabasesPage() {
   const { unregister } = useUnregisterModelDatabase(params.projectSlug)
   const { startSync, loading: syncStarting } = useStartModelDatabaseSync(params.projectSlug)
   const { fetchJob } = useFetchModelDatabaseSyncJob(params.projectSlug)
+  const { getJobs } = useModelSyncJobs(params.projectSlug)
 
   const [registerOpen, setRegisterOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<ModelDatabase | null>(null)
@@ -90,6 +93,41 @@ export default function DatabasesPage() {
       pollersRef.current = {}
     }
   }, [])
+
+  // Load initial sync job states from latestSyncJobId on each database
+  useEffect(() => {
+    if (databases.length === 0) return
+    const jobIds = databases
+      .map((db) => db.latestSyncJobId)
+      .filter((id): id is string => !!id)
+    if (jobIds.length === 0) return
+    void getJobs(jobIds).then((jobs: ModelSyncJob[]) => {
+      setJobsByDatabaseId((prev) => {
+        const next = { ...prev }
+        jobs.forEach((job) => {
+          // Only set if not already tracking a newer job
+          if (!next[job.databaseId]) {
+            next[job.databaseId] = {
+              id: job.id,
+              databaseId: job.databaseId,
+              status: job.status as ModelDatabaseSyncJob['status'],
+              totalTables: job.totalTables,
+              processedTables: job.processedTables,
+              createdModels: job.createdModels,
+              syncedModels: job.syncedModels,
+              failedCount: job.failedCount,
+              failedTables: job.failedTables,
+              startedAt: job.startedAt ?? null,
+              finishedAt: job.finishedAt ?? null,
+              createdAt: job.createdAt,
+              updatedAt: job.updatedAt,
+            }
+          }
+        })
+        return next
+      })
+    })
+  }, [databases, getJobs])
 
   const upsertJob = (job: ModelDatabaseSyncJob) => {
     setJobsByDatabaseId((prev) => ({ ...prev, [job.databaseId]: job }))
@@ -221,7 +259,6 @@ export default function DatabasesPage() {
                 <TableRow>
                   <TableHead>名称</TableHead>
                   <TableHead>描述</TableHead>
-                  <TableHead>模式</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead className="w-16" />
                 </TableRow>
@@ -230,7 +267,7 @@ export default function DatabasesPage() {
                 {displayedDatabases.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={4}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       暂无已注册的数据库，点击右上角"注册数据库"开始
@@ -258,23 +295,6 @@ export default function DatabasesPage() {
                       </TableCell>
                       <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
                         {db.description || '—'}
-                      </TableCell>
-                      <TableCell>
-                        {db.mode === 'SELF_HOSTED' ? (
-                          <Badge
-                            variant="outline"
-                            className="w-fit border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
-                          >
-                            自建
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="w-fit border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400"
-                          >
-                            托管
-                          </Badge>
-                        )}
                       </TableCell>
                       <TableCell>
                         {renderJobStatus(jobsByDatabaseId[db.id]) ?? (

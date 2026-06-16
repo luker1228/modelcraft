@@ -1,6 +1,6 @@
 -- name: CreateModelDatabase :exec
-INSERT INTO model_database (id, org_name, project_slug, cluster_id, name, title, description, mode, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
+INSERT INTO model_database (id, org_name, project_slug, cluster_id, name, title, description, mode, latest_sync_job_id, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: GetModelDatabaseByID :one
 SELECT * FROM model_database
@@ -35,7 +35,12 @@ WHERE org_name = ?
 
 -- name: UpdateModelDatabase :exec
 UPDATE model_database
-SET title = ?, description = ?, mode = ?, updated_at = NOW(3)
+SET title = ?, description = ?, mode = ?, latest_sync_job_id = ?, updated_at = NOW(3)
+WHERE id = ? AND org_name = ? AND project_slug = ? AND `model_database`.`deleted_at` = 0;
+
+-- name: UpdateModelDatabaseLatestSyncJob :exec
+UPDATE model_database
+SET latest_sync_job_id = ?, updated_at = NOW(3)
 WHERE id = ? AND org_name = ? AND project_slug = ? AND `model_database`.`deleted_at` = 0;
 
 -- name: DeleteModelDatabase :exec

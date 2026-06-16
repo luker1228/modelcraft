@@ -26,6 +26,7 @@ type SyncTarget struct {
 type syncModelsDBRepo interface {
 	GetByID(ctx context.Context, orgName, projectSlug, id string) (*domaindb.ModelDatabase, error)
 	GetByName(ctx context.Context, orgName, projectSlug, name string) (*domaindb.ModelDatabase, error)
+	UpdateLatestSyncJobID(ctx context.Context, orgName, projectSlug, databaseID, jobID string) error
 }
 
 // syncModelsGroupService is the subset of ModelGroupAppService used here.
@@ -268,6 +269,16 @@ func (s *SyncModelsAppService) StartModelSync(
 		}
 		if cerr := s.syncJobRepo.Create(ctx, job); cerr != nil {
 			return "", nil, cerr
+		}
+		if s.dbRepo != nil {
+			if uerr := s.dbRepo.UpdateLatestSyncJobID(ctx, orgName, projectSlug, target.DatabaseID, job.ID); uerr != nil {
+				logfacade.GetLogger(ctx).Warn(
+					ctx, "failed to update latest_sync_job_id",
+					logfacade.String("database_id", target.DatabaseID),
+					logfacade.String("job_id", job.ID),
+					logfacade.Err(uerr),
+				)
+			}
 		}
 		jobs = append(jobs, job)
 	}

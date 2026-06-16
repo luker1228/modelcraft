@@ -7,13 +7,14 @@ import (
 
 func modelDatabaseToGQL(db *domainmodeldatabase.ModelDatabase) *generated.ModelDatabase {
 	return &generated.ModelDatabase{
-		ID:          db.ID,
-		Name:        db.Name,
-		Title:       db.Title,
-		Description: db.Description,
-		Mode:        domainDatabaseModeToGQL(db.Mode),
-		CreatedAt:   db.CreatedAt,
-		UpdatedAt:   db.UpdatedAt,
+		ID:              db.ID,
+		Name:            db.Name,
+		Title:           db.Title,
+		Description:     db.Description,
+		Mode:            domainDatabaseModeToGQL(db.Mode),
+		LatestSyncJobID: db.LatestSyncJobID,
+		CreatedAt:       db.CreatedAt,
+		UpdatedAt:       db.UpdatedAt,
 	}
 }
 

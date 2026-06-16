@@ -520,6 +520,8 @@ type ModelDatabase struct {
 	Description sql.NullString
 	// self_hosted=可读写; managed=只读
 	Mode ModelDatabaseMode
+	// 最近一次 ModelSyncJob ID
+	LatestSyncJobID sql.NullString
 	// 软删除时间戳，0 表示活跃
 	DeletedAt uint64
 	// 唯一键避让位，0 表示活跃

@@ -404,13 +404,14 @@ type ComplexityRoot struct {
 	}
 
 	ModelDatabase struct {
-		CreatedAt   func(childComplexity int) int
-		Description func(childComplexity int) int
-		ID          func(childComplexity int) int
-		Mode        func(childComplexity int) int
-		Name        func(childComplexity int) int
-		Title       func(childComplexity int) int
-		UpdatedAt   func(childComplexity int) int
+		CreatedAt       func(childComplexity int) int
+		Description     func(childComplexity int) int
+		ID              func(childComplexity int) int
+		LatestSyncJobID func(childComplexity int) int
+		Mode            func(childComplexity int) int
+		Name            func(childComplexity int) int
+		Title           func(childComplexity int) int
+		UpdatedAt       func(childComplexity int) int
 	}
 
 	ModelDatabaseSyncFailedTable struct {
@@ -2036,6 +2037,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ModelDatabase.ID(childComplexity), true
+	case "ModelDatabase.latestSyncJobId":
+		if e.complexity.ModelDatabase.LatestSyncJobID == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabase.LatestSyncJobID(childComplexity), true
 	case "ModelDatabase.mode":
 		if e.complexity.ModelDatabase.Mode == nil {
 			break
@@ -4121,6 +4128,7 @@ type ModelDatabase {
   title: String!
   description: String!
   mode: DatabaseMode!
+  latestSyncJobId: ID
   createdAt: Time!
   updatedAt: Time!
 }
@@ -6684,6 +6692,8 @@ func (ec *executionContext) fieldContext_BatchRegisterModelDatabaseResult_succee
 				return ec.fieldContext_ModelDatabase_description(ctx, field)
 			case "mode":
 				return ec.fieldContext_ModelDatabase_mode(ctx, field)
+			case "latestSyncJobId":
+				return ec.fieldContext_ModelDatabase_latestSyncJobId(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ModelDatabase_createdAt(ctx, field)
 			case "updatedAt":
@@ -12166,6 +12176,35 @@ func (ec *executionContext) fieldContext_ModelDatabase_mode(_ context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _ModelDatabase_latestSyncJobId(ctx context.Context, field graphql.CollectedField, obj *ModelDatabase) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabase_latestSyncJobId,
+		func(ctx context.Context) (any, error) {
+			return obj.LatestSyncJobID, nil
+		},
+		nil,
+		ec.marshalOID2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabase_latestSyncJobId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabase",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ModelDatabase_createdAt(ctx context.Context, field graphql.CollectedField, obj *ModelDatabase) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -14346,6 +14385,8 @@ func (ec *executionContext) fieldContext_Mutation_updateModelDatabase(ctx contex
 				return ec.fieldContext_ModelDatabase_description(ctx, field)
 			case "mode":
 				return ec.fieldContext_ModelDatabase_mode(ctx, field)
+			case "latestSyncJobId":
+				return ec.fieldContext_ModelDatabase_latestSyncJobId(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ModelDatabase_createdAt(ctx, field)
 			case "updatedAt":
@@ -17194,6 +17235,8 @@ func (ec *executionContext) fieldContext_Query_modelDatabases(_ context.Context,
 				return ec.fieldContext_ModelDatabase_description(ctx, field)
 			case "mode":
 				return ec.fieldContext_ModelDatabase_mode(ctx, field)
+			case "latestSyncJobId":
+				return ec.fieldContext_ModelDatabase_latestSyncJobId(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_ModelDatabase_createdAt(ctx, field)
 			case "updatedAt":
@@ -28017,6 +28060,8 @@ func (ec *executionContext) _ModelDatabase(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "latestSyncJobId":
+			out.Values[i] = ec._ModelDatabase_latestSyncJobId(ctx, field, obj)
 		case "createdAt":
 			out.Values[i] = ec._ModelDatabase_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

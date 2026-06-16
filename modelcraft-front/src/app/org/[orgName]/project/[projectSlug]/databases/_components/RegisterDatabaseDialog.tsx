@@ -12,7 +12,6 @@ import {
 } from '@web/components/ui/dialog'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
-import { Label } from '@web/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -20,18 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@web/components/ui/select'
-import { HelpCircle, Loader2, Plus, Trash2 } from 'lucide-react'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@web/components/ui/tooltip'
+import { Loader2, Plus, Trash2 } from 'lucide-react'
 import {
   useClusterRawDatabases,
   useBatchRegisterModelDatabase,
   type ModelDatabase,
-  type DatabaseMode,
   type RegisterModelDatabaseInput,
 } from '@web/hooks/model-database/use-model-databases'
 
@@ -40,7 +32,6 @@ interface DbRow {
   name: string
   title: string
   description: string
-  mode: DatabaseMode
   error?: string
 }
 
@@ -90,35 +81,6 @@ function DbRowForm({ row, options, onUpdate, onRemove }: DbRowFormProps) {
           placeholder="描述（可选）"
           className="flex-1"
         />
-        <div className="flex shrink-0 items-center gap-1">
-          <Select
-            value={row.mode}
-            onValueChange={(v) => onUpdate({ mode: v as DatabaseMode })}
-          >
-            <SelectTrigger className="w-24">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="MANAGED">托管</SelectItem>
-              <SelectItem value="SELF_HOSTED">自建</SelectItem>
-            </SelectContent>
-          </Select>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <HelpCircle className="size-4 shrink-0 cursor-default text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-56 text-center leading-relaxed">
-                <p>
-                  <span className="font-medium">托管</span>：由 ModelCraft 托管，禁止写请求，仅同步现有表。
-                </p>
-                <p className="mt-1">
-                  <span className="font-medium">自建</span>：你自己部署的数据库，可读写，支持新建和导入模型。
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
         <Button
           variant="ghost"
           size="icon"
@@ -153,7 +115,7 @@ export function RegisterDatabaseDialog({
   const addRow = () => {
     setRows((prev) => [
       ...prev,
-      { id: generateUUID(), name: '', title: '', description: '', mode: 'MANAGED' },
+      { id: generateUUID(), name: '', title: '', description: '' },
     ])
   }
 
@@ -177,7 +139,7 @@ export function RegisterDatabaseDialog({
       name: r.name,
       title: r.title,
       description: r.description || undefined,
-      mode: r.mode,
+      mode: 'SELF_HOSTED',
     }))
     const result = await batchRegister(inputs)
     const successNames = new Set(result.succeeded.map((d) => d.name))
@@ -203,6 +165,9 @@ export function RegisterDatabaseDialog({
           <DialogTitle>批量注册数据库</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3 py-2">
+          <p className="text-sm text-muted-foreground">
+            数据库统一按可写模式注册，支持导入和后续模型维护。
+          </p>
           {rawLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" /> 加载数据库列表...

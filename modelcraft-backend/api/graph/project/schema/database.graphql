@@ -28,6 +28,7 @@ type ModelDatabase {
   title: String!
   description: String!
   mode: DatabaseMode!
+  latestSyncJobId: ID
   createdAt: Time!
   updatedAt: Time!
 }

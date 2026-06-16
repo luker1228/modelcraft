@@ -3,6 +3,8 @@
 
 CREATE TABLE IF NOT EXISTS `model_sync_job` (
   `id`               VARCHAR(36)  NOT NULL COMMENT '任务唯一标识符',
+  `batch_id`         VARCHAR(36)  NOT NULL DEFAULT '' COMMENT '批次 ID，同批次多条 job 共享',
+  `database_id`      VARCHAR(36)  NOT NULL DEFAULT '' COMMENT '关联 model_database.id',
   `org_name`         VARCHAR(64)  NOT NULL COMMENT '所属组织名称',
   `project_slug`     VARCHAR(64)  NOT NULL COMMENT '所属项目标识符',
   `database_name`    VARCHAR(128) NOT NULL COMMENT '目标数据库名称',
@@ -20,7 +22,9 @@ CREATE TABLE IF NOT EXISTS `model_sync_job` (
   `updated_at`       DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
 
   PRIMARY KEY (`id`),
-  INDEX `idx_model_sync_job_project_db` (`org_name`, `project_slug`, `database_name`, `created_at`),
-  INDEX `idx_model_sync_job_status`     (`org_name`, `project_slug`, `status`)
+  INDEX `idx_model_sync_job_project_db`   (`org_name`, `project_slug`, `database_name`, `created_at`),
+  INDEX `idx_model_sync_job_status`       (`org_name`, `project_slug`, `status`),
+  INDEX `idx_model_sync_job_batch`        (`org_name`, `project_slug`, `batch_id`),
+  INDEX `idx_model_sync_job_database_id`  (`org_name`, `project_slug`, `database_id`)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='syncModelsFromDB 异步任务表';

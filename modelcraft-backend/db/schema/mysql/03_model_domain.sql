@@ -32,6 +32,9 @@ CREATE TABLE IF NOT EXISTS `models` (
   `last_sync_at` DATETIME(3) NULL COMMENT '最后同步时间',
   `sync_error` TEXT NULL COMMENT '同步错误信息',
 
+  -- 创建来源字段
+  `created_via` ENUM('NEW', 'IMPORTED') NOT NULL DEFAULT 'NEW' COMMENT '模型创建来源：NEW=新建，IMPORTED=导入',
+
   -- 只读控制字段（与 createdVia 解耦，由数据库 mode 决定）
   `is_read_only` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否只读：1=只读（禁止结构修改），0=可编辑',
 

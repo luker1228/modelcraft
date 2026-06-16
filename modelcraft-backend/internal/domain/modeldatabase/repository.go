@@ -17,6 +17,8 @@ type ModelDatabaseRepository interface {
 	List(ctx context.Context, orgName, projectSlug string) ([]*ModelDatabase, error)
 	// Update 更新数据库注册记录
 	Update(ctx context.Context, orgName, projectSlug string, db *ModelDatabase) error
+	// UpdateLatestSyncJobID 更新最近同步任务 ID
+	UpdateLatestSyncJobID(ctx context.Context, orgName, projectSlug, databaseID, jobID string) error
 	// Delete 软删除数据库注册记录
 	Delete(ctx context.Context, orgName, projectSlug, id string) error
 }

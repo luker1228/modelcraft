@@ -9,6 +9,7 @@ export const MODEL_DATABASE_FRAGMENT = gql`
     title
     description
     mode
+    latestSyncJobId
     createdAt
     updatedAt
   }

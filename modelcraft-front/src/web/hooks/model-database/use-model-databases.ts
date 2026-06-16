@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@apollo/client'
+import { useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import {
   LIST_MODEL_DATABASES,
   LIST_CLUSTER_RAW_DATABASES,
@@ -9,6 +9,7 @@ import {
   START_MODEL_DATABASE_SYNC,
   GET_MODEL_DATABASE_SYNC_JOB,
 } from '@/api-client/project'
+import { MODEL_SYNC_JOBS_QUERY } from '@/api-client/model/graphql-docs'
 import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 
 // ── Types ────────────────────────────────────────────────────────────────────────
@@ -21,6 +22,7 @@ export interface ModelDatabase {
   title: string
   description: string
   mode: DatabaseMode
+  latestSyncJobId?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -242,6 +244,38 @@ export interface BatchRegisterResult {
   failed: BatchRegisterError[]
 }
 
+// ── ModelSyncJob (new sync API) ─────────────────────────────────────────────────
+
+export type ModelSyncJobStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED'
+
+export interface ModelSyncFailedTable {
+  tableName: string
+  message: string
+}
+
+export interface ModelSyncJob {
+  id: string
+  batchId: string
+  databaseId: string
+  databaseName: string
+  tableNames: string[]
+  status: ModelSyncJobStatus
+  totalTables: number
+  processedTables: number
+  createdModels: number
+  syncedModels: number
+  failedCount: number
+  failedTables: ModelSyncFailedTable[]
+  startedAt?: string | null
+  finishedAt?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+interface ModelSyncJobsData {
+  modelSyncJobs: ModelSyncJob[]
+}
+
 interface BatchRegisterModelDatabaseData {
   batchRegisterModelDatabases: BatchRegisterResult
 }
@@ -262,4 +296,17 @@ export function useBatchRegisterModelDatabase(projectSlug: string) {
   }
 
   return { batchRegister, loading }
+}
+
+export function useModelSyncJobs(projectSlug: string | null | undefined) {
+  const client = useProjectScopedClient(projectSlug)
+  const [fetchJobs] = useLazyQuery<ModelSyncJobsData>(MODEL_SYNC_JOBS_QUERY, { client })
+
+  const getJobs = async (jobIds: string[]) => {
+    if (jobIds.length === 0) return []
+    const result = await fetchJobs({ variables: { jobIds } })
+    return result.data?.modelSyncJobs ?? []
+  }
+
+  return { getJobs }
 }

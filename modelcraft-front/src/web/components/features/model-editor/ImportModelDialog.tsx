@@ -99,7 +99,7 @@ export function ImportModelDialog({
       toast.error('导入失败，请重试')
       setJobId(null)
     }
-  }, [jobData, onSuccess, onOpenChange])
+  }, [job, onSuccess, onOpenChange])
 
   const isJobRunning = job?.status === 'PENDING' || job?.status === 'RUNNING'
   const isImporting = syncing || (!!jobId && (jobLoading || isJobRunning))

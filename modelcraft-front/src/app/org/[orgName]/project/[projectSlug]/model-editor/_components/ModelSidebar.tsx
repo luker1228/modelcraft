@@ -189,57 +189,39 @@ export function ModelSidebar({
         {/* Action buttons */}
         {viewMode === 'schema' && (
         <div className="flex flex-col gap-1 px-3 py-2.5">
-          {(() => {
-            const selectedDbMode = databases.find((db) => db.name === state.selectedDatabase)?.mode
-            const canWrite = !selectedDbMode || selectedDbMode === 'SELF_HOSTED'
-            return canWrite ? (
-              <>
-                {/* 新建模型已禁用：系统不再支持直接创建模型，仅支持从数据库导入/同步 */}
-                {/*
-                <Button
-                  ref={createModelBtnRef}
-                  size="sm"
-                  variant="outline"
-                  className={cn(
-                    'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
-                    !state.selectedDatabase && 'pointer-events-none opacity-40',
-                    pendingAction === 'nav_create_model' && state.selectedDatabase && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
-                  )}
-                  onClick={handleCreateModelClick}
-                  disabled={!state.selectedDatabase}
-                >
-                  <Plus className="mr-1 size-3.5" />
-                  新建模型
-                </Button>
-                */}
-                <Button
-                  ref={importModelBtnRef}
-                  size="sm"
-                  variant="outline"
-                  className={cn(
-                    'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
-                    !state.selectedDatabase && 'pointer-events-none opacity-40',
-                    pendingAction === 'nav_import_model' && state.selectedDatabase && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
-                  )}
-                  onClick={handleImportModelClick}
-                  disabled={!state.selectedDatabase}
-                >
-                  <Download className="mr-1 size-3.5" strokeWidth={1.5} />
-                  导入模型
-                </Button>
-              </>
-            ) : state.selectedDatabase ? (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 w-full justify-start px-2.5 text-xs font-normal"
-                onClick={() => state.setImportDialogOpen(true)}
-              >
-                <Download className="mr-1 size-3.5" strokeWidth={1.5} />
-                同步模型
-              </Button>
-            ) : null
-          })()}
+          {/* 新建模型已禁用：系统不再支持直接创建模型，仅支持从数据库导入/同步 */}
+          {/*
+          <Button
+            ref={createModelBtnRef}
+            size="sm"
+            variant="outline"
+            className={cn(
+              'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
+              !state.selectedDatabase && 'pointer-events-none opacity-40',
+              pendingAction === 'nav_create_model' && state.selectedDatabase && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
+            )}
+            onClick={handleCreateModelClick}
+            disabled={!state.selectedDatabase}
+          >
+            <Plus className="mr-1 size-3.5" />
+            新建模型
+          </Button>
+          */}
+          <Button
+            ref={importModelBtnRef}
+            size="sm"
+            variant="outline"
+            className={cn(
+              'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
+              !state.selectedDatabase && 'pointer-events-none opacity-40',
+              pendingAction === 'nav_import_model' && state.selectedDatabase && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
+            )}
+            onClick={handleImportModelClick}
+            disabled={!state.selectedDatabase}
+          >
+            <Download className="mr-1 size-3.5" strokeWidth={1.5} />
+            导入模型
+          </Button>
         </div>
         )}
 
