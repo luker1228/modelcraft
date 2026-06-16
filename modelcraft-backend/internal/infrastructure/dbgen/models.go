@@ -316,30 +316,6 @@ type DatabaseCluster struct {
 	DeleteToken uint64
 }
 
-// EndUser Personal Access Token 注册表（PAT）
-type EndUserApiToken struct {
-	// 唯一标识符 (UUID v7)
-	ID string
-	// 所属组织
-	OrgName string
-	// 创建者 EndUser ID
-	EndUserID string
-	// 用户自定义名称
-	Name string
-	// SHA-256(plaintext) hex，用于验证
-	TokenHash string
-	// NULL 表示永不过期
-	ExpiresAt sql.NullTime
-	// 最近使用时间，异步更新
-	LastUsedAt sql.NullTime
-	// 创建时间
-	CreatedAt time.Time
-	// 软删除时间戳，0 表示活跃
-	DeletedAt uint64
-	// 唯一键避让位，0 表示活跃
-	DeleteToken uint64
-}
-
 // 模型字段定义表
 type FieldDefinition struct {
 	// 所属模型ID
@@ -468,6 +444,8 @@ type Model struct {
 	LastSyncAt sql.NullTime
 	// 同步错误信息
 	SyncError sql.NullString
+	// 模型创建来源：NEW=新建，IMPORTED=导入
+	CreatedVia ModelsCreatedVia
 	// 是否只读：1=只读（禁止结构修改），0=可编辑
 	IsReadOnly bool
 	// 创建时间
@@ -478,8 +456,6 @@ type Model struct {
 	DeletedAt uint64
 	// 唯一键避让位，0 表示活跃
 	DeleteToken uint64
-	// 模型创建来源：NEW=新建，IMPORTED=导入
-	CreatedVia ModelsCreatedVia
 }
 
 // Project 已接管的 MySQL database 注册表
@@ -643,6 +619,10 @@ type ModelRlsPolicy struct {
 type ModelSyncJob struct {
 	// 任务唯一标识符
 	ID string
+	// 批次 ID，同批次多条 job 共享
+	BatchID string
+	// 关联 model_database.id
+	DatabaseID string
 	// 所属组织名称
 	OrgName string
 	// 所属项目标识符
@@ -673,10 +653,6 @@ type ModelSyncJob struct {
 	CreatedAt time.Time
 	// 更新时间
 	UpdatedAt time.Time
-	// 批次 ID，同批次多条 job 共享
-	BatchID string
-	// 关联 model_database.id
-	DatabaseID string
 }
 
 // 组织表（多租户容器）
@@ -776,7 +752,9 @@ type ProjectAuthSchema struct {
 	ProjectSlug string
 	// 认证变量列表 [{name, source, type}]
 	Variables json.RawMessage
+	// 创建时间
 	CreatedAt time.Time
+	// 更新时间
 	UpdatedAt time.Time
 }
 
@@ -863,6 +841,30 @@ type User struct {
 	CreatedAt time.Time
 	// 更新时间
 	UpdatedAt time.Time
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
+}
+
+// EndUser Personal Access Token 注册表（PAT）
+type UserApiToken struct {
+	// 唯一标识符 (UUID v7)
+	ID string
+	// 所属组织
+	OrgName string
+	// 创建者 EndUser ID
+	EndUserID string
+	// 用户自定义名称
+	Name string
+	// SHA-256(plaintext) hex，用于验证
+	TokenHash string
+	// NULL 表示永不过期
+	ExpiresAt sql.NullTime
+	// 最近使用时间，异步更新
+	LastUsedAt sql.NullTime
+	// 创建时间
+	CreatedAt time.Time
 	// 软删除时间戳，0 表示活跃
 	DeletedAt uint64
 	// 唯一键避让位，0 表示活跃

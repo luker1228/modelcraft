@@ -28,7 +28,10 @@ CREATE TABLE model_rls_policies (
     UNIQUE KEY uk_policy_name (org_name, project_slug, model_id, policy_name),
 
     -- 查询索引：按 action + role 匹配
-    INDEX idx_policy_match (org_name, project_slug, model_id, action, role)
+    INDEX idx_policy_match (org_name, project_slug, model_id, action, role),
+
+    -- 级联外键：model 删除时自动清除其所有策略
+    CONSTRAINT fk_rls_policies_model FOREIGN KEY (model_id) REFERENCES models (id) ON DELETE CASCADE
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='RLS 策略表（多策略存储）';

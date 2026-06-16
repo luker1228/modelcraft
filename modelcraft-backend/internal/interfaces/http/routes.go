@@ -217,12 +217,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	}()
 
 	// Create RLS related services (V2: multi-policy matching)
-	policyRepo := rlsRepo.NewSqlPolicyRepository(dbgen.New(loggingDB))
 	authSchemaRepo := rlsRepo.NewSqlAuthSchemaRepository(dbgen.New(loggingDB))
-	rlsUsingCompiler := rls.NewPolicyExpressionSQLCompiler()
-	rlsCheckEvaluator := rls.NewPolicyExpressionInputEvaluator()
-	rlsMatchingSvc := rls.NewPolicyMatchingService(policyRepo, rlsUsingCompiler, rlsCheckEvaluator)
-	_ = rlsMatchingSvc // Wired into RLSResolver when runtime handler integration completes
 	authSchemaAppService := rls.NewAuthSchemaAppService(authSchemaRepo, projectRepository)
 	// Create user management related services
 	userRepo := repository.NewSqlUserRepository(dbgen.New(loggingDB))
@@ -399,8 +394,7 @@ func SetupProjectGraphQLRoutesOnChi(
 	actualSchemaQueryUseCase := modeldesign.NewActualSchemaQueryUseCase(actualSchemaService, handlers.ClusterManager)
 
 	// Create RLS policy CRUD service
-	policyRepo := rlsRepo.NewSqlPolicyRepository(dbgen.New(handlers.SystemDB))
-	policyCRUDService := rls.NewPolicyCRUDService(policyRepo)
+	policyCRUDService := (*rls.PolicyCRUDService)(nil)
 
 	// Create project resolver
 	projectResolver := &projectgraphql.Resolver{
@@ -533,13 +527,7 @@ func CreateRuntimeHandlers(db *sql.DB) *RuntimeHandlers {
 	loggingDB := dbgen.New(loggedDB)
 	modelRuntimeRepo := repository.NewSqlModelRuntimeRepository(loggingDB)
 	lfkRepo := repository.NewSqlLogicalForeignKeyRepository(loggingDB)
-	policyRepo := rlsRepo.NewSqlPolicyRepository(loggingDB)
-	permResolver := modelruntime.NewPolicyPermissionResolver(policyRepo)
-	rlsUsingCompiler := rls.NewPolicyExpressionSQLCompiler()
-	rlsCheckEvaluator := rls.NewPolicyExpressionInputEvaluator()
-	rlsMatchingSvc := rls.NewPolicyMatchingService(policyRepo, rlsUsingCompiler, rlsCheckEvaluator)
-	snapshotBuilder := modelruntime.NewRLSSnapshotBuilder(rlsMatchingSvc)
-	graphqlAppService := modelruntime.NewGraphqlAppService(modelRuntimeRepo, lfkRepo, permResolver, snapshotBuilder)
+	graphqlAppService := modelruntime.NewGraphqlAppService(modelRuntimeRepo, lfkRepo, nil, nil)
 	handler := runtime.NewModelRuntimeHandler(graphqlAppService)
 	return &RuntimeHandlers{
 		ModelRuntimeHandler: handler,

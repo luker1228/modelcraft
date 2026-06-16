@@ -77,7 +77,7 @@ func (q *Queries) FailStaleModelSyncJobs(ctx context.Context, updatedAt time.Tim
 }
 
 const getActiveModelSyncJobByDatabase = `-- name: GetActiveModelSyncJobByDatabase :one
-SELECT id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at, batch_id, database_id FROM model_sync_job
+SELECT id, batch_id, database_id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at FROM model_sync_job
 WHERE org_name = ?
   AND project_slug = ?
   AND database_id = ?
@@ -104,6 +104,8 @@ func (q *Queries) GetActiveModelSyncJobByDatabase(ctx context.Context, arg GetAc
 	var i ModelSyncJob
 	err := row.Scan(
 		&i.ID,
+		&i.BatchID,
+		&i.DatabaseID,
 		&i.OrgName,
 		&i.ProjectSlug,
 		&i.DatabaseName,
@@ -119,14 +121,12 @@ func (q *Queries) GetActiveModelSyncJobByDatabase(ctx context.Context, arg GetAc
 		&i.FinishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.BatchID,
-		&i.DatabaseID,
 	)
 	return i, err
 }
 
 const getModelSyncJobByID = `-- name: GetModelSyncJobByID :one
-SELECT id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at, batch_id, database_id FROM model_sync_job
+SELECT id, batch_id, database_id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at FROM model_sync_job
 WHERE id = ? AND org_name = ? AND project_slug = ?
 LIMIT 1
 `
@@ -142,6 +142,8 @@ func (q *Queries) GetModelSyncJobByID(ctx context.Context, arg GetModelSyncJobBy
 	var i ModelSyncJob
 	err := row.Scan(
 		&i.ID,
+		&i.BatchID,
+		&i.DatabaseID,
 		&i.OrgName,
 		&i.ProjectSlug,
 		&i.DatabaseName,
@@ -157,14 +159,12 @@ func (q *Queries) GetModelSyncJobByID(ctx context.Context, arg GetModelSyncJobBy
 		&i.FinishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.BatchID,
-		&i.DatabaseID,
 	)
 	return i, err
 }
 
 const getModelSyncJobsByBatchID = `-- name: GetModelSyncJobsByBatchID :many
-SELECT id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at, batch_id, database_id FROM model_sync_job
+SELECT id, batch_id, database_id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at FROM model_sync_job
 WHERE org_name = ? AND project_slug = ? AND batch_id = ?
 ORDER BY created_at DESC
 `
@@ -186,6 +186,8 @@ func (q *Queries) GetModelSyncJobsByBatchID(ctx context.Context, arg GetModelSyn
 		var i ModelSyncJob
 		if err := rows.Scan(
 			&i.ID,
+			&i.BatchID,
+			&i.DatabaseID,
 			&i.OrgName,
 			&i.ProjectSlug,
 			&i.DatabaseName,
@@ -201,8 +203,6 @@ func (q *Queries) GetModelSyncJobsByBatchID(ctx context.Context, arg GetModelSyn
 			&i.FinishedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.BatchID,
-			&i.DatabaseID,
 		); err != nil {
 			return nil, err
 		}
@@ -218,7 +218,7 @@ func (q *Queries) GetModelSyncJobsByBatchID(ctx context.Context, arg GetModelSyn
 }
 
 const getModelSyncJobsByIDs = `-- name: GetModelSyncJobsByIDs :many
-SELECT id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at, batch_id, database_id FROM model_sync_job
+SELECT id, batch_id, database_id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at FROM model_sync_job
 WHERE org_name = ? AND project_slug = ? AND id IN (/*SLICE:ids*/?)
 ORDER BY created_at DESC
 `
@@ -252,6 +252,8 @@ func (q *Queries) GetModelSyncJobsByIDs(ctx context.Context, arg GetModelSyncJob
 		var i ModelSyncJob
 		if err := rows.Scan(
 			&i.ID,
+			&i.BatchID,
+			&i.DatabaseID,
 			&i.OrgName,
 			&i.ProjectSlug,
 			&i.DatabaseName,
@@ -267,8 +269,6 @@ func (q *Queries) GetModelSyncJobsByIDs(ctx context.Context, arg GetModelSyncJob
 			&i.FinishedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.BatchID,
-			&i.DatabaseID,
 		); err != nil {
 			return nil, err
 		}
