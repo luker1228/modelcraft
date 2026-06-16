@@ -106,7 +106,7 @@ type BatchRegisterError {
 extend type Query {
   modelDatabases: [ModelDatabase!]!
   clusterRawDatabases: [RawDatabase!]!
-  modelDatabaseSyncJob(jobId: ID!): ModelDatabaseSyncJob
+  modelDatabaseSyncJob(jobId: ID!): ModelDatabaseSyncJob @deprecated(reason: "Use modelSyncJobs")
 }
 
 # ============================================
@@ -118,5 +118,5 @@ extend type Mutation {
   batchRegisterModelDatabases(input: BatchRegisterModelDatabaseInput!): BatchRegisterModelDatabaseResult!
   updateModelDatabase(id: ID!, input: UpdateModelDatabaseInput!): ModelDatabase!
   unregisterModelDatabase(id: ID!): Boolean!
-  startModelDatabaseSync(databaseId: ID!): StartModelDatabaseSyncPayload!
+  startModelDatabaseSync(databaseId: ID!): StartModelDatabaseSyncPayload! @deprecated(reason: "Use startModelSync")
 }

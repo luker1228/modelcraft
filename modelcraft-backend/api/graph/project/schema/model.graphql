@@ -302,6 +302,8 @@ type ModelSyncFailedTable {
 
 type ModelSyncJob {
   id:               ID!
+  batchId:          ID!
+  databaseId:       ID!
   databaseName:     String!
   tableNames:       [String!]!
   status:           ModelSyncJobStatus!
@@ -327,6 +329,21 @@ input SyncModelsFromDBInput {
   syncAll:      Boolean
 }
 
+type ModelSyncJobRef {
+  databaseId: ID!
+  jobId:      ID!
+}
+
+type StartModelSyncPayload {
+  batchId: ID!
+  jobs:    [ModelSyncJobRef!]!
+}
+
+input ModelSyncTargetInput {
+  databaseId: ID!
+  tableNames: [String!]
+}
+
 # Model queries
 extend type Query {
   model(id: ID!, withActualSchema: Boolean): GetModelPayload! @hasPermission(action: "model:read", allowEndUser: true)
@@ -334,7 +351,8 @@ extend type Query {
   modelByName(name: String!, databaseName: String!): GetModelPayload! @hasPermission(action: "model:read")
   modelJsonSchema(id: ID!): ModelJsonSchema @hasPermission(action: "model:read")
   modelGroups: [ModelGroup!]! @hasPermission(action: "model:read")
-  modelSyncJob(jobId: ID!): ModelSyncJob @hasPermission(action: "model:read")
+  modelSyncJobs(jobIds: [ID!], batchId: ID): [ModelSyncJob!]! @hasPermission(action: "model:read")
+  modelSyncJob(jobId: ID!): ModelSyncJob @deprecated(reason: "Use modelSyncJobs") @hasPermission(action: "model:read")
 }
 
 # Model mutations
@@ -351,5 +369,6 @@ extend type Mutation {
   deleteGroup(groupId: ID!): DeleteGroupPayload! @hasPermission(action: "model:delete")
   reorderGroup(input: ReorderGroupInput!): ReorderGroupPayload! @hasPermission(action: "model:update")
   moveModelToGroup(input: MoveModelToGroupInput!): MoveModelToGroupPayload! @hasPermission(action: "model:update")
-  syncModelsFromDB(input: SyncModelsFromDBInput!): SyncModelsFromDBPayload! @hasPermission(action: "model:create")
+  startModelSync(targets: [ModelSyncTargetInput!]!): StartModelSyncPayload! @hasPermission(action: "model:create")
+  syncModelsFromDB(input: SyncModelsFromDBInput!): SyncModelsFromDBPayload! @deprecated(reason: "Use startModelSync") @hasPermission(action: "model:create")
 }

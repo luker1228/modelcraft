@@ -46,6 +46,39 @@ func derefStringOrEmpty(s *string) string {
 	return *s
 }
 
+func modelSyncJobToGQL(job *domainmodeldatabase.ModelSyncJob) *generated.ModelSyncJob {
+	failedTables := make([]*generated.ModelSyncFailedTable, len(job.FailedTables))
+	for i, ft := range job.FailedTables {
+		ft := ft
+		failedTables[i] = &generated.ModelSyncFailedTable{
+			TableName: ft.TableName,
+			Message:   ft.Message,
+		}
+	}
+	tableNames := job.TableNames
+	if tableNames == nil {
+		tableNames = []string{}
+	}
+	return &generated.ModelSyncJob{
+		ID:              job.ID,
+		BatchID:         job.BatchID,
+		DatabaseID:      job.DatabaseID,
+		DatabaseName:    job.DatabaseName,
+		TableNames:      tableNames,
+		Status:          generated.ModelSyncJobStatus(job.Status),
+		TotalTables:     int32(job.TotalTables),
+		ProcessedTables: int32(job.ProcessedTables),
+		CreatedModels:   int32(job.CreatedModels),
+		SyncedModels:    int32(job.SyncedModels),
+		FailedCount:     int32(job.FailedCount),
+		FailedTables:    failedTables,
+		StartedAt:       job.StartedAt,
+		FinishedAt:      job.FinishedAt,
+		CreatedAt:       job.CreatedAt,
+		UpdatedAt:       job.UpdatedAt,
+	}
+}
+
 func modelDatabaseSyncJobToGQL(job *domainmodeldatabase.ModelDatabaseSyncJob) *generated.ModelDatabaseSyncJob {
 	failedTables := make([]*generated.ModelDatabaseSyncFailedTable, 0, len(job.FailedTables))
 	for _, item := range job.FailedTables {

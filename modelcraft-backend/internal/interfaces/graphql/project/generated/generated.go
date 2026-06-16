@@ -476,8 +476,10 @@ type ComplexityRoot struct {
 	}
 
 	ModelSyncJob struct {
+		BatchID         func(childComplexity int) int
 		CreatedAt       func(childComplexity int) int
 		CreatedModels   func(childComplexity int) int
+		DatabaseID      func(childComplexity int) int
 		DatabaseName    func(childComplexity int) int
 		FailedCount     func(childComplexity int) int
 		FailedTables    func(childComplexity int) int
@@ -490,6 +492,11 @@ type ComplexityRoot struct {
 		TableNames      func(childComplexity int) int
 		TotalTables     func(childComplexity int) int
 		UpdatedAt       func(childComplexity int) int
+	}
+
+	ModelSyncJobRef struct {
+		DatabaseID func(childComplexity int) int
+		JobID      func(childComplexity int) int
 	}
 
 	ModelTableAlreadyExists struct {
@@ -528,6 +535,7 @@ type ComplexityRoot struct {
 		SetModelRLSPolicy           func(childComplexity int, input SetModelRLSPolicyInput) int
 		SetProjectAuthSchema        func(childComplexity int, input SetProjectAuthSchemaInput) int
 		StartModelDatabaseSync      func(childComplexity int, databaseID string) int
+		StartModelSync              func(childComplexity int, targets []*ModelSyncTargetInput) int
 		SyncModelSchema             func(childComplexity int, input SyncModelSchemaInput) int
 		SyncModelsFromDb            func(childComplexity int, input SyncModelsFromDBInput) int
 		TestDatabaseConnection      func(childComplexity int, input TestDatabaseConnectionInput) int
@@ -572,6 +580,7 @@ type ComplexityRoot struct {
 		ModelJSONSchema      func(childComplexity int, id string) int
 		ModelRLSPolicy       func(childComplexity int, modelID string) int
 		ModelSyncJob         func(childComplexity int, jobID string) int
+		ModelSyncJobs        func(childComplexity int, jobIds []string, batchID *string) int
 		Models               func(childComplexity int, input *ModelQueryInput) int
 		Node                 func(childComplexity int, id string) int
 		Ping                 func(childComplexity int) int
@@ -669,6 +678,11 @@ type ComplexityRoot struct {
 
 	StartModelDatabaseSyncPayload struct {
 		Job func(childComplexity int) int
+	}
+
+	StartModelSyncPayload struct {
+		BatchID func(childComplexity int) int
+		Jobs    func(childComplexity int) int
 	}
 
 	SyncModelSchemaPayload struct {
@@ -781,6 +795,7 @@ type MutationResolver interface {
 	DeleteGroup(ctx context.Context, groupID string) (*DeleteGroupPayload, error)
 	ReorderGroup(ctx context.Context, input ReorderGroupInput) (*ReorderGroupPayload, error)
 	MoveModelToGroup(ctx context.Context, input MoveModelToGroupInput) (*MoveModelToGroupPayload, error)
+	StartModelSync(ctx context.Context, targets []*ModelSyncTargetInput) (*StartModelSyncPayload, error)
 	SyncModelsFromDb(ctx context.Context, input SyncModelsFromDBInput) (*SyncModelsFromDBPayload, error)
 	SetModelRLSPolicy(ctx context.Context, input SetModelRLSPolicyInput) (*SetModelRLSPolicyPayload, error)
 	ValidateRLSExpr(ctx context.Context, input ValidateRLSExprInput) (*ValidateRLSExprPayload, error)
@@ -810,6 +825,7 @@ type QueryResolver interface {
 	ModelByName(ctx context.Context, name string, databaseName string) (*GetModelPayload, error)
 	ModelJSONSchema(ctx context.Context, id string) (*ModelJSONSchema, error)
 	ModelGroups(ctx context.Context) ([]*ModelGroup, error)
+	ModelSyncJobs(ctx context.Context, jobIds []string, batchID *string) ([]*ModelSyncJob, error)
 	ModelSyncJob(ctx context.Context, jobID string) (*ModelSyncJob, error)
 	ModelRLSPolicy(ctx context.Context, modelID string) (*ModelRLSPolicy, error)
 	ProjectAuthSchema(ctx context.Context) (*ProjectAuthSchema, error)
@@ -2281,6 +2297,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ModelSyncFailedTable.TableName(childComplexity), true
 
+	case "ModelSyncJob.batchId":
+		if e.complexity.ModelSyncJob.BatchID == nil {
+			break
+		}
+
+		return e.complexity.ModelSyncJob.BatchID(childComplexity), true
 	case "ModelSyncJob.createdAt":
 		if e.complexity.ModelSyncJob.CreatedAt == nil {
 			break
@@ -2293,6 +2315,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ModelSyncJob.CreatedModels(childComplexity), true
+	case "ModelSyncJob.databaseId":
+		if e.complexity.ModelSyncJob.DatabaseID == nil {
+			break
+		}
+
+		return e.complexity.ModelSyncJob.DatabaseID(childComplexity), true
 	case "ModelSyncJob.databaseName":
 		if e.complexity.ModelSyncJob.DatabaseName == nil {
 			break
@@ -2365,6 +2393,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ModelSyncJob.UpdatedAt(childComplexity), true
+
+	case "ModelSyncJobRef.databaseId":
+		if e.complexity.ModelSyncJobRef.DatabaseID == nil {
+			break
+		}
+
+		return e.complexity.ModelSyncJobRef.DatabaseID(childComplexity), true
+	case "ModelSyncJobRef.jobId":
+		if e.complexity.ModelSyncJobRef.JobID == nil {
+			break
+		}
+
+		return e.complexity.ModelSyncJobRef.JobID(childComplexity), true
 
 	case "ModelTableAlreadyExists.message":
 		if e.complexity.ModelTableAlreadyExists.Message == nil {
@@ -2662,6 +2703,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.StartModelDatabaseSync(childComplexity, args["databaseId"].(string)), true
+	case "Mutation.startModelSync":
+		if e.complexity.Mutation.StartModelSync == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_startModelSync_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.StartModelSync(childComplexity, args["targets"].([]*ModelSyncTargetInput)), true
 	case "Mutation.syncModelSchema":
 		if e.complexity.Mutation.SyncModelSchema == nil {
 			break
@@ -2995,6 +3047,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.ModelSyncJob(childComplexity, args["jobId"].(string)), true
+	case "Query.modelSyncJobs":
+		if e.complexity.Query.ModelSyncJobs == nil {
+			break
+		}
+
+		args, err := ec.field_Query_modelSyncJobs_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ModelSyncJobs(childComplexity, args["jobIds"].([]string), args["batchId"].(*string)), true
 	case "Query.models":
 		if e.complexity.Query.Models == nil {
 			break
@@ -3343,6 +3406,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.StartModelDatabaseSyncPayload.Job(childComplexity), true
 
+	case "StartModelSyncPayload.batchId":
+		if e.complexity.StartModelSyncPayload.BatchID == nil {
+			break
+		}
+
+		return e.complexity.StartModelSyncPayload.BatchID(childComplexity), true
+	case "StartModelSyncPayload.jobs":
+		if e.complexity.StartModelSyncPayload.Jobs == nil {
+			break
+		}
+
+		return e.complexity.StartModelSyncPayload.Jobs(childComplexity), true
+
 	case "SyncModelSchemaPayload.deletedFields":
 		if e.complexity.SyncModelSchemaPayload.DeletedFields == nil {
 			break
@@ -3596,6 +3672,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputListDatabasesInput,
 		ec.unmarshalInputListTablesInput,
 		ec.unmarshalInputModelQueryInput,
+		ec.unmarshalInputModelSyncTargetInput,
 		ec.unmarshalInputMoveModelToGroupInput,
 		ec.unmarshalInputRegisterModelDatabaseInput,
 		ec.unmarshalInputRegisteredDatabasesInput,
@@ -4122,7 +4199,7 @@ type BatchRegisterError {
 extend type Query {
   modelDatabases: [ModelDatabase!]!
   clusterRawDatabases: [RawDatabase!]!
-  modelDatabaseSyncJob(jobId: ID!): ModelDatabaseSyncJob
+  modelDatabaseSyncJob(jobId: ID!): ModelDatabaseSyncJob @deprecated(reason: "Use modelSyncJobs")
 }
 
 # ============================================
@@ -4134,7 +4211,7 @@ extend type Mutation {
   batchRegisterModelDatabases(input: BatchRegisterModelDatabaseInput!): BatchRegisterModelDatabaseResult!
   updateModelDatabase(id: ID!, input: UpdateModelDatabaseInput!): ModelDatabase!
   unregisterModelDatabase(id: ID!): Boolean!
-  startModelDatabaseSync(databaseId: ID!): StartModelDatabaseSyncPayload!
+  startModelDatabaseSync(databaseId: ID!): StartModelDatabaseSyncPayload! @deprecated(reason: "Use startModelSync")
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/project/schema/enum.graphql", Input: `# Enum-related types, inputs and mutations
@@ -4865,6 +4942,8 @@ type ModelSyncFailedTable {
 
 type ModelSyncJob {
   id:               ID!
+  batchId:          ID!
+  databaseId:       ID!
   databaseName:     String!
   tableNames:       [String!]!
   status:           ModelSyncJobStatus!
@@ -4890,6 +4969,21 @@ input SyncModelsFromDBInput {
   syncAll:      Boolean
 }
 
+type ModelSyncJobRef {
+  databaseId: ID!
+  jobId:      ID!
+}
+
+type StartModelSyncPayload {
+  batchId: ID!
+  jobs:    [ModelSyncJobRef!]!
+}
+
+input ModelSyncTargetInput {
+  databaseId: ID!
+  tableNames: [String!]
+}
+
 # Model queries
 extend type Query {
   model(id: ID!, withActualSchema: Boolean): GetModelPayload! @hasPermission(action: "model:read", allowEndUser: true)
@@ -4897,7 +4991,8 @@ extend type Query {
   modelByName(name: String!, databaseName: String!): GetModelPayload! @hasPermission(action: "model:read")
   modelJsonSchema(id: ID!): ModelJsonSchema @hasPermission(action: "model:read")
   modelGroups: [ModelGroup!]! @hasPermission(action: "model:read")
-  modelSyncJob(jobId: ID!): ModelSyncJob @hasPermission(action: "model:read")
+  modelSyncJobs(jobIds: [ID!], batchId: ID): [ModelSyncJob!]! @hasPermission(action: "model:read")
+  modelSyncJob(jobId: ID!): ModelSyncJob @deprecated(reason: "Use modelSyncJobs") @hasPermission(action: "model:read")
 }
 
 # Model mutations
@@ -4914,7 +5009,8 @@ extend type Mutation {
   deleteGroup(groupId: ID!): DeleteGroupPayload! @hasPermission(action: "model:delete")
   reorderGroup(input: ReorderGroupInput!): ReorderGroupPayload! @hasPermission(action: "model:update")
   moveModelToGroup(input: MoveModelToGroupInput!): MoveModelToGroupPayload! @hasPermission(action: "model:update")
-  syncModelsFromDB(input: SyncModelsFromDBInput!): SyncModelsFromDBPayload! @hasPermission(action: "model:create")
+  startModelSync(targets: [ModelSyncTargetInput!]!): StartModelSyncPayload! @hasPermission(action: "model:create")
+  syncModelsFromDB(input: SyncModelsFromDBInput!): SyncModelsFromDBPayload! @deprecated(reason: "Use startModelSync") @hasPermission(action: "model:create")
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/project/schema/rls.graphql", Input: `# ============================================
@@ -5660,6 +5756,17 @@ func (ec *executionContext) field_Mutation_startModelDatabaseSync_args(ctx conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_startModelSync_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "targets", ec.unmarshalNModelSyncTargetInput2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncTargetInputᚄ)
+	if err != nil {
+		return nil, err
+	}
+	args["targets"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_syncModelSchema_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -5961,6 +6068,22 @@ func (ec *executionContext) field_Query_modelSyncJob_args(ctx context.Context, r
 		return nil, err
 	}
 	args["jobId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_modelSyncJobs_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "jobIds", ec.unmarshalOID2ᚕstringᚄ)
+	if err != nil {
+		return nil, err
+	}
+	args["jobIds"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "batchId", ec.unmarshalOID2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["batchId"] = arg1
 	return args, nil
 }
 
@@ -13315,6 +13438,64 @@ func (ec *executionContext) fieldContext_ModelSyncJob_id(_ context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _ModelSyncJob_batchId(ctx context.Context, field graphql.CollectedField, obj *ModelSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelSyncJob_batchId,
+		func(ctx context.Context) (any, error) {
+			return obj.BatchID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelSyncJob_batchId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelSyncJob_databaseId(ctx context.Context, field graphql.CollectedField, obj *ModelSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelSyncJob_databaseId,
+		func(ctx context.Context) (any, error) {
+			return obj.DatabaseID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelSyncJob_databaseId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ModelSyncJob_databaseName(ctx context.Context, field graphql.CollectedField, obj *ModelSyncJob) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -13693,6 +13874,64 @@ func (ec *executionContext) fieldContext_ModelSyncJob_updatedAt(_ context.Contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelSyncJobRef_databaseId(ctx context.Context, field graphql.CollectedField, obj *ModelSyncJobRef) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelSyncJobRef_databaseId,
+		func(ctx context.Context) (any, error) {
+			return obj.DatabaseID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelSyncJobRef_databaseId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelSyncJobRef",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelSyncJobRef_jobId(ctx context.Context, field graphql.CollectedField, obj *ModelSyncJobRef) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelSyncJobRef_jobId,
+		func(ctx context.Context) (any, error) {
+			return obj.JobID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelSyncJobRef_jobId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelSyncJobRef",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -15840,6 +16079,76 @@ func (ec *executionContext) fieldContext_Mutation_moveModelToGroup(ctx context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_startModelSync(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_startModelSync,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().StartModelSync(ctx, fc.Args["targets"].([]*ModelSyncTargetInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "model:create")
+				if err != nil {
+					var zeroVal *StartModelSyncPayload
+					return zeroVal, err
+				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *StartModelSyncPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *StartModelSyncPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNStartModelSyncPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐStartModelSyncPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_startModelSync(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "batchId":
+				return ec.fieldContext_StartModelSyncPayload_batchId(ctx, field)
+			case "jobs":
+				return ec.fieldContext_StartModelSyncPayload_jobs(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type StartModelSyncPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_startModelSync_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_syncModelsFromDB(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -17749,6 +18058,104 @@ func (ec *executionContext) fieldContext_Query_modelGroups(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_modelSyncJobs(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_modelSyncJobs,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().ModelSyncJobs(ctx, fc.Args["jobIds"].([]string), fc.Args["batchId"].(*string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "model:read")
+				if err != nil {
+					var zeroVal []*ModelSyncJob
+					return zeroVal, err
+				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal []*ModelSyncJob
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal []*ModelSyncJob
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNModelSyncJob2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncJobᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_modelSyncJobs(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ModelSyncJob_id(ctx, field)
+			case "batchId":
+				return ec.fieldContext_ModelSyncJob_batchId(ctx, field)
+			case "databaseId":
+				return ec.fieldContext_ModelSyncJob_databaseId(ctx, field)
+			case "databaseName":
+				return ec.fieldContext_ModelSyncJob_databaseName(ctx, field)
+			case "tableNames":
+				return ec.fieldContext_ModelSyncJob_tableNames(ctx, field)
+			case "status":
+				return ec.fieldContext_ModelSyncJob_status(ctx, field)
+			case "totalTables":
+				return ec.fieldContext_ModelSyncJob_totalTables(ctx, field)
+			case "processedTables":
+				return ec.fieldContext_ModelSyncJob_processedTables(ctx, field)
+			case "createdModels":
+				return ec.fieldContext_ModelSyncJob_createdModels(ctx, field)
+			case "syncedModels":
+				return ec.fieldContext_ModelSyncJob_syncedModels(ctx, field)
+			case "failedCount":
+				return ec.fieldContext_ModelSyncJob_failedCount(ctx, field)
+			case "failedTables":
+				return ec.fieldContext_ModelSyncJob_failedTables(ctx, field)
+			case "startedAt":
+				return ec.fieldContext_ModelSyncJob_startedAt(ctx, field)
+			case "finishedAt":
+				return ec.fieldContext_ModelSyncJob_finishedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_ModelSyncJob_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_ModelSyncJob_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ModelSyncJob", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_modelSyncJobs_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_modelSyncJob(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -17799,6 +18206,10 @@ func (ec *executionContext) fieldContext_Query_modelSyncJob(ctx context.Context,
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_ModelSyncJob_id(ctx, field)
+			case "batchId":
+				return ec.fieldContext_ModelSyncJob_batchId(ctx, field)
+			case "databaseId":
+				return ec.fieldContext_ModelSyncJob_databaseId(ctx, field)
 			case "databaseName":
 				return ec.fieldContext_ModelSyncJob_databaseName(ctx, field)
 			case "tableNames":
@@ -19658,6 +20069,70 @@ func (ec *executionContext) fieldContext_StartModelDatabaseSyncPayload_job(_ con
 				return ec.fieldContext_ModelDatabaseSyncJob_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ModelDatabaseSyncJob", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StartModelSyncPayload_batchId(ctx context.Context, field graphql.CollectedField, obj *StartModelSyncPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_StartModelSyncPayload_batchId,
+		func(ctx context.Context) (any, error) {
+			return obj.BatchID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_StartModelSyncPayload_batchId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StartModelSyncPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StartModelSyncPayload_jobs(ctx context.Context, field graphql.CollectedField, obj *StartModelSyncPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_StartModelSyncPayload_jobs,
+		func(ctx context.Context) (any, error) {
+			return obj.Jobs, nil
+		},
+		nil,
+		ec.marshalNModelSyncJobRef2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncJobRefᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_StartModelSyncPayload_jobs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StartModelSyncPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "databaseId":
+				return ec.fieldContext_ModelSyncJobRef_databaseId(ctx, field)
+			case "jobId":
+				return ec.fieldContext_ModelSyncJobRef_jobId(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ModelSyncJobRef", field.Name)
 		},
 	}
 	return fc, nil
@@ -23081,6 +23556,40 @@ func (ec *executionContext) unmarshalInputModelQueryInput(ctx context.Context, o
 				return it, err
 			}
 			it.Search = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputModelSyncTargetInput(ctx context.Context, obj any) (ModelSyncTargetInput, error) {
+	var it ModelSyncTargetInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"databaseId", "tableNames"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "databaseId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("databaseId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DatabaseID = data
+		case "tableNames":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tableNames"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TableNames = data
 		}
 	}
 
@@ -28008,6 +28517,16 @@ func (ec *executionContext) _ModelSyncJob(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "batchId":
+			out.Values[i] = ec._ModelSyncJob_batchId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "databaseId":
+			out.Values[i] = ec._ModelSyncJob_databaseId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "databaseName":
 			out.Values[i] = ec._ModelSyncJob_databaseName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -28064,6 +28583,50 @@ func (ec *executionContext) _ModelSyncJob(ctx context.Context, sel ast.Selection
 			}
 		case "updatedAt":
 			out.Values[i] = ec._ModelSyncJob_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var modelSyncJobRefImplementors = []string{"ModelSyncJobRef"}
+
+func (ec *executionContext) _ModelSyncJobRef(ctx context.Context, sel ast.SelectionSet, obj *ModelSyncJobRef) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, modelSyncJobRefImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ModelSyncJobRef")
+		case "databaseId":
+			out.Values[i] = ec._ModelSyncJobRef_databaseId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "jobId":
+			out.Values[i] = ec._ModelSyncJobRef_jobId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -28391,6 +28954,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "moveModelToGroup":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_moveModelToGroup(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "startModelSync":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_startModelSync(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -28992,6 +29562,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_modelGroups(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "modelSyncJobs":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_modelSyncJobs(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -29777,6 +30369,50 @@ func (ec *executionContext) _StartModelDatabaseSyncPayload(ctx context.Context, 
 			out.Values[i] = graphql.MarshalString("StartModelDatabaseSyncPayload")
 		case "job":
 			out.Values[i] = ec._StartModelDatabaseSyncPayload_job(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var startModelSyncPayloadImplementors = []string{"StartModelSyncPayload"}
+
+func (ec *executionContext) _StartModelSyncPayload(ctx context.Context, sel ast.SelectionSet, obj *StartModelSyncPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, startModelSyncPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("StartModelSyncPayload")
+		case "batchId":
+			out.Values[i] = ec._StartModelSyncPayload_batchId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "jobs":
+			out.Values[i] = ec._StartModelSyncPayload_jobs(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -32184,6 +32820,114 @@ func (ec *executionContext) marshalNModelSyncFailedTable2ᚖmodelcraftᚋinterna
 	return ec._ModelSyncFailedTable(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNModelSyncJob2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncJobᚄ(ctx context.Context, sel ast.SelectionSet, v []*ModelSyncJob) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNModelSyncJob2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncJob(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNModelSyncJob2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncJob(ctx context.Context, sel ast.SelectionSet, v *ModelSyncJob) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ModelSyncJob(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNModelSyncJobRef2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncJobRefᚄ(ctx context.Context, sel ast.SelectionSet, v []*ModelSyncJobRef) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNModelSyncJobRef2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncJobRef(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNModelSyncJobRef2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncJobRef(ctx context.Context, sel ast.SelectionSet, v *ModelSyncJobRef) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ModelSyncJobRef(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNModelSyncJobStatus2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncJobStatus(ctx context.Context, v any) (ModelSyncJobStatus, error) {
 	var res ModelSyncJobStatus
 	err := res.UnmarshalGQL(v)
@@ -32192,6 +32936,26 @@ func (ec *executionContext) unmarshalNModelSyncJobStatus2modelcraftᚋinternal�
 
 func (ec *executionContext) marshalNModelSyncJobStatus2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncJobStatus(ctx context.Context, sel ast.SelectionSet, v ModelSyncJobStatus) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) unmarshalNModelSyncTargetInput2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncTargetInputᚄ(ctx context.Context, v any) ([]*ModelSyncTargetInput, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*ModelSyncTargetInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNModelSyncTargetInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncTargetInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNModelSyncTargetInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelSyncTargetInput(ctx context.Context, v any) (*ModelSyncTargetInput, error) {
+	res, err := ec.unmarshalInputModelSyncTargetInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNMoveModelToGroupInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐMoveModelToGroupInput(ctx context.Context, v any) (MoveModelToGroupInput, error) {
@@ -32620,6 +33384,20 @@ func (ec *executionContext) marshalNStartModelDatabaseSyncPayload2ᚖmodelcraft�
 		return graphql.Null
 	}
 	return ec._StartModelDatabaseSyncPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNStartModelSyncPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐStartModelSyncPayload(ctx context.Context, sel ast.SelectionSet, v StartModelSyncPayload) graphql.Marshaler {
+	return ec._StartModelSyncPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNStartModelSyncPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐStartModelSyncPayload(ctx context.Context, sel ast.SelectionSet, v *StartModelSyncPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._StartModelSyncPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
@@ -33427,6 +34205,42 @@ func (ec *executionContext) marshalOGetModelError2modelcraftᚋinternalᚋinterf
 		return graphql.Null
 	}
 	return ec._GetModelError(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOID2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {

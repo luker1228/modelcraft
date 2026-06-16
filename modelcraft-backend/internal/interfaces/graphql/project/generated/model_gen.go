@@ -819,6 +819,8 @@ type ModelSyncFailedTable struct {
 
 type ModelSyncJob struct {
 	ID              string                  `json:"id"`
+	BatchID         string                  `json:"batchId"`
+	DatabaseID      string                  `json:"databaseId"`
 	DatabaseName    string                  `json:"databaseName"`
 	TableNames      []string                `json:"tableNames"`
 	Status          ModelSyncJobStatus      `json:"status"`
@@ -832,6 +834,16 @@ type ModelSyncJob struct {
 	FinishedAt      *time.Time              `json:"finishedAt,omitempty"`
 	CreatedAt       time.Time               `json:"createdAt"`
 	UpdatedAt       time.Time               `json:"updatedAt"`
+}
+
+type ModelSyncJobRef struct {
+	DatabaseID string `json:"databaseId"`
+	JobID      string `json:"jobId"`
+}
+
+type ModelSyncTargetInput struct {
+	DatabaseID string   `json:"databaseId"`
+	TableNames []string `json:"tableNames,omitempty"`
 }
 
 type ModelTableAlreadyExists struct {
@@ -1073,6 +1085,11 @@ type SetProjectAuthSchemaPayload struct {
 
 type StartModelDatabaseSyncPayload struct {
 	Job *ModelDatabaseSyncJob `json:"job"`
+}
+
+type StartModelSyncPayload struct {
+	BatchID string             `json:"batchId"`
+	Jobs    []*ModelSyncJobRef `json:"jobs"`
 }
 
 type SyncModelSchemaInput struct {
