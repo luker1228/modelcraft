@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strings"
 	"time"
 )
 
@@ -225,11 +226,23 @@ ORDER BY created_at DESC
 type GetModelSyncJobsByIDsParams struct {
 	OrgName     string
 	ProjectSlug string
-	ID          string
+	Ids         []string
 }
 
 func (q *Queries) GetModelSyncJobsByIDs(ctx context.Context, arg GetModelSyncJobsByIDsParams) ([]ModelSyncJob, error) {
-	rows, err := q.db.QueryContext(ctx, getModelSyncJobsByIDs, arg.OrgName, arg.ProjectSlug, arg.ID)
+	query := getModelSyncJobsByIDs
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.OrgName)
+	queryParams = append(queryParams, arg.ProjectSlug)
+	if len(arg.Ids) > 0 {
+		for _, v := range arg.Ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(arg.Ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
 	}

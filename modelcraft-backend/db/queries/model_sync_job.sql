@@ -12,7 +12,7 @@ LIMIT 1;
 
 -- name: GetModelSyncJobsByIDs :many
 SELECT * FROM model_sync_job
-WHERE org_name = ? AND project_slug = ? AND id IN (/*SLICE:ids*/?)
+WHERE org_name = ? AND project_slug = ? AND id IN (sqlc.slice('ids'))
 ORDER BY created_at DESC;
 
 -- name: GetModelSyncJobsByBatchID :many
