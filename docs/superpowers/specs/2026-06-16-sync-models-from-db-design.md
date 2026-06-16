@@ -65,6 +65,8 @@ extend type Mutation {
 | `tableNames` 为空数组 | ❌ `ParamInvalid`：tableNames 不能为空 |
 | 同一 `databaseName` 已有 PENDING/RUNNING job | ❌ `JobAlreadyRunning` |
 
+校验失败均通过业务错误系统返回（与现有 `startModelDatabaseSync` 保持一致，不使用 union 类型），前端通过 GraphQL errors 字段读取错误码。
+
 立即返回 `jobId`，后台异步执行。
 
 ### Query：modelSyncJob
@@ -115,20 +117,21 @@ Endpoint：Project GraphQL（`/graphql/org/{orgName}/project/{projectSlug}/`）
 
 1. introspect 该表的列定义
 2. **model 不存在** → 创建新 model，复用现有 `ImportModel` 逻辑
-3. **model 已存在** → full sync 字段（以 DB 列为准）：
-   - DB 有但 model 无 → 新增字段
-   - DB 无但 model 有 → 删除字段（仅限**物理字段**）
-   - 逻辑字段（RELATION format 或 `belongsToFkId` 非空）**不受影响，不删除**
+3. **model 已存在** → full sync 字段（仅处理 `storageHint` 非空的字段，以 DB 列为准）：
+   - DB 有对应列，model 已有该字段 → **强制覆盖**字段属性（类型、nonNull、unique 等）
+   - DB 有对应列，model 无该字段 → **新增字段**
+   - DB 无对应列，model 有该字段 → **删除字段**
+   - `storageHint` 为空的字段（逻辑字段、关联字段等）**完全不动**
 4. 单表失败 → 记入 `failedTables`，继续处理下一张表
 
-### 字段类型判断（利用现有属性推断，无需新增字段）
+### 字段同步范围（以 storageHint 为准）
 
-```
-是逻辑字段 = format == RELATION || belongsToFkId != ""
-是物理字段 = !是逻辑字段
-```
+**只处理 `storageHint` 非空的字段**，即有明确 DB 列映射的字段：
 
-只有物理字段参与 DB 侧的 full sync 对比与删除。
+- DB 有对应列，model 已有该字段（storageHint 匹配）→ **强制覆盖**：以 DB 列当前定义为准，全量更新字段属性（类型、nonNull、unique 等），不保留旧值
+- DB 有对应列，model 无该字段 → **新增字段**
+- DB 无对应列，model 有该字段（storageHint 非空）→ **删除字段**
+- `storageHint` 为空的字段（逻辑字段、关联字段等）→ **完全不动**
 
 ### Job 状态机
 
@@ -208,7 +211,7 @@ CREATE TABLE model_sync_job (
    - 指定 tableNames 同步
    - syncAll=true 全量同步
    - model 不存在 → 创建
-   - model 已存在 → 字段 full sync（增/删物理字段，逻辑字段不动）
+   - model 已存在 → 字段 full sync：storageHint 非空字段强制覆盖属性、增删；storageHint 为空字段不动
    - 单表失败不中断
    - 同 DB 有 active job → 报错
 2. **Repository 单测**：CRUD + active job 检查
