@@ -909,8 +909,10 @@ export type ModelSyncFailedTable = {
 
 export type ModelSyncJob = {
   __typename?: 'ModelSyncJob';
+  batchId: Scalars['ID']['output'];
   createdAt: Scalars['Time']['output'];
   createdModels: Scalars['Int']['output'];
+  databaseId: Scalars['ID']['output'];
   databaseName: Scalars['String']['output'];
   failedCount: Scalars['Int']['output'];
   failedTables: Array<ModelSyncFailedTable>;
@@ -925,6 +927,12 @@ export type ModelSyncJob = {
   updatedAt: Scalars['Time']['output'];
 };
 
+export type ModelSyncJobRef = {
+  __typename?: 'ModelSyncJobRef';
+  databaseId: Scalars['ID']['output'];
+  jobId: Scalars['ID']['output'];
+};
+
 export enum ModelSyncJobStatus {
   Failed = 'FAILED',
   PartialSuccess = 'PARTIAL_SUCCESS',
@@ -932,6 +940,11 @@ export enum ModelSyncJobStatus {
   Running = 'RUNNING',
   Succeeded = 'SUCCEEDED'
 }
+
+export type ModelSyncTargetInput = {
+  databaseId: Scalars['ID']['input'];
+  tableNames?: InputMaybe<Array<Scalars['String']['input']>>;
+};
 
 export type ModelTableAlreadyExists = Error & {
   __typename?: 'ModelTableAlreadyExists';
@@ -1003,8 +1016,11 @@ export type Mutation = {
   setModelRLSPolicy: SetModelRlsPolicyPayload;
   /** 设置当前项目 auth_schema */
   setProjectAuthSchema: SetProjectAuthSchemaPayload;
+  /** @deprecated Use startModelSync */
   startModelDatabaseSync: StartModelDatabaseSyncPayload;
+  startModelSync: StartModelSyncPayload;
   syncModelSchema: SyncModelSchemaPayload;
+  /** @deprecated Use startModelSync */
   syncModelsFromDB: SyncModelsFromDbPayload;
   testDatabaseConnection: TestConnectionPayload;
   /**
@@ -1223,6 +1239,11 @@ export type MutationSetProjectAuthSchemaArgs = {
 
 export type MutationStartModelDatabaseSyncArgs = {
   databaseId: Scalars['ID']['input'];
+};
+
+
+export type MutationStartModelSyncArgs = {
+  targets: Array<ModelSyncTargetInput>;
 };
 
 
@@ -1460,13 +1481,16 @@ export type Query = {
   me: CurrentUser;
   model: GetModelPayload;
   modelByName: GetModelPayload;
+  /** @deprecated Use modelSyncJobs */
   modelDatabaseSyncJob?: Maybe<ModelDatabaseSyncJob>;
   modelDatabases: Array<ModelDatabase>;
   modelGroups: Array<ModelGroup>;
   modelJsonSchema?: Maybe<ModelJsonSchema>;
   /** 获取 Model RLS 策略配置 */
   modelRLSPolicy?: Maybe<ModelRlsPolicy>;
+  /** @deprecated Use modelSyncJobs */
   modelSyncJob?: Maybe<ModelSyncJob>;
+  modelSyncJobs: Array<ModelSyncJob>;
   models: ModelListResult;
   myOrganizations: Array<Organization>;
   myUserProfile: GetMyUserProfilePayload;
@@ -1552,6 +1576,12 @@ export type QueryModelRlsPolicyArgs = {
 
 export type QueryModelSyncJobArgs = {
   jobId: Scalars['ID']['input'];
+};
+
+
+export type QueryModelSyncJobsArgs = {
+  batchId?: InputMaybe<Scalars['ID']['input']>;
+  jobIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 
@@ -1911,6 +1941,12 @@ export type SetProjectAuthSchemaPayload = {
 export type StartModelDatabaseSyncPayload = {
   __typename?: 'StartModelDatabaseSyncPayload';
   job: ModelDatabaseSyncJob;
+};
+
+export type StartModelSyncPayload = {
+  __typename?: 'StartModelSyncPayload';
+  batchId: Scalars['ID']['output'];
+  jobs: Array<ModelSyncJobRef>;
 };
 
 export type SyncModelSchemaInput = {
@@ -2513,6 +2549,21 @@ export type ModelSyncJobQueryVariables = Exact<{
 
 
 export type ModelSyncJobQuery = { __typename?: 'Query', modelSyncJob?: { __typename?: 'ModelSyncJob', id: string, databaseName: string, tableNames: Array<string>, status: ModelSyncJobStatus, totalTables: number, processedTables: number, createdModels: number, syncedModels: number, failedCount: number, startedAt?: any | null, finishedAt?: any | null, createdAt: any, updatedAt: any, failedTables: Array<{ __typename?: 'ModelSyncFailedTable', tableName: string, message: string }> } | null };
+
+export type ModelSyncJobsQueryVariables = Exact<{
+  jobIds?: InputMaybe<Array<Scalars['ID']['input']> | Scalars['ID']['input']>;
+  batchId?: InputMaybe<Scalars['ID']['input']>;
+}>;
+
+
+export type ModelSyncJobsQuery = { __typename?: 'Query', modelSyncJobs: Array<{ __typename?: 'ModelSyncJob', id: string, batchId: string, databaseId: string, databaseName: string, tableNames: Array<string>, status: ModelSyncJobStatus, totalTables: number, processedTables: number, createdModels: number, syncedModels: number, failedCount: number, startedAt?: any | null, finishedAt?: any | null, createdAt: any, updatedAt: any, failedTables: Array<{ __typename?: 'ModelSyncFailedTable', tableName: string, message: string }> }> };
+
+export type StartModelSyncMutationVariables = Exact<{
+  targets: Array<ModelSyncTargetInput> | ModelSyncTargetInput;
+}>;
+
+
+export type StartModelSyncMutation = { __typename?: 'Mutation', startModelSync: { __typename?: 'StartModelSyncPayload', batchId: string, jobs: Array<{ __typename?: 'ModelSyncJobRef', databaseId: string, jobId: string }> } };
 
 export type NoopQueryQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -3685,6 +3736,50 @@ export const mockSyncModelsFromDbMutation = (resolver: GraphQLResponseResolver<S
 export const mockModelSyncJobQuery = (resolver: GraphQLResponseResolver<ModelSyncJobQuery, ModelSyncJobQueryVariables>, options?: RequestHandlerOptions) =>
   graphql.query<ModelSyncJobQuery, ModelSyncJobQueryVariables>(
     'ModelSyncJob',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockModelSyncJobsQuery(
+ *   ({ query, variables }) => {
+ *     const { jobIds, batchId } = variables;
+ *     return HttpResponse.json({
+ *       data: { modelSyncJobs }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockModelSyncJobsQuery = (resolver: GraphQLResponseResolver<ModelSyncJobsQuery, ModelSyncJobsQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<ModelSyncJobsQuery, ModelSyncJobsQueryVariables>(
+    'ModelSyncJobs',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockStartModelSyncMutation(
+ *   ({ query, variables }) => {
+ *     const { targets } = variables;
+ *     return HttpResponse.json({
+ *       data: { startModelSync }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockStartModelSyncMutation = (resolver: GraphQLResponseResolver<StartModelSyncMutation, StartModelSyncMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<StartModelSyncMutation, StartModelSyncMutationVariables>(
+    'StartModelSync',
     resolver,
     options
   )
