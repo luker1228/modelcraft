@@ -230,3 +230,9 @@ func formatModelTitle(tableName string) string {
 
 	return regexp.MustCompile(`\s+`).ReplaceAllString(fmt.Sprintf("%s", parts), " ")
 }
+
+// NormalizeModelName is the public wrapper for normalizeModelName.
+// Used by SyncModelsAppService to compute model names from table names.
+func NormalizeModelName(tableName string) string {
+	return normalizeModelName(tableName)
+}

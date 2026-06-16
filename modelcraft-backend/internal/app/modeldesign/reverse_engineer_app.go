@@ -303,3 +303,49 @@ func (s *ReverseEngineerAppService) createModel(
 	opt := modeldesign.NewModelQueryOptions().WithFields()
 	return s.modelRepo.GetByID(ctx, model.ID, opt)
 }
+
+// TableDefinitionResult is the return type of GetTableDefinition.
+type TableDefinitionResult struct {
+	TableName string
+	// Fields holds the FieldDefinitions built from the DB columns (StorageHint filled).
+	// Only columns that ReverseTypeMapper supports are included; unsupported ones are skipped.
+	Fields []*modeldesign.FieldDefinition
+}
+
+// GetTableDefinition introspects a table and returns its field definitions.
+// Used by SyncModelsAppService for upsert-style sync.
+func (s *ReverseEngineerAppService) GetTableDefinition(
+	ctx context.Context,
+	orgName, projectSlug, databaseName, tableName string,
+) (*TableDefinitionResult, error) {
+	cmd := ImportModelCommand{
+		OrgName:      orgName,
+		ProjectSlug:  projectSlug,
+		DatabaseName: databaseName,
+		TableName:    tableName,
+	}
+	if err := s.validateCommand(cmd); err != nil {
+		return nil, err
+	}
+	tableDef, err := s.getTableDefinition(ctx, cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	isReadOnly := false
+	if s.modelDatabaseRepo != nil {
+		db, err := s.modelDatabaseRepo.GetByName(ctx, orgName, projectSlug, databaseName)
+		if err == nil && db != nil && db.Mode == modeldatabase.DatabaseModeManaged {
+			isReadOnly = true
+		}
+	}
+
+	buildResult, err := s.buildModelFromTable(tableDef, cmd, isReadOnly)
+	if err != nil {
+		return nil, err
+	}
+	return &TableDefinitionResult{
+		TableName: tableName,
+		Fields:    buildResult.Model.Fields,
+	}, nil
+}

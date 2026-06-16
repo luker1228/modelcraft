@@ -1403,3 +1403,83 @@ func (s *ModelDesignAppService) assignDisplayOrders(
 	}
 	return nil
 }
+
+// SyncFieldsFromDB performs a full sync of a model's DB-backed fields.
+// Only fields with a non-nil StorageHint participate:
+//   - DB has column, model has field (matched by StorageHint) → overwrite all attributes
+//   - DB has column, model doesn't have field → add field
+//   - model has field (StorageHint non-nil), DB doesn't have column → delete field
+//   - model fields with StorageHint == nil are untouched (logical/relation fields)
+func (s *ModelDesignAppService) SyncFieldsFromDB(
+	ctx context.Context,
+	modelID string,
+	dbFields []*modeldesign.FieldDefinition,
+) error {
+	opts := modeldesign.NewModelQueryOptions().WithFields()
+	existingModel, err := s.modelRepo.GetByID(ctx, modelID, opts)
+	if err != nil {
+		return err
+	}
+	if existingModel == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, modelID)
+	}
+
+	// Build DB-side lookup: storageHint → field
+	dbFieldByHint := make(map[string]*modeldesign.FieldDefinition, len(dbFields))
+	for _, f := range dbFields {
+		if f.StorageHint != nil && *f.StorageHint != "" {
+			dbFieldByHint[*f.StorageHint] = f
+		}
+	}
+
+	// Classify existing fields
+	var toDelete []string
+	var toUpdate []*modeldesign.FieldDefinition
+	var toAdd []*modeldesign.FieldDefinition
+
+	existingByHint := make(map[string]*modeldesign.FieldDefinition)
+	for _, ef := range existingModel.Fields {
+		if ef.StorageHint == nil || *ef.StorageHint == "" {
+			continue // logical field — skip
+		}
+		hint := *ef.StorageHint
+		existingByHint[hint] = ef
+		if _, inDB := dbFieldByHint[hint]; !inDB {
+			toDelete = append(toDelete, ef.Name)
+		}
+	}
+
+	for hint, dbField := range dbFieldByHint {
+		if ef, exists := existingByHint[hint]; exists {
+			// Overwrite: copy DB attributes onto existing field record
+			dbField.ModelID = modelID
+			dbField.ModelLocator = existingModel.GetModelLocator()
+			dbField.Name = ef.Name // preserve field name
+			dbField.DisplayOrder = ef.DisplayOrder
+			toUpdate = append(toUpdate, dbField)
+		} else {
+			dbField.ModelID = modelID
+			dbField.ModelLocator = existingModel.GetModelLocator()
+			toAdd = append(toAdd, dbField)
+		}
+	}
+
+	if len(toDelete) > 0 {
+		if err := s.modelRepo.DeleteFields(ctx, modelID, toDelete); err != nil {
+			return bizerrors.Wrapf(err, "SyncFieldsFromDB: delete fields")
+		}
+	}
+	if len(toUpdate) > 0 {
+		if err := s.modelRepo.BulkUpdateFields(ctx, toUpdate); err != nil {
+			return bizerrors.Wrapf(err, "SyncFieldsFromDB: update fields")
+		}
+	}
+	if len(toAdd) > 0 {
+		addCmd := AddFieldCommand{ModelID: modelID, Fields: toAdd}
+		if err := s.AddFieldSync(ctx, addCmd); err != nil {
+			return bizerrors.Wrapf(err, "SyncFieldsFromDB: add fields")
+		}
+	}
+
+	return nil
+}
