@@ -40,4 +40,7 @@ type Resolver struct {
 	// Database management
 	ModelDatabaseAppService     *appmodeldatabase.ModelDatabaseAppService
 	ModelDatabaseSyncAppService *appmodeldatabase.ModelDatabaseSyncAppService
+
+	// Model sync (syncModelsFromDB)
+	SyncModelsAppService *appmodeldatabase.SyncModelsAppService
 }

@@ -98,6 +98,7 @@ type DesignHandlers struct {
 	// Database management
 	ModelDatabaseAppService     *appmodeldatabase.ModelDatabaseAppService
 	ModelDatabaseSyncAppService *appmodeldatabase.ModelDatabaseSyncAppService
+	SyncModelsAppService        *appmodeldatabase.SyncModelsAppService
 
 	// SystemDB is the system main database connection (stores end_user_users etc.)
 	SystemDB *sql.DB
@@ -195,6 +196,14 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 			GroupService:      importGroupService,
 		},
 	)
+
+	syncModelsSyncJobRepo := repository.NewSqlModelSyncJobRepository(dbgen.New(loggingDB))
+	syncModelsAppService := appmodeldatabase.NewSyncModelsAppService(appmodeldatabase.SyncModelsAppServiceDeps{
+		SyncJobRepo:     syncModelsSyncJobRepo,
+		ReverseEngineer: reverseEngineerApp,
+		ModelRepo:       modelRepository,
+		FieldSyncer:     appService,
+	})
 
 	// Create RLS related services (V2: multi-policy matching)
 	policyRepo := rlsRepo.NewSqlPolicyRepository(dbgen.New(loggingDB))
@@ -319,6 +328,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		CreateOrgService:            createOrgService,
 		ModelDatabaseAppService:     modelDatabaseAppService,
 		ModelDatabaseSyncAppService: modelDatabaseSyncAppService,
+		SyncModelsAppService:        syncModelsAppService,
 		IsOrgAdminFn:                nil,
 	}, nil
 }
@@ -397,6 +407,7 @@ func SetupProjectGraphQLRoutesOnChi(
 		AuthSchemaAppService:        handlers.AuthSchemaAppService,
 		ModelDatabaseAppService:     handlers.ModelDatabaseAppService,
 		ModelDatabaseSyncAppService: handlers.ModelDatabaseSyncAppService,
+		SyncModelsAppService:        handlers.SyncModelsAppService,
 		PolicyCRUDService:           policyCRUDService,
 	}
 

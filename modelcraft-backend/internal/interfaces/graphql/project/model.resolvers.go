@@ -7,7 +7,9 @@ package projectgraphql
 import (
 	"context"
 	"fmt"
+	appmodeldatabase "modelcraft/internal/app/modeldatabase"
 	appmodeldesign "modelcraft/internal/app/modeldesign"
+	domaindb "modelcraft/internal/domain/modeldatabase"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/interfaces/graphql/project/adapter"
 	"modelcraft/internal/interfaces/graphql/project/generated"
@@ -549,7 +551,24 @@ func (r *mutationResolver) MoveModelToGroup(ctx context.Context, input generated
 
 // SyncModelsFromDb is the resolver for the syncModelsFromDB field.
 func (r *mutationResolver) SyncModelsFromDb(ctx context.Context, input generated.SyncModelsFromDBInput) (*generated.SyncModelsFromDBPayload, error) {
-	panic(fmt.Errorf("not implemented: SyncModelsFromDb - syncModelsFromDB"))
+	tableNames := make([]string, 0)
+	if input.TableNames != nil {
+		tableNames = input.TableNames
+	}
+	syncAll := false
+	if input.SyncAll != nil {
+		syncAll = *input.SyncAll
+	}
+
+	job, err := r.SyncModelsAppService.StartSync(ctx, appmodeldatabase.SyncModelsFromDBCommand{
+		DatabaseName: input.DatabaseName,
+		TableNames:   tableNames,
+		SyncAll:      syncAll,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &generated.SyncModelsFromDBPayload{JobID: job.ID}, nil
 }
 
 // Model is the resolver for the model field.
@@ -868,5 +887,43 @@ func (r *queryResolver) ModelGroups(ctx context.Context) ([]*generated.ModelGrou
 
 // ModelSyncJob is the resolver for the modelSyncJob field.
 func (r *queryResolver) ModelSyncJob(ctx context.Context, jobID string) (*generated.ModelSyncJob, error) {
-	panic(fmt.Errorf("not implemented: ModelSyncJob - modelSyncJob"))
+	job, err := r.SyncModelsAppService.GetJob(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+	if job == nil {
+		return nil, nil
+	}
+	return modelSyncJobToGQL(job), nil
+}
+
+func modelSyncJobToGQL(job *domaindb.ModelSyncJob) *generated.ModelSyncJob {
+	failedTables := make([]*generated.ModelSyncFailedTable, len(job.FailedTables))
+	for i, ft := range job.FailedTables {
+		ft := ft
+		failedTables[i] = &generated.ModelSyncFailedTable{
+			TableName: ft.TableName,
+			Message:   ft.Message,
+		}
+	}
+	tableNames := job.TableNames
+	if tableNames == nil {
+		tableNames = []string{}
+	}
+	return &generated.ModelSyncJob{
+		ID:              job.ID,
+		DatabaseName:    job.DatabaseName,
+		TableNames:      tableNames,
+		Status:          generated.ModelSyncJobStatus(job.Status),
+		TotalTables:     int32(job.TotalTables),
+		ProcessedTables: int32(job.ProcessedTables),
+		CreatedModels:   int32(job.CreatedModels),
+		SyncedModels:    int32(job.SyncedModels),
+		FailedCount:     int32(job.FailedCount),
+		FailedTables:    failedTables,
+		StartedAt:       job.StartedAt,
+		FinishedAt:      job.FinishedAt,
+		CreatedAt:       job.CreatedAt,
+		UpdatedAt:       job.UpdatedAt,
+	}
 }
