@@ -406,7 +406,7 @@ func TestSyncModels_SingleTableFailureContinues(t *testing.T) {
 	saved, err := jobRepo.GetByID(ctx, "org-a", "proj-a", job.ID)
 	require.NoError(t, err)
 
-	assert.Equal(t, domaindb.ModelSyncJobStatusPartialSuccess, saved.Status)
+	assert.Equal(t, domaindb.ModelSyncJobStatusFailed, saved.Status)
 	assert.Equal(t, 1, saved.FailedCount)
 	assert.Equal(t, 1, saved.CreatedModels)
 	require.Len(t, saved.FailedTables, 1)

@@ -65,7 +65,7 @@ func modelSyncJobToGQL(job *domainmodeldatabase.ModelSyncJob) *generated.ModelSy
 		DatabaseID:      job.DatabaseID,
 		DatabaseName:    job.DatabaseName,
 		TableNames:      tableNames,
-		Status:          generated.ModelSyncJobStatus(job.Status),
+		Status:          domainModelSyncJobStatusToGQL(job.Status),
 		TotalTables:     int32(job.TotalTables),
 		ProcessedTables: int32(job.ProcessedTables),
 		CreatedModels:   int32(job.CreatedModels),
@@ -76,6 +76,21 @@ func modelSyncJobToGQL(job *domainmodeldatabase.ModelSyncJob) *generated.ModelSy
 		FinishedAt:      job.FinishedAt,
 		CreatedAt:       job.CreatedAt,
 		UpdatedAt:       job.UpdatedAt,
+	}
+}
+
+func domainModelSyncJobStatusToGQL(
+	status domainmodeldatabase.ModelSyncJobStatus,
+) generated.ModelSyncJobStatus {
+	switch status {
+	case domainmodeldatabase.ModelSyncJobStatusPending:
+		return generated.ModelSyncJobStatusPending
+	case domainmodeldatabase.ModelSyncJobStatusRunning:
+		return generated.ModelSyncJobStatusRunning
+	case domainmodeldatabase.ModelSyncJobStatusSucceeded:
+		return generated.ModelSyncJobStatusSucceeded
+	default:
+		return generated.ModelSyncJobStatusFailed
 	}
 }
 

@@ -74,7 +74,8 @@ export function ImportModelDialog({
   })
 
   const { startSync, loading: syncing } = useStartModelSync(projectSlug)
-  const { data: jobData } = useModelSyncJob(jobId, projectSlug)
+  const { data: jobData, loading: jobLoading } = useModelSyncJob(jobId, projectSlug)
+  const job = jobData?.modelSyncJobs?.[0]
 
   useEffect(() => {
     if (!open) {
@@ -87,10 +88,9 @@ export function ImportModelDialog({
 
   // Watch async job status
   useEffect(() => {
-    const job = jobData?.modelSyncJobs?.[0]
     if (!job) return
     const status = job.status
-    if (status === 'SUCCEEDED' || status === 'PARTIAL_SUCCESS') {
+    if (status === 'SUCCEEDED') {
       toast.success('模型导入成功')
       setJobId(null)
       onSuccess()
@@ -100,6 +100,9 @@ export function ImportModelDialog({
       setJobId(null)
     }
   }, [jobData, onSuccess, onOpenChange])
+
+  const isJobRunning = job?.status === 'PENDING' || job?.status === 'RUNNING'
+  const isImporting = syncing || (!!jobId && (jobLoading || isJobRunning))
 
   useEffect(() => {
     setCurrentPage(1)
@@ -243,7 +246,7 @@ export function ImportModelDialog({
             variant="outline"
             size="sm"
             onClick={() => onOpenChange(false)}
-            disabled={syncing || !!jobId}
+            disabled={isImporting}
           >
             取消
           </Button>
@@ -251,10 +254,10 @@ export function ImportModelDialog({
             size="sm"
             className="border-0 bg-[#2563eb] text-white transition-colors duration-200 hover:bg-[#1d4ed8]"
             onClick={handleImport}
-            disabled={!selectedTable || syncing || !!jobId || !databaseId}
+            disabled={!selectedTable || isImporting || !databaseId}
           >
-            {(syncing || !!jobId) && <Loader2 className="mr-1.5 size-3.5 animate-spin" strokeWidth={1.5} />}
-            {(syncing || !!jobId) ? '导入中...' : '导入'}
+            {isImporting && <Loader2 className="mr-1.5 size-3.5 animate-spin" strokeWidth={1.5} />}
+            {isImporting ? '导入中...' : '导入'}
           </Button>
         </SheetFooter>
       </SheetContent>

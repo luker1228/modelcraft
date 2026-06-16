@@ -9,9 +9,8 @@ type ModelSyncJobStatus string
 const (
 	ModelSyncJobStatusPending        ModelSyncJobStatus = "pending"
 	ModelSyncJobStatusRunning        ModelSyncJobStatus = "running"
-	ModelSyncJobStatusSucceeded      ModelSyncJobStatus = "succeeded"
-	ModelSyncJobStatusPartialSuccess ModelSyncJobStatus = "partial_success"
-	ModelSyncJobStatusFailed         ModelSyncJobStatus = "failed"
+	ModelSyncJobStatusSucceeded ModelSyncJobStatus = "succeeded"
+	ModelSyncJobStatusFailed    ModelSyncJobStatus = "failed"
 )
 
 type ModelSyncFailedTable struct {

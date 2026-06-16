@@ -25,6 +25,7 @@ type SyncTarget struct {
 // syncModelsDBRepo is the subset of ModelDatabaseRepository used here.
 type syncModelsDBRepo interface {
 	GetByID(ctx context.Context, orgName, projectSlug, id string) (*domaindb.ModelDatabase, error)
+	GetByName(ctx context.Context, orgName, projectSlug, name string) (*domaindb.ModelDatabase, error)
 }
 
 // syncModelsGroupService is the subset of ModelGroupAppService used here.
@@ -136,7 +137,7 @@ func (s *SyncModelsAppService) StartSync(
 	// Resolve database ID if dbRepo is available.
 	var databaseID string
 	if s.dbRepo != nil {
-		db, err := s.dbRepo.GetByID(ctx, orgName, projectSlug, cmd.DatabaseName)
+		db, err := s.dbRepo.GetByName(ctx, orgName, projectSlug, cmd.DatabaseName)
 		if err != nil {
 			return nil, err
 		}
@@ -398,8 +399,6 @@ func (s *SyncModelsAppService) RunSyncJob(ctx context.Context, jobID string) err
 	switch {
 	case job.FailedCount == 0:
 		job.Status = domaindb.ModelSyncJobStatusSucceeded
-	case job.CreatedModels > 0 || job.SyncedModels > 0:
-		job.Status = domaindb.ModelSyncJobStatusPartialSuccess
 	default:
 		job.Status = domaindb.ModelSyncJobStatusFailed
 	}

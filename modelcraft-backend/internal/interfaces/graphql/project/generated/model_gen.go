@@ -1884,24 +1884,22 @@ func (e ModelDatabaseSyncJobStatus) MarshalJSON() ([]byte, error) {
 type ModelSyncJobStatus string
 
 const (
-	ModelSyncJobStatusPending        ModelSyncJobStatus = "PENDING"
-	ModelSyncJobStatusRunning        ModelSyncJobStatus = "RUNNING"
-	ModelSyncJobStatusSucceeded      ModelSyncJobStatus = "SUCCEEDED"
-	ModelSyncJobStatusPartialSuccess ModelSyncJobStatus = "PARTIAL_SUCCESS"
-	ModelSyncJobStatusFailed         ModelSyncJobStatus = "FAILED"
+	ModelSyncJobStatusPending   ModelSyncJobStatus = "PENDING"
+	ModelSyncJobStatusRunning   ModelSyncJobStatus = "RUNNING"
+	ModelSyncJobStatusSucceeded ModelSyncJobStatus = "SUCCEEDED"
+	ModelSyncJobStatusFailed    ModelSyncJobStatus = "FAILED"
 )
 
 var AllModelSyncJobStatus = []ModelSyncJobStatus{
 	ModelSyncJobStatusPending,
 	ModelSyncJobStatusRunning,
 	ModelSyncJobStatusSucceeded,
-	ModelSyncJobStatusPartialSuccess,
 	ModelSyncJobStatusFailed,
 }
 
 func (e ModelSyncJobStatus) IsValid() bool {
 	switch e {
-	case ModelSyncJobStatusPending, ModelSyncJobStatusRunning, ModelSyncJobStatusSucceeded, ModelSyncJobStatusPartialSuccess, ModelSyncJobStatusFailed:
+	case ModelSyncJobStatusPending, ModelSyncJobStatusRunning, ModelSyncJobStatusSucceeded, ModelSyncJobStatusFailed:
 		return true
 	}
 	return false

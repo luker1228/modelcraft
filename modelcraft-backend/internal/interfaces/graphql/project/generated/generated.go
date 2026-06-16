@@ -4931,7 +4931,6 @@ enum ModelSyncJobStatus {
   PENDING
   RUNNING
   SUCCEEDED
-  PARTIAL_SUCCESS
   FAILED
 }
 

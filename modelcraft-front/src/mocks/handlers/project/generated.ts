@@ -935,7 +935,6 @@ export type ModelSyncJobRef = {
 
 export enum ModelSyncJobStatus {
   Failed = 'FAILED',
-  PartialSuccess = 'PARTIAL_SUCCESS',
   Pending = 'PENDING',
   Running = 'RUNNING',
   Succeeded = 'SUCCEEDED'

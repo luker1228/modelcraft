@@ -922,7 +922,6 @@ export type ModelSyncJobRef = {
 
 export type ModelSyncJobStatus =
   | 'FAILED'
-  | 'PARTIAL_SUCCESS'
   | 'PENDING'
   | 'RUNNING'
   | 'SUCCEEDED';
