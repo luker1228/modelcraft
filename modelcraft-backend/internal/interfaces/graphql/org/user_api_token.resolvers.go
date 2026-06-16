@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-// CreateEndUserAPIToken is the resolver for the createEndUserAPIToken field.
-func (r *mutationResolver) CreateEndUserAPIToken(ctx context.Context, name string, expiresAt *time.Time) (*generated.CreateAPITokenPayload, error) {
+// CreateUserAPIToken is the resolver for the createUserAPIToken field.
+func (r *mutationResolver) CreateUserAPIToken(ctx context.Context, name string, expiresAt *time.Time) (*generated.CreateAPITokenPayload, error) {
 	if strings.TrimSpace(name) == "" {
 		return &generated.CreateAPITokenPayload{
 			Error: &generated.InvalidInput{Message: "name is required"},
@@ -62,8 +62,8 @@ func (r *mutationResolver) CreateEndUserAPIToken(ctx context.Context, name strin
 	}, nil
 }
 
-// RevokeEndUserAPIToken is the resolver for the revokeEndUserAPIToken field.
-func (r *mutationResolver) RevokeEndUserAPIToken(ctx context.Context, id string) (*generated.RevokeAPITokenPayload, error) {
+// RevokeUserAPIToken is the resolver for the revokeUserAPIToken field.
+func (r *mutationResolver) RevokeUserAPIToken(ctx context.Context, id string) (*generated.RevokeAPITokenPayload, error) {
 	svc := r.APITokenService
 	if svc == nil {
 		return &generated.RevokeAPITokenPayload{
@@ -95,8 +95,8 @@ func (r *mutationResolver) RevokeEndUserAPIToken(ctx context.Context, id string)
 	return &generated.RevokeAPITokenPayload{Success: &success}, nil
 }
 
-// EndUserAPITokens is the resolver for the endUserAPITokens field.
-func (r *queryResolver) EndUserAPITokens(ctx context.Context) ([]*generated.EndUserAPIToken, error) {
+// UserAPITokens is the resolver for the userAPITokens field.
+func (r *queryResolver) UserAPITokens(ctx context.Context) ([]*generated.UserAPIToken, error) {
 	svc := r.APITokenService
 	if svc == nil {
 		return nil, nil
@@ -119,7 +119,7 @@ func (r *queryResolver) EndUserAPITokens(ctx context.Context) ([]*generated.EndU
 		return nil, err
 	}
 
-	result := make([]*generated.EndUserAPIToken, 0, len(tokens))
+	result := make([]*generated.UserAPIToken, 0, len(tokens))
 	for _, t := range tokens {
 		result = append(result, toGQLAPIToken(t))
 	}

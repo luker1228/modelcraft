@@ -5,8 +5,8 @@ import (
 	"modelcraft/internal/interfaces/graphql/org/generated"
 )
 
-func toGQLAPIToken(t *domainenduser.APIToken) *generated.EndUserAPIToken {
-	return &generated.EndUserAPIToken{
+func toGQLAPIToken(t *domainenduser.APIToken) *generated.UserAPIToken {
+	return &generated.UserAPIToken{
 		ID:         t.ID,
 		Name:       t.Name,
 		CreatedAt:  t.CreatedAt,

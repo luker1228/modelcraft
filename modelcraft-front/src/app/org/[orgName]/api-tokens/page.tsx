@@ -44,7 +44,7 @@ import { toast } from 'sonner'
 import type { ApiToken } from '@/types'
 
 interface ApiTokensQueryData {
-  endUserAPITokens: ApiToken[]
+  userAPITokens: ApiToken[]
 }
 
 interface PayloadError {
@@ -54,7 +54,7 @@ interface PayloadError {
 }
 
 interface CreateApiTokenMutationResult {
-  createEndUserAPIToken: {
+  createUserAPIToken: {
     token?: ApiToken | null
     plaintext?: string | null
     error?: PayloadError | null
@@ -62,7 +62,7 @@ interface CreateApiTokenMutationResult {
 }
 
 interface RevokeApiTokenMutationResult {
-  revokeEndUserAPIToken: {
+  revokeUserAPIToken: {
     success?: boolean | null
     error?: PayloadError | null
   }
@@ -106,10 +106,10 @@ export default function ApiTokensPage() {
   })
 
   useEffect(() => {
-    if (data?.endUserAPITokens) {
-      setTokens(data.endUserAPITokens)
+    if (data?.userAPITokens) {
+      setTokens(data.userAPITokens)
     }
-  }, [data?.endUserAPITokens])
+  }, [data?.userAPITokens])
 
   const [createApiToken, { loading: creating }] = useMutation<CreateApiTokenMutationResult>(
     CREATE_API_TOKEN,
@@ -139,7 +139,7 @@ export default function ApiTokensPage() {
       },
     })
 
-    const payload = result.data?.createEndUserAPIToken
+    const payload = result.data?.createUserAPIToken
     if (payload?.error) {
       toast.error(payload.error.message)
       return
@@ -161,7 +161,7 @@ export default function ApiTokensPage() {
     if (!revokeTarget) return
 
     const result = await revokeApiToken({ variables: { id: revokeTarget.id } })
-    const payload = result.data?.revokeEndUserAPIToken
+    const payload = result.data?.revokeUserAPIToken
     if (payload?.error) {
       toast.error(payload.error.message)
       return

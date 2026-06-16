@@ -91,7 +91,7 @@ type DesignHandlers struct {
 	ClusterManager  *repository.ClusterConnectionManager
 
 	// End-User Services
-	EndUserAPITokenService *apitoken.APITokenService
+	UserAPITokenService *apitoken.APITokenService
 
 	// Org Creation Service
 	CreateOrgService *appOrg.CreateOrganizationService
@@ -335,7 +335,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		LogicalFKAppService:         logicalFKAppService,
 		RLSPolicyAppService:         nil, // TODO: replace with V2 policy CRUD in task 9
 		AuthSchemaAppService:        authSchemaAppService,
-		EndUserAPITokenService:      apiTokenService,
+		UserAPITokenService:      apiTokenService,
 		CreateOrgService:            createOrgService,
 		ModelDatabaseAppService:     modelDatabaseAppService,
 		ModelDatabaseSyncAppService: modelDatabaseSyncAppService,
@@ -364,7 +364,7 @@ func SetupOrgGraphQLRoutesOnChi(
 		RoleService:            handlers.PermRoleService,
 		PermissionService:      handlers.PermPermissionService,
 		UserRoleService:        handlers.PermUserRoleService,
-		APITokenService:        handlers.EndUserAPITokenService,
+		APITokenService:        handlers.UserAPITokenService,
 	}
 
 	router.Route("/graphql/org/{orgName}", func(r chi.Router) {

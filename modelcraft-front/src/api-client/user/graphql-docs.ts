@@ -106,7 +106,7 @@ export const GET_ROLE_PERMISSIONS_LIST = gql`
 
 export const GET_API_TOKENS = gql`
   query GetApiTokens {
-    endUserAPITokens {
+    userAPITokens {
       id
       name
       createdAt
@@ -233,7 +233,7 @@ export const REMOVE_PERMISSION_FROM_ROLE = gql`
 
 export const CREATE_API_TOKEN = gql`
   mutation CreateApiToken($name: String!, $expiresAt: Time) {
-    createEndUserAPIToken(name: $name, expiresAt: $expiresAt) {
+    createUserAPIToken(name: $name, expiresAt: $expiresAt) {
       token {
         id
         name
@@ -262,7 +262,7 @@ export const CREATE_API_TOKEN = gql`
 
 export const REVOKE_API_TOKEN = gql`
   mutation RevokeApiToken($id: ID!) {
-    revokeEndUserAPIToken(id: $id) {
+    revokeUserAPIToken(id: $id) {
       success
       error {
         __typename

@@ -4,16 +4,6 @@
 -- ============================================
 
 -- ----------------------------------------
--- 1. models 表新增 created_via 字段
--- ----------------------------------------
-ALTER TABLE models
-    ADD COLUMN created_via ENUM('NEW', 'IMPORTED') NOT NULL DEFAULT 'NEW'
-    COMMENT '模型创建来源：NEW=新建，IMPORTED=导入';
-
-CREATE INDEX idx_models_created_via ON models(created_via);
-
-
--- ----------------------------------------
 -- 3. 创建 project_auth_schemas 表
 -- ----------------------------------------
 CREATE TABLE IF NOT EXISTS project_auth_schemas (

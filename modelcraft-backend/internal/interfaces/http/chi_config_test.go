@@ -7,9 +7,9 @@ import (
 	"modelcraft/pkg/config"
 )
 
-func TestNewChiRouterConfigIncludesEndUserAPITokenService(t *testing.T) {
+func TestNewChiRouterConfigIncludesUserAPITokenService(t *testing.T) {
 	handlers := &DesignHandlers{
-		EndUserAPITokenService: nil,
+		UserAPITokenService: nil,
 	}
 	runtimeHandlers := &RuntimeHandlers{}
 	jwtConfig := &middleware.JWTAuthConfig{}
@@ -26,7 +26,7 @@ func TestNewChiRouterConfigIncludesEndUserAPITokenService(t *testing.T) {
 	if chiConfig.JWTConfig != jwtConfig {
 		t.Fatal("expected jwt config to be forwarded unchanged")
 	}
-	if chiConfig.APITokenService != handlers.EndUserAPITokenService {
+	if chiConfig.APITokenService != handlers.UserAPITokenService {
 		t.Fatal("expected APITokenService to be sourced from design handlers")
 	}
 }

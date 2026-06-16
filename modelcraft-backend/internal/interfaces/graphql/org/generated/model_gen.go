@@ -211,7 +211,7 @@ type ClusterConnectionInput struct {
 }
 
 type CreateAPITokenPayload struct {
-	Token     *EndUserAPIToken    `json:"token,omitempty"`
+	Token     *UserAPIToken       `json:"token,omitempty"`
 	Plaintext *string             `json:"plaintext,omitempty"`
 	Error     CreateAPITokenError `json:"error,omitempty"`
 }
@@ -327,14 +327,6 @@ type DeleteRolePayload struct {
 	Error   DeleteRoleError `json:"error,omitempty"`
 }
 
-type EndUserAPIToken struct {
-	ID         string     `json:"id"`
-	Name       string     `json:"name"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	ExpiresAt  *time.Time `json:"expiresAt,omitempty"`
-	LastUsedAt *time.Time `json:"lastUsedAt,omitempty"`
-}
-
 type GetClusterPayload struct {
 	Cluster *DatabaseCluster `json:"cluster,omitempty"`
 	Error   GetClusterError  `json:"error,omitempty"`
@@ -363,10 +355,6 @@ type InvalidInput struct {
 func (InvalidInput) IsError()                {}
 func (this InvalidInput) GetMessage() string { return this.Message }
 
-func (InvalidInput) IsCreateAPITokenError() {}
-
-func (InvalidInput) IsRevokeAPITokenError() {}
-
 func (InvalidInput) IsCreateCustomRoleError() {}
 
 func (InvalidInput) IsUpdatePermissionRoleError() {}
@@ -384,6 +372,10 @@ func (InvalidInput) IsUpdateProjectError() {}
 func (InvalidInput) IsUpdateClusterError() {}
 
 func (InvalidInput) IsSetProjectAuthSchemaError() {}
+
+func (InvalidInput) IsCreateAPITokenError() {}
+
+func (InvalidInput) IsRevokeAPITokenError() {}
 
 func (InvalidInput) IsCreateRoleError() {}
 
@@ -687,6 +679,14 @@ type User struct {
 
 func (User) IsNode()            {}
 func (this User) GetID() string { return this.ID }
+
+type UserAPIToken struct {
+	ID         string     `json:"id"`
+	Name       string     `json:"name"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	ExpiresAt  *time.Time `json:"expiresAt,omitempty"`
+	LastUsedAt *time.Time `json:"lastUsedAt,omitempty"`
+}
 
 type UserRoleAssignment struct {
 	ID        int32     `json:"id"`

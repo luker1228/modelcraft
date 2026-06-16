@@ -60,7 +60,7 @@ func NewChiRouterConfig(
 		DesignHandlers:  designHandlers,
 		RuntimeHandlers: runtimeHandlers,
 		JWTConfig:       jwtConfig,
-		APITokenService: designHandlers.EndUserAPITokenService,
+		APITokenService: designHandlers.UserAPITokenService,
 	}
 }
 

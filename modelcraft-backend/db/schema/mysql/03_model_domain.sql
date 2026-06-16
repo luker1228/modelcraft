@@ -55,7 +55,8 @@ CREATE TABLE IF NOT EXISTS `models` (
   -- 普通索引
   KEY `idx_models_project` (`org_name`, `project_slug`) COMMENT '项目查询索引',
   KEY `idx_models_live_project` (`org_name`, `project_slug`, `deleted_at`) COMMENT '项目活跃模型查询索引',
-  KEY `idx_models_is_read_only` (`is_read_only`) COMMENT '只读模型查询索引'
+  KEY `idx_models_is_read_only` (`is_read_only`) COMMENT '只读模型查询索引',
+  KEY `idx_models_created_via` (`created_via`) COMMENT '模型创建来源查询索引'
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型定义主表';
 

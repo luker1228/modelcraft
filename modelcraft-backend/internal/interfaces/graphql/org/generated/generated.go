@@ -171,14 +171,6 @@ type ComplexityRoot struct {
 		Success func(childComplexity int) int
 	}
 
-	EndUserAPIToken struct {
-		CreatedAt  func(childComplexity int) int
-		ExpiresAt  func(childComplexity int) int
-		ID         func(childComplexity int) int
-		LastUsedAt func(childComplexity int) int
-		Name       func(childComplexity int) int
-	}
-
 	GetClusterPayload struct {
 		Cluster func(childComplexity int) int
 		Error   func(childComplexity int) int
@@ -208,16 +200,16 @@ type ComplexityRoot struct {
 		AddPermissionToRole      func(childComplexity int, roleID int32, obj string, act string) int
 		AssignRoleToUser         func(childComplexity int, userID string, roleID int32, orgName string) int
 		CreateCustomRole         func(childComplexity int, input CreateCustomRoleInput) int
-		CreateEndUserAPIToken    func(childComplexity int, name string, expiresAt *time.Time) int
 		CreateProject            func(childComplexity int, input CreateProjectInput) int
 		CreateRole               func(childComplexity int, input CreateRoleInput) int
+		CreateUserAPIToken       func(childComplexity int, name string, expiresAt *time.Time) int
 		DeletePermissionRole     func(childComplexity int, roleID int32) int
 		DeleteProject            func(childComplexity int, slug string) int
 		DeleteRole               func(childComplexity int, id string) int
 		Pong                     func(childComplexity int) int
 		RemovePermissionFromRole func(childComplexity int, roleID int32, obj string, act string) int
-		RevokeEndUserAPIToken    func(childComplexity int, id string) int
 		RevokeRoleFromUser       func(childComplexity int, userID string, roleID int32, orgName string) int
+		RevokeUserAPIToken       func(childComplexity int, id string) int
 		SetProjectAuthSchema     func(childComplexity int, input SetProjectAuthSchemaInput) int
 		TestDatabaseConnection   func(childComplexity int, input TestDatabaseConnectionInput) int
 		UpdateMyProfile          func(childComplexity int, input UpdateMyProfileInput) int
@@ -324,7 +316,6 @@ type ComplexityRoot struct {
 
 	Query struct {
 		DatabaseCluster     func(childComplexity int, projectSlug string) int
-		EndUserAPITokens    func(childComplexity int) int
 		Hello               func(childComplexity int) int
 		Me                  func(childComplexity int) int
 		MyOrganizations     func(childComplexity int) int
@@ -338,6 +329,7 @@ type ComplexityRoot struct {
 		Projects            func(childComplexity int, input *ListProjectsInput) int
 		RolePermissionsList func(childComplexity int, roleID int32) int
 		Roles               func(childComplexity int) int
+		UserAPITokens       func(childComplexity int) int
 		UserRoleAssignments func(childComplexity int, userID string, orgName string) int
 	}
 
@@ -421,6 +413,14 @@ type ComplexityRoot struct {
 		UserName  func(childComplexity int) int
 	}
 
+	UserAPIToken struct {
+		CreatedAt  func(childComplexity int) int
+		ExpiresAt  func(childComplexity int) int
+		ID         func(childComplexity int) int
+		LastUsedAt func(childComplexity int) int
+		Name       func(childComplexity int) int
+	}
+
 	UserRoleAssignment struct {
 		CreatedAt func(childComplexity int) int
 		ID        func(childComplexity int) int
@@ -432,8 +432,6 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	Pong(ctx context.Context) (string, error)
-	CreateEndUserAPIToken(ctx context.Context, name string, expiresAt *time.Time) (*CreateAPITokenPayload, error)
-	RevokeEndUserAPIToken(ctx context.Context, id string) (*RevokeAPITokenPayload, error)
 	CreateCustomRole(ctx context.Context, input CreateCustomRoleInput) (*CreateCustomRolePayload, error)
 	UpdatePermissionRole(ctx context.Context, roleID int32, input UpdateRoleInput) (*UpdatePermissionRolePayload, error)
 	DeletePermissionRole(ctx context.Context, roleID int32) (*DeletePermissionRolePayload, error)
@@ -448,6 +446,8 @@ type MutationResolver interface {
 	UpdateProjectCluster(ctx context.Context, projectSlug string, input UpdateClusterConnectionInput) (*UpdateClusterPayload, error)
 	TestDatabaseConnection(ctx context.Context, input TestDatabaseConnectionInput) (*TestConnectionPayload, error)
 	SetProjectAuthSchema(ctx context.Context, input SetProjectAuthSchemaInput) (*SetProjectAuthSchemaPayload, error)
+	CreateUserAPIToken(ctx context.Context, name string, expiresAt *time.Time) (*CreateAPITokenPayload, error)
+	RevokeUserAPIToken(ctx context.Context, id string) (*RevokeAPITokenPayload, error)
 	UpdateOrganization(ctx context.Context, input UpdateOrganizationInput) (*UpdateOrganizationPayload, error)
 	CreateRole(ctx context.Context, input CreateRoleInput) (*CreateRolePayload, error)
 	DeleteRole(ctx context.Context, id string) (*DeleteRolePayload, error)
@@ -456,7 +456,6 @@ type QueryResolver interface {
 	Hello(ctx context.Context) (string, error)
 	Ping(ctx context.Context) (string, error)
 	Node(ctx context.Context, id string) (Node, error)
-	EndUserAPITokens(ctx context.Context) ([]*EndUserAPIToken, error)
 	PermissionRoles(ctx context.Context, orgName string, includeSystem *bool) ([]*PermissionRole, error)
 	PermissionRole(ctx context.Context, id int32) (*PermissionRole, error)
 	UserRoleAssignments(ctx context.Context, userID string, orgName string) ([]*UserRoleAssignment, error)
@@ -465,6 +464,7 @@ type QueryResolver interface {
 	Project(ctx context.Context, slug string) (*GetProjectPayload, error)
 	Projects(ctx context.Context, input *ListProjectsInput) ([]*Project, error)
 	DatabaseCluster(ctx context.Context, projectSlug string) (*GetClusterPayload, error)
+	UserAPITokens(ctx context.Context) ([]*UserAPIToken, error)
 	Me(ctx context.Context) (*CurrentUser, error)
 	MyOrganizations(ctx context.Context) ([]*Organization, error)
 	OrganizationMembers(ctx context.Context) ([]*OrganizationMember, error)
@@ -860,37 +860,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.DeleteRolePayload.Success(childComplexity), true
 
-	case "EndUserAPIToken.createdAt":
-		if e.complexity.EndUserAPIToken.CreatedAt == nil {
-			break
-		}
-
-		return e.complexity.EndUserAPIToken.CreatedAt(childComplexity), true
-	case "EndUserAPIToken.expiresAt":
-		if e.complexity.EndUserAPIToken.ExpiresAt == nil {
-			break
-		}
-
-		return e.complexity.EndUserAPIToken.ExpiresAt(childComplexity), true
-	case "EndUserAPIToken.id":
-		if e.complexity.EndUserAPIToken.ID == nil {
-			break
-		}
-
-		return e.complexity.EndUserAPIToken.ID(childComplexity), true
-	case "EndUserAPIToken.lastUsedAt":
-		if e.complexity.EndUserAPIToken.LastUsedAt == nil {
-			break
-		}
-
-		return e.complexity.EndUserAPIToken.LastUsedAt(childComplexity), true
-	case "EndUserAPIToken.name":
-		if e.complexity.EndUserAPIToken.Name == nil {
-			break
-		}
-
-		return e.complexity.EndUserAPIToken.Name(childComplexity), true
-
 	case "GetClusterPayload.cluster":
 		if e.complexity.GetClusterPayload.Cluster == nil {
 			break
@@ -989,17 +958,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateCustomRole(childComplexity, args["input"].(CreateCustomRoleInput)), true
-	case "Mutation.createEndUserAPIToken":
-		if e.complexity.Mutation.CreateEndUserAPIToken == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createEndUserAPIToken_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateEndUserAPIToken(childComplexity, args["name"].(string), args["expiresAt"].(*time.Time)), true
 	case "Mutation.createProject":
 		if e.complexity.Mutation.CreateProject == nil {
 			break
@@ -1022,6 +980,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateRole(childComplexity, args["input"].(CreateRoleInput)), true
+	case "Mutation.createUserAPIToken":
+		if e.complexity.Mutation.CreateUserAPIToken == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createUserAPIToken_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateUserAPIToken(childComplexity, args["name"].(string), args["expiresAt"].(*time.Time)), true
 	case "Mutation.deletePermissionRole":
 		if e.complexity.Mutation.DeletePermissionRole == nil {
 			break
@@ -1072,17 +1041,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.RemovePermissionFromRole(childComplexity, args["roleId"].(int32), args["obj"].(string), args["act"].(string)), true
-	case "Mutation.revokeEndUserAPIToken":
-		if e.complexity.Mutation.RevokeEndUserAPIToken == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_revokeEndUserAPIToken_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.RevokeEndUserAPIToken(childComplexity, args["id"].(string)), true
 	case "Mutation.revokeRoleFromUser":
 		if e.complexity.Mutation.RevokeRoleFromUser == nil {
 			break
@@ -1094,6 +1052,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.RevokeRoleFromUser(childComplexity, args["userId"].(string), args["roleId"].(int32), args["orgName"].(string)), true
+	case "Mutation.revokeUserAPIToken":
+		if e.complexity.Mutation.RevokeUserAPIToken == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_revokeUserAPIToken_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RevokeUserAPIToken(childComplexity, args["id"].(string)), true
 	case "Mutation.setProjectAuthSchema":
 		if e.complexity.Mutation.SetProjectAuthSchema == nil {
 			break
@@ -1532,12 +1501,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.DatabaseCluster(childComplexity, args["projectSlug"].(string)), true
-	case "Query.endUserAPITokens":
-		if e.complexity.Query.EndUserAPITokens == nil {
-			break
-		}
-
-		return e.complexity.Query.EndUserAPITokens(childComplexity), true
 	case "Query.hello":
 		if e.complexity.Query.Hello == nil {
 			break
@@ -1646,6 +1609,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Roles(childComplexity), true
+	case "Query.userAPITokens":
+		if e.complexity.Query.UserAPITokens == nil {
+			break
+		}
+
+		return e.complexity.Query.UserAPITokens(childComplexity), true
 	case "Query.userRoleAssignments":
 		if e.complexity.Query.UserRoleAssignments == nil {
 			break
@@ -1900,6 +1869,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.User.UserName(childComplexity), true
 
+	case "UserAPIToken.createdAt":
+		if e.complexity.UserAPIToken.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.UserAPIToken.CreatedAt(childComplexity), true
+	case "UserAPIToken.expiresAt":
+		if e.complexity.UserAPIToken.ExpiresAt == nil {
+			break
+		}
+
+		return e.complexity.UserAPIToken.ExpiresAt(childComplexity), true
+	case "UserAPIToken.id":
+		if e.complexity.UserAPIToken.ID == nil {
+			break
+		}
+
+		return e.complexity.UserAPIToken.ID(childComplexity), true
+	case "UserAPIToken.lastUsedAt":
+		if e.complexity.UserAPIToken.LastUsedAt == nil {
+			break
+		}
+
+		return e.complexity.UserAPIToken.LastUsedAt(childComplexity), true
+	case "UserAPIToken.name":
+		if e.complexity.UserAPIToken.Name == nil {
+			break
+		}
+
+		return e.complexity.UserAPIToken.Name(childComplexity), true
+
 	case "UserRoleAssignment.createdAt":
 		if e.complexity.UserRoleAssignment.CreatedAt == nil {
 			break
@@ -2112,72 +2112,6 @@ type Query {
 
 type Mutation {
   pong: String!
-}
-`, BuiltIn: false},
-	{Name: "../../../../../api/graph/org/schema/end_user_api_token.graphql", Input: `# api/graph/org/schema/end_user_api_token.graphql
-#
-# EndUser Personal Access Token (PAT) 管理
-# Endpoint: /end-user/graphql/org/{orgName}/
-# 认证：EndUser Bearer JWT（PAT 本身不能管理 PAT）
-
-# ============================================================
-# Error Types
-# ============================================================
-
-type APITokenNameConflict implements Error {
-  message: String!
-}
-
-type APITokenLimitReached implements Error {
-  message: String!
-  limit:   Int!
-}
-
-type APITokenNotFound implements Error {
-  message: String!
-}
-
-union CreateAPITokenError = APITokenNameConflict | APITokenLimitReached | InvalidInput
-union RevokeAPITokenError = APITokenNotFound | InvalidInput
-
-# ============================================================
-# Data Types
-# ============================================================
-
-type EndUserAPIToken {
-  id:          ID!
-  name:        String!
-  createdAt:   Time!
-  expiresAt:   Time
-  lastUsedAt:  Time
-}
-
-type CreateAPITokenPayload {
-  token:     EndUserAPIToken
-  plaintext: String
-  error:     CreateAPITokenError
-}
-
-type RevokeAPITokenPayload {
-  success: Boolean
-  error:   RevokeAPITokenError
-}
-
-# ============================================================
-# Queries & Mutations
-# ============================================================
-
-extend type Query {
-  endUserAPITokens: [EndUserAPIToken!]!
-}
-
-extend type Mutation {
-  createEndUserAPIToken(
-    name:      String!
-    expiresAt: Time
-  ): CreateAPITokenPayload!
-
-  revokeEndUserAPIToken(id: ID!): RevokeAPITokenPayload!
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/org/schema/permission.graphql", Input: `# Permission Management Types
@@ -2751,6 +2685,72 @@ extend type Mutation {
   mutation: Mutation
 }
 `, BuiltIn: false},
+	{Name: "../../../../../api/graph/org/schema/user_api_token.graphql", Input: `# api/graph/org/schema/user_api_token.graphql
+#
+# User Personal Access Token (PAT) 管理
+# Endpoint: /end-user/graphql/org/{orgName}/
+# 认证：EndUser Bearer JWT（PAT 本身不能管理 PAT）
+
+# ============================================================
+# Error Types
+# ============================================================
+
+type APITokenNameConflict implements Error {
+  message: String!
+}
+
+type APITokenLimitReached implements Error {
+  message: String!
+  limit:   Int!
+}
+
+type APITokenNotFound implements Error {
+  message: String!
+}
+
+union CreateAPITokenError = APITokenNameConflict | APITokenLimitReached | InvalidInput
+union RevokeAPITokenError = APITokenNotFound | InvalidInput
+
+# ============================================================
+# Data Types
+# ============================================================
+
+type UserAPIToken {
+  id:          ID!
+  name:        String!
+  createdAt:   Time!
+  expiresAt:   Time
+  lastUsedAt:  Time
+}
+
+type CreateAPITokenPayload {
+  token:     UserAPIToken
+  plaintext: String
+  error:     CreateAPITokenError
+}
+
+type RevokeAPITokenPayload {
+  success: Boolean
+  error:   RevokeAPITokenError
+}
+
+# ============================================================
+# Queries & Mutations
+# ============================================================
+
+extend type Query {
+  userAPITokens: [UserAPIToken!]!
+}
+
+extend type Mutation {
+  createUserAPIToken(
+    name:      String!
+    expiresAt: Time
+  ): CreateAPITokenPayload!
+
+  revokeUserAPIToken(id: ID!): RevokeAPITokenPayload!
+}
+`, BuiltIn: false},
 	{Name: "../../../../../api/graph/org/schema/user_management.graphql", Input: `# User, Organization, and Role management types, inputs, queries and mutations
 
 # ============================================
@@ -2988,22 +2988,6 @@ func (ec *executionContext) field_Mutation_createCustomRole_args(ctx context.Con
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_createEndUserAPIToken_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "name", ec.unmarshalNString2string)
-	if err != nil {
-		return nil, err
-	}
-	args["name"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "expiresAt", ec.unmarshalOTime2ᚖtimeᚐTime)
-	if err != nil {
-		return nil, err
-	}
-	args["expiresAt"] = arg1
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_createProject_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3023,6 +3007,22 @@ func (ec *executionContext) field_Mutation_createRole_args(ctx context.Context, 
 		return nil, err
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createUserAPIToken_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "name", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["name"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "expiresAt", ec.unmarshalOTime2ᚖtimeᚐTime)
+	if err != nil {
+		return nil, err
+	}
+	args["expiresAt"] = arg1
 	return args, nil
 }
 
@@ -3080,17 +3080,6 @@ func (ec *executionContext) field_Mutation_removePermissionFromRole_args(ctx con
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_revokeEndUserAPIToken_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["id"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_revokeRoleFromUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3109,6 +3098,17 @@ func (ec *executionContext) field_Mutation_revokeRoleFromUser_args(ctx context.C
 		return nil, err
 	}
 	args["orgName"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_revokeUserAPIToken_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -3875,7 +3875,7 @@ func (ec *executionContext) _CreateAPITokenPayload_token(ctx context.Context, fi
 			return obj.Token, nil
 		},
 		nil,
-		ec.marshalOEndUserAPIToken2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserAPIToken,
+		ec.marshalOUserAPIToken2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserAPIToken,
 		true,
 		false,
 	)
@@ -3890,17 +3890,17 @@ func (ec *executionContext) fieldContext_CreateAPITokenPayload_token(_ context.C
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_EndUserAPIToken_id(ctx, field)
+				return ec.fieldContext_UserAPIToken_id(ctx, field)
 			case "name":
-				return ec.fieldContext_EndUserAPIToken_name(ctx, field)
+				return ec.fieldContext_UserAPIToken_name(ctx, field)
 			case "createdAt":
-				return ec.fieldContext_EndUserAPIToken_createdAt(ctx, field)
+				return ec.fieldContext_UserAPIToken_createdAt(ctx, field)
 			case "expiresAt":
-				return ec.fieldContext_EndUserAPIToken_expiresAt(ctx, field)
+				return ec.fieldContext_UserAPIToken_expiresAt(ctx, field)
 			case "lastUsedAt":
-				return ec.fieldContext_EndUserAPIToken_lastUsedAt(ctx, field)
+				return ec.fieldContext_UserAPIToken_lastUsedAt(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type EndUserAPIToken", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type UserAPIToken", field.Name)
 		},
 	}
 	return fc, nil
@@ -5160,151 +5160,6 @@ func (ec *executionContext) fieldContext_DeleteRolePayload_error(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _EndUserAPIToken_id(ctx context.Context, field graphql.CollectedField, obj *EndUserAPIToken) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserAPIToken_id,
-		func(ctx context.Context) (any, error) {
-			return obj.ID, nil
-		},
-		nil,
-		ec.marshalNID2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserAPIToken_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserAPIToken",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserAPIToken_name(ctx context.Context, field graphql.CollectedField, obj *EndUserAPIToken) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserAPIToken_name,
-		func(ctx context.Context) (any, error) {
-			return obj.Name, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserAPIToken_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserAPIToken",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserAPIToken_createdAt(ctx context.Context, field graphql.CollectedField, obj *EndUserAPIToken) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserAPIToken_createdAt,
-		func(ctx context.Context) (any, error) {
-			return obj.CreatedAt, nil
-		},
-		nil,
-		ec.marshalNTime2timeᚐTime,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserAPIToken_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserAPIToken",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserAPIToken_expiresAt(ctx context.Context, field graphql.CollectedField, obj *EndUserAPIToken) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserAPIToken_expiresAt,
-		func(ctx context.Context) (any, error) {
-			return obj.ExpiresAt, nil
-		},
-		nil,
-		ec.marshalOTime2ᚖtimeᚐTime,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserAPIToken_expiresAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserAPIToken",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserAPIToken_lastUsedAt(ctx context.Context, field graphql.CollectedField, obj *EndUserAPIToken) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserAPIToken_lastUsedAt,
-		func(ctx context.Context) (any, error) {
-			return obj.LastUsedAt, nil
-		},
-		nil,
-		ec.marshalOTime2ᚖtimeᚐTime,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserAPIToken_lastUsedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserAPIToken",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _GetClusterPayload_cluster(ctx context.Context, field graphql.CollectedField, obj *GetClusterPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5696,102 +5551,6 @@ func (ec *executionContext) fieldContext_Mutation_pong(_ context.Context, field 
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_createEndUserAPIToken(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_createEndUserAPIToken,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateEndUserAPIToken(ctx, fc.Args["name"].(string), fc.Args["expiresAt"].(*time.Time))
-		},
-		nil,
-		ec.marshalNCreateAPITokenPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateAPITokenPayload,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_createEndUserAPIToken(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "token":
-				return ec.fieldContext_CreateAPITokenPayload_token(ctx, field)
-			case "plaintext":
-				return ec.fieldContext_CreateAPITokenPayload_plaintext(ctx, field)
-			case "error":
-				return ec.fieldContext_CreateAPITokenPayload_error(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CreateAPITokenPayload", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createEndUserAPIToken_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_revokeEndUserAPIToken(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_revokeEndUserAPIToken,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().RevokeEndUserAPIToken(ctx, fc.Args["id"].(string))
-		},
-		nil,
-		ec.marshalNRevokeAPITokenPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐRevokeAPITokenPayload,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_revokeEndUserAPIToken(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_RevokeAPITokenPayload_success(ctx, field)
-			case "error":
-				return ec.fieldContext_RevokeAPITokenPayload_error(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type RevokeAPITokenPayload", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_revokeEndUserAPIToken_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
 	}
 	return fc, nil
 }
@@ -6772,6 +6531,102 @@ func (ec *executionContext) fieldContext_Mutation_setProjectAuthSchema(ctx conte
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_setProjectAuthSchema_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createUserAPIToken(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createUserAPIToken,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateUserAPIToken(ctx, fc.Args["name"].(string), fc.Args["expiresAt"].(*time.Time))
+		},
+		nil,
+		ec.marshalNCreateAPITokenPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateAPITokenPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createUserAPIToken(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "token":
+				return ec.fieldContext_CreateAPITokenPayload_token(ctx, field)
+			case "plaintext":
+				return ec.fieldContext_CreateAPITokenPayload_plaintext(ctx, field)
+			case "error":
+				return ec.fieldContext_CreateAPITokenPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CreateAPITokenPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createUserAPIToken_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_revokeUserAPIToken(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_revokeUserAPIToken,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RevokeUserAPIToken(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		ec.marshalNRevokeAPITokenPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐRevokeAPITokenPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_revokeUserAPIToken(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_RevokeAPITokenPayload_success(ctx, field)
+			case "error":
+				return ec.fieldContext_RevokeAPITokenPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RevokeAPITokenPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_revokeUserAPIToken_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -8775,47 +8630,6 @@ func (ec *executionContext) fieldContext_Query_node(ctx context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_endUserAPITokens(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_endUserAPITokens,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Query().EndUserAPITokens(ctx)
-		},
-		nil,
-		ec.marshalNEndUserAPIToken2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserAPITokenᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_endUserAPITokens(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_EndUserAPIToken_id(ctx, field)
-			case "name":
-				return ec.fieldContext_EndUserAPIToken_name(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_EndUserAPIToken_createdAt(ctx, field)
-			case "expiresAt":
-				return ec.fieldContext_EndUserAPIToken_expiresAt(ctx, field)
-			case "lastUsedAt":
-				return ec.fieldContext_EndUserAPIToken_lastUsedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type EndUserAPIToken", field.Name)
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Query_permissionRoles(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9400,6 +9214,47 @@ func (ec *executionContext) fieldContext_Query_databaseCluster(ctx context.Conte
 	if fc.Args, err = ec.field_Query_databaseCluster_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_userAPITokens(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_userAPITokens,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().UserAPITokens(ctx)
+		},
+		nil,
+		ec.marshalNUserAPIToken2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserAPITokenᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_userAPITokens(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_UserAPIToken_id(ctx, field)
+			case "name":
+				return ec.fieldContext_UserAPIToken_name(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_UserAPIToken_createdAt(ctx, field)
+			case "expiresAt":
+				return ec.fieldContext_UserAPIToken_expiresAt(ctx, field)
+			case "lastUsedAt":
+				return ec.fieldContext_UserAPIToken_lastUsedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UserAPIToken", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -10949,6 +10804,151 @@ func (ec *executionContext) fieldContext_User_profile(_ context.Context, field g
 				return ec.fieldContext_Profile_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserAPIToken_id(ctx context.Context, field graphql.CollectedField, obj *UserAPIToken) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UserAPIToken_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UserAPIToken_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserAPIToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserAPIToken_name(ctx context.Context, field graphql.CollectedField, obj *UserAPIToken) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UserAPIToken_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UserAPIToken_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserAPIToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserAPIToken_createdAt(ctx context.Context, field graphql.CollectedField, obj *UserAPIToken) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UserAPIToken_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UserAPIToken_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserAPIToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserAPIToken_expiresAt(ctx context.Context, field graphql.CollectedField, obj *UserAPIToken) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UserAPIToken_expiresAt,
+		func(ctx context.Context) (any, error) {
+			return obj.ExpiresAt, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_UserAPIToken_expiresAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserAPIToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserAPIToken_lastUsedAt(ctx context.Context, field graphql.CollectedField, obj *UserAPIToken) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UserAPIToken_lastUsedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.LastUsedAt, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_UserAPIToken_lastUsedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserAPIToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -14744,59 +14744,6 @@ func (ec *executionContext) _DeleteRolePayload(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var endUserAPITokenImplementors = []string{"EndUserAPIToken"}
-
-func (ec *executionContext) _EndUserAPIToken(ctx context.Context, sel ast.SelectionSet, obj *EndUserAPIToken) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, endUserAPITokenImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("EndUserAPIToken")
-		case "id":
-			out.Values[i] = ec._EndUserAPIToken_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "name":
-			out.Values[i] = ec._EndUserAPIToken_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "createdAt":
-			out.Values[i] = ec._EndUserAPIToken_createdAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "expiresAt":
-			out.Values[i] = ec._EndUserAPIToken_expiresAt(ctx, field, obj)
-		case "lastUsedAt":
-			out.Values[i] = ec._EndUserAPIToken_lastUsedAt(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var getClusterPayloadImplementors = []string{"GetClusterPayload"}
 
 func (ec *executionContext) _GetClusterPayload(ctx context.Context, sel ast.SelectionSet, obj *GetClusterPayload) graphql.Marshaler {
@@ -14949,7 +14896,7 @@ func (ec *executionContext) _GetProjectPayload(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var invalidInputImplementors = []string{"InvalidInput", "Error", "CreateAPITokenError", "RevokeAPITokenError", "CreateCustomRoleError", "UpdatePermissionRoleError", "RolePermissionError", "AssignRoleError", "UpdateMyProfileError", "CreateProjectError", "UpdateProjectError", "UpdateClusterError", "SetProjectAuthSchemaError", "CreateRoleError"}
+var invalidInputImplementors = []string{"InvalidInput", "Error", "CreateCustomRoleError", "UpdatePermissionRoleError", "RolePermissionError", "AssignRoleError", "UpdateMyProfileError", "CreateProjectError", "UpdateProjectError", "UpdateClusterError", "SetProjectAuthSchemaError", "CreateAPITokenError", "RevokeAPITokenError", "CreateRoleError"}
 
 func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidInput) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, invalidInputImplementors)
@@ -15012,20 +14959,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "pong":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_pong(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "createEndUserAPIToken":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createEndUserAPIToken(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "revokeEndUserAPIToken":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_revokeEndUserAPIToken(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -15124,6 +15057,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "setProjectAuthSchema":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_setProjectAuthSchema(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createUserAPIToken":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createUserAPIToken(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "revokeUserAPIToken":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_revokeUserAPIToken(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -15946,28 +15893,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "endUserAPITokens":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_endUserAPITokens(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "permissionRoles":
 			field := field
 
@@ -16129,6 +16054,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_databaseCluster(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "userAPITokens":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_userAPITokens(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -16869,6 +16816,59 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var userAPITokenImplementors = []string{"UserAPIToken"}
+
+func (ec *executionContext) _UserAPIToken(ctx context.Context, sel ast.SelectionSet, obj *UserAPIToken) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userAPITokenImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserAPIToken")
+		case "id":
+			out.Values[i] = ec._UserAPIToken_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._UserAPIToken_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._UserAPIToken_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "expiresAt":
+			out.Values[i] = ec._UserAPIToken_expiresAt(ctx, field, obj)
+		case "lastUsedAt":
+			out.Values[i] = ec._UserAPIToken_lastUsedAt(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var userRoleAssignmentImplementors = []string{"UserRoleAssignment"}
 
 func (ec *executionContext) _UserRoleAssignment(ctx context.Context, sel ast.SelectionSet, obj *UserRoleAssignment) graphql.Marshaler {
@@ -17546,60 +17546,6 @@ func (ec *executionContext) marshalNDeleteRolePayload2ᚖmodelcraftᚋinternal�
 		return graphql.Null
 	}
 	return ec._DeleteRolePayload(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNEndUserAPIToken2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserAPITokenᚄ(ctx context.Context, sel ast.SelectionSet, v []*EndUserAPIToken) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNEndUserAPIToken2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserAPIToken(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNEndUserAPIToken2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserAPIToken(ctx context.Context, sel ast.SelectionSet, v *EndUserAPIToken) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._EndUserAPIToken(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNGetClusterPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐGetClusterPayload(ctx context.Context, sel ast.SelectionSet, v GetClusterPayload) graphql.Marshaler {
@@ -18377,6 +18323,60 @@ func (ec *executionContext) unmarshalNUpdateRoleInput2modelcraftᚋinternalᚋin
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNUserAPIToken2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserAPITokenᚄ(ctx context.Context, sel ast.SelectionSet, v []*UserAPIToken) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNUserAPIToken2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserAPIToken(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNUserAPIToken2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserAPIToken(ctx context.Context, sel ast.SelectionSet, v *UserAPIToken) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UserAPIToken(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNUserRoleAssignment2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserRoleAssignmentᚄ(ctx context.Context, sel ast.SelectionSet, v []*UserRoleAssignment) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -18802,13 +18802,6 @@ func (ec *executionContext) marshalODeleteRoleError2modelcraftᚋinternalᚋinte
 	return ec._DeleteRoleError(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOEndUserAPIToken2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserAPIToken(ctx context.Context, sel ast.SelectionSet, v *EndUserAPIToken) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._EndUserAPIToken(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v any) (*float64, error) {
 	if v == nil {
 		return nil, nil
@@ -19049,6 +19042,13 @@ func (ec *executionContext) marshalOUser2ᚖmodelcraftᚋinternalᚋinterfaces�
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOUserAPIToken2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserAPIToken(ctx context.Context, sel ast.SelectionSet, v *UserAPIToken) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._UserAPIToken(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOUserRoleAssignment2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserRoleAssignment(ctx context.Context, sel ast.SelectionSet, v *UserRoleAssignment) graphql.Marshaler {
