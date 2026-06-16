@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useParams } from 'next/navigation'
-import { useQuery, useMutation, ApolloClient } from '@apollo/client'
+import { useQuery } from '@apollo/client'
 import { ChevronLeft, ChevronRight, Loader2, Search, Table2, X } from 'lucide-react'
 import {
   Sheet,
@@ -16,7 +15,7 @@ import { Input } from '@web/components/ui/input'
 import { Button } from '@web/components/ui/button'
 import { toast } from 'sonner'
 import { LIST_TABLES } from '@/api-client/project'
-import { IMPORT_MODEL } from '@/api-client/model'
+import { useSyncModelsFromDB, useModelSyncJob } from '@web/hooks/model/use-sync-models-from-db'
 import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 
 const PAGE_SIZE = 20
@@ -40,10 +39,6 @@ interface ListTablesQueryData {
   } | null
 }
 
-interface ImportModelMutationData {
-  importModel?: boolean | null
-}
-
 export function ImportModelDialog({
   open,
   onOpenChange,
@@ -51,15 +46,13 @@ export function ImportModelDialog({
   databaseName,
   onSuccess,
 }: ImportModelDialogProps) {
-  const params = useParams()
-  const orgName = params?.orgName as string
+  // listTables lives on the project endpoint: /graphql/org/{orgName}/project/{projectSlug}/
+  const projectClient = useProjectScopedClient(projectSlug)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTable, setSelectedTable] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-
-  // listTables and importModel live on the project endpoint: /graphql/org/{orgName}/project/{projectSlug}/
-  const projectClient = useProjectScopedClient(projectSlug) as ApolloClient<object>
+  const [jobId, setJobId] = useState<string | null>(null)
 
   const offset = (currentPage - 1) * PAGE_SIZE
 
@@ -77,18 +70,32 @@ export function ImportModelDialog({
     fetchPolicy: 'network-only',
   })
 
-  const [importModel, { loading: importing }] = useMutation<ImportModelMutationData>(
-    IMPORT_MODEL,
-    { client: projectClient }
-  )
+  const [syncModels, { loading: syncing }] = useSyncModelsFromDB(projectSlug)
+  const { data: jobData } = useModelSyncJob(jobId, projectSlug)
 
   useEffect(() => {
     if (!open) {
       setSearchQuery('')
       setSelectedTable(null)
       setCurrentPage(1)
+      setJobId(null)
     }
   }, [open])
+
+  // Watch async job status
+  useEffect(() => {
+    if (!jobData?.modelSyncJob) return
+    const status = jobData.modelSyncJob.status
+    if (status === 'SUCCEEDED' || status === 'PARTIAL_SUCCESS') {
+      toast.success('模型导入成功')
+      setJobId(null)
+      onSuccess()
+      onOpenChange(false)
+    } else if (status === 'FAILED') {
+      toast.error('导入失败，请重试')
+      setJobId(null)
+    }
+  }, [jobData, onSuccess, onOpenChange])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -112,19 +119,17 @@ export function ImportModelDialog({
     if (!selectedTable) return
 
     try {
-      const result = await importModel({
+      const result = await syncModels({
         variables: {
           input: {
             databaseName,
-            tableName: selectedTable,
+            tableNames: [selectedTable],
           },
         },
       })
-
-      if (result.data?.importModel) {
-        toast.success('模型导入成功')
-        onSuccess()
-        onOpenChange(false)
+      const id = result.data?.syncModelsFromDB?.jobId
+      if (id) {
+        setJobId(id)
       } else {
         toast.error('导入失败，请重试')
       }
@@ -240,7 +245,7 @@ export function ImportModelDialog({
             variant="outline"
             size="sm"
             onClick={() => onOpenChange(false)}
-            disabled={importing}
+            disabled={syncing || !!jobId}
           >
             取消
           </Button>
@@ -248,10 +253,10 @@ export function ImportModelDialog({
             size="sm"
             className="border-0 bg-[#2563eb] text-white transition-colors duration-200 hover:bg-[#1d4ed8]"
             onClick={handleImport}
-            disabled={!selectedTable || importing}
+            disabled={!selectedTable || syncing || !!jobId}
           >
-            {importing && <Loader2 className="mr-1.5 size-3.5 animate-spin" strokeWidth={1.5} />}
-            {importing ? '导入中...' : '导入'}
+            {(syncing || !!jobId) && <Loader2 className="mr-1.5 size-3.5 animate-spin" strokeWidth={1.5} />}
+            {(syncing || !!jobId) ? '导入中...' : '导入'}
           </Button>
         </SheetFooter>
       </SheetContent>
