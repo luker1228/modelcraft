@@ -15,7 +15,8 @@ import { Input } from '@web/components/ui/input'
 import { Button } from '@web/components/ui/button'
 import { toast } from 'sonner'
 import { LIST_TABLES } from '@/api-client/project'
-import { useSyncModelsFromDB, useModelSyncJob } from '@web/hooks/model/use-sync-models-from-db'
+import { useModelSyncJob } from '@web/hooks/model/use-sync-models-from-db'
+import { useStartModelSync } from '@web/hooks/model/use-model-sync'
 import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 
 const PAGE_SIZE = 20
@@ -25,6 +26,7 @@ interface ImportModelDialogProps {
   onOpenChange: (open: boolean) => void
   projectSlug: string
   databaseName: string
+  databaseId: string | null
   onSuccess: () => void
 }
 
@@ -44,6 +46,7 @@ export function ImportModelDialog({
   onOpenChange,
   projectSlug,
   databaseName,
+  databaseId,
   onSuccess,
 }: ImportModelDialogProps) {
   // listTables lives on the project endpoint: /graphql/org/{orgName}/project/{projectSlug}/
@@ -70,7 +73,7 @@ export function ImportModelDialog({
     fetchPolicy: 'network-only',
   })
 
-  const [syncModels, { loading: syncing }] = useSyncModelsFromDB(projectSlug)
+  const { startSync, loading: syncing } = useStartModelSync(projectSlug)
   const { data: jobData } = useModelSyncJob(jobId, projectSlug)
 
   useEffect(() => {
@@ -117,26 +120,20 @@ export function ImportModelDialog({
   }, [tables, searchQuery])
 
   const handleImport = async () => {
-    if (!selectedTable) return
+    if (!selectedTable || !databaseId) return
 
     try {
-      const result = await syncModels({
-        variables: {
-          input: {
-            databaseName,
-            tableNames: [selectedTable],
-          },
-        },
-      })
-      const id = result.data?.syncModelsFromDB?.jobId
-      if (id) {
-        setJobId(id)
+      const result = await startSync([{
+        databaseId,
+        tableNames: [selectedTable],
+      }])
+      if (result && result.jobs.length > 0) {
+        setJobId(result.jobs[0].jobId)
       } else {
         toast.error('导入失败，请重试')
       }
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : '导入失败，请重试'
+      const message = error instanceof Error ? error.message : '导入失败，请重试'
       toast.error(message)
     }
   }
@@ -254,7 +251,7 @@ export function ImportModelDialog({
             size="sm"
             className="border-0 bg-[#2563eb] text-white transition-colors duration-200 hover:bg-[#1d4ed8]"
             onClick={handleImport}
-            disabled={!selectedTable || syncing || !!jobId}
+            disabled={!selectedTable || syncing || !!jobId || !databaseId}
           >
             {(syncing || !!jobId) && <Loader2 className="mr-1.5 size-3.5 animate-spin" strokeWidth={1.5} />}
             {(syncing || !!jobId) ? '导入中...' : '导入'}

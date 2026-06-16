@@ -92,7 +92,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
   const { databases: rawModelDatabases, loading: databasesLoading } = useModelDatabases(
     !state.connectionChecking && !state.connectionFailed ? projectSlug : null
   )
-  const databases = rawModelDatabases.map((db) => ({ name: db.name, mode: db.mode }))
+  const databases = rawModelDatabases.map((db) => ({ id: db.id, name: db.name, mode: db.mode }))
   const relationDatabaseNames = useMemo(
     () => databases.map((db) => db.name).sort(),
     [databases]

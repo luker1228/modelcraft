@@ -170,6 +170,7 @@ export function ModelEditorView() {
         onOpenChange={state.setImportDialogOpen}
         projectSlug={projectSlug}
         databaseName={state.selectedDatabase}
+        databaseId={crud.databases.find(d => d.name === state.selectedDatabase)?.id ?? null}
         onSuccess={() => crud.refetchModels()}
       />
 
