@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"time"
 )
 
 const createModelSyncJob = `-- name: CreateModelSyncJob :exec
@@ -62,6 +63,7 @@ WHERE org_name = ?
   AND project_slug = ?
   AND database_name = ?
   AND status IN ('pending', 'running')
+  AND updated_at > ?
 ORDER BY created_at DESC
 LIMIT 1
 `
@@ -70,10 +72,16 @@ type GetActiveModelSyncJobByDatabaseParams struct {
 	OrgName      string
 	ProjectSlug  string
 	DatabaseName string
+	UpdatedAt    time.Time
 }
 
 func (q *Queries) GetActiveModelSyncJobByDatabase(ctx context.Context, arg GetActiveModelSyncJobByDatabaseParams) (ModelSyncJob, error) {
-	row := q.db.QueryRowContext(ctx, getActiveModelSyncJobByDatabase, arg.OrgName, arg.ProjectSlug, arg.DatabaseName)
+	row := q.db.QueryRowContext(ctx, getActiveModelSyncJobByDatabase,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.DatabaseName,
+		arg.UpdatedAt,
+	)
 	var i ModelSyncJob
 	err := row.Scan(
 		&i.ID,
@@ -144,7 +152,7 @@ SET status = ?,
     started_at = ?,
     finished_at = ?,
     updated_at = NOW(3)
-WHERE id = ?
+WHERE id = ? AND org_name = ? AND project_slug = ?
 `
 
 type UpdateModelSyncJobParams struct {
@@ -158,6 +166,8 @@ type UpdateModelSyncJobParams struct {
 	StartedAt       sql.NullTime
 	FinishedAt      sql.NullTime
 	ID              string
+	OrgName         string
+	ProjectSlug     string
 }
 
 func (q *Queries) UpdateModelSyncJob(ctx context.Context, arg UpdateModelSyncJobParams) error {
@@ -172,6 +182,8 @@ func (q *Queries) UpdateModelSyncJob(ctx context.Context, arg UpdateModelSyncJob
 		arg.StartedAt,
 		arg.FinishedAt,
 		arg.ID,
+		arg.OrgName,
+		arg.ProjectSlug,
 	)
 	return err
 }

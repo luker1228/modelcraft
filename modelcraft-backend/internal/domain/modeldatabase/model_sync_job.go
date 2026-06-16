@@ -1,7 +1,6 @@
 package modeldatabase
 
 import (
-	"context"
 	"time"
 )
 
@@ -37,11 +36,4 @@ type ModelSyncJob struct {
 	FinishedAt      *time.Time
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
-}
-
-type ModelSyncJobRepository interface {
-	Create(ctx context.Context, job *ModelSyncJob) error
-	GetByID(ctx context.Context, orgName, projectSlug, jobID string) (*ModelSyncJob, error)
-	GetActiveByDatabase(ctx context.Context, orgName, projectSlug, databaseName string) (*ModelSyncJob, error)
-	Update(ctx context.Context, job *ModelSyncJob) error
 }

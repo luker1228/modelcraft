@@ -34,3 +34,12 @@ type ModelDatabaseSyncJobRepository interface {
 	FailStalePendingJobs(ctx context.Context, staleBefore time.Time) error
 	Update(ctx context.Context, job *ModelDatabaseSyncJob) error
 }
+
+type ModelSyncJobRepository interface {
+	Create(ctx context.Context, job *ModelSyncJob) error
+	GetByID(ctx context.Context, orgName, projectSlug, jobID string) (*ModelSyncJob, error)
+	// GetActiveByDatabase returns the active (pending/running) job for the given database,
+	// but only if it was updated after staleBefore (to exclude crashed/zombie jobs).
+	GetActiveByDatabase(ctx context.Context, orgName, projectSlug, databaseName string, staleBefore time.Time) (*ModelSyncJob, error)
+	Update(ctx context.Context, job *ModelSyncJob) error
+}

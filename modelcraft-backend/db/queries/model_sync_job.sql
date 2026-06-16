@@ -16,6 +16,7 @@ WHERE org_name = ?
   AND project_slug = ?
   AND database_name = ?
   AND status IN ('pending', 'running')
+  AND updated_at > ?
 ORDER BY created_at DESC
 LIMIT 1;
 
@@ -31,4 +32,4 @@ SET status = ?,
     started_at = ?,
     finished_at = ?,
     updated_at = NOW(3)
-WHERE id = ?;
+WHERE id = ? AND org_name = ? AND project_slug = ?;
