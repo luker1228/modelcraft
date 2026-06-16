@@ -691,6 +691,10 @@ type ModelSyncJob struct {
 	CreatedAt time.Time
 	// 更新时间
 	UpdatedAt time.Time
+	// 批次 ID，同批次多条 job 共享
+	BatchID string
+	// 关联 model_database.id
+	DatabaseID string
 }
 
 // 组织表（多租户容器）

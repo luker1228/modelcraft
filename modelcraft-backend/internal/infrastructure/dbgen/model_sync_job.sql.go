@@ -14,14 +14,16 @@ import (
 
 const createModelSyncJob = `-- name: CreateModelSyncJob :exec
 INSERT INTO model_sync_job (
-  id, org_name, project_slug, database_name, table_names,
+  id, batch_id, database_id, org_name, project_slug, database_name, table_names,
   status, total_tables, processed_tables, created_models, synced_models,
   failed_count, failed_tables, started_at, finished_at, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateModelSyncJobParams struct {
 	ID              string
+	BatchID         string
+	DatabaseID      string
 	OrgName         string
 	ProjectSlug     string
 	DatabaseName    string
@@ -40,6 +42,8 @@ type CreateModelSyncJobParams struct {
 func (q *Queries) CreateModelSyncJob(ctx context.Context, arg CreateModelSyncJobParams) error {
 	_, err := q.db.ExecContext(ctx, createModelSyncJob,
 		arg.ID,
+		arg.BatchID,
+		arg.DatabaseID,
 		arg.OrgName,
 		arg.ProjectSlug,
 		arg.DatabaseName,
@@ -57,11 +61,25 @@ func (q *Queries) CreateModelSyncJob(ctx context.Context, arg CreateModelSyncJob
 	return err
 }
 
+const failStaleModelSyncJobs = `-- name: FailStaleModelSyncJobs :exec
+UPDATE model_sync_job
+SET status = 'failed',
+    finished_at = NOW(3),
+    updated_at = NOW(3)
+WHERE status IN ('pending', 'running')
+  AND updated_at <= ?
+`
+
+func (q *Queries) FailStaleModelSyncJobs(ctx context.Context, updatedAt time.Time) error {
+	_, err := q.db.ExecContext(ctx, failStaleModelSyncJobs, updatedAt)
+	return err
+}
+
 const getActiveModelSyncJobByDatabase = `-- name: GetActiveModelSyncJobByDatabase :one
-SELECT id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at FROM model_sync_job
+SELECT id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at, batch_id, database_id FROM model_sync_job
 WHERE org_name = ?
   AND project_slug = ?
-  AND database_name = ?
+  AND database_id = ?
   AND status IN ('pending', 'running')
   AND updated_at > ?
 ORDER BY created_at DESC
@@ -69,17 +87,17 @@ LIMIT 1
 `
 
 type GetActiveModelSyncJobByDatabaseParams struct {
-	OrgName      string
-	ProjectSlug  string
-	DatabaseName string
-	UpdatedAt    time.Time
+	OrgName     string
+	ProjectSlug string
+	DatabaseID  string
+	UpdatedAt   time.Time
 }
 
 func (q *Queries) GetActiveModelSyncJobByDatabase(ctx context.Context, arg GetActiveModelSyncJobByDatabaseParams) (ModelSyncJob, error) {
 	row := q.db.QueryRowContext(ctx, getActiveModelSyncJobByDatabase,
 		arg.OrgName,
 		arg.ProjectSlug,
-		arg.DatabaseName,
+		arg.DatabaseID,
 		arg.UpdatedAt,
 	)
 	var i ModelSyncJob
@@ -100,12 +118,14 @@ func (q *Queries) GetActiveModelSyncJobByDatabase(ctx context.Context, arg GetAc
 		&i.FinishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.BatchID,
+		&i.DatabaseID,
 	)
 	return i, err
 }
 
 const getModelSyncJobByID = `-- name: GetModelSyncJobByID :one
-SELECT id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at FROM model_sync_job
+SELECT id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at, batch_id, database_id FROM model_sync_job
 WHERE id = ? AND org_name = ? AND project_slug = ?
 LIMIT 1
 `
@@ -136,8 +156,118 @@ func (q *Queries) GetModelSyncJobByID(ctx context.Context, arg GetModelSyncJobBy
 		&i.FinishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.BatchID,
+		&i.DatabaseID,
 	)
 	return i, err
+}
+
+const getModelSyncJobsByBatchID = `-- name: GetModelSyncJobsByBatchID :many
+SELECT id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at, batch_id, database_id FROM model_sync_job
+WHERE org_name = ? AND project_slug = ? AND batch_id = ?
+ORDER BY created_at DESC
+`
+
+type GetModelSyncJobsByBatchIDParams struct {
+	OrgName     string
+	ProjectSlug string
+	BatchID     string
+}
+
+func (q *Queries) GetModelSyncJobsByBatchID(ctx context.Context, arg GetModelSyncJobsByBatchIDParams) ([]ModelSyncJob, error) {
+	rows, err := q.db.QueryContext(ctx, getModelSyncJobsByBatchID, arg.OrgName, arg.ProjectSlug, arg.BatchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ModelSyncJob
+	for rows.Next() {
+		var i ModelSyncJob
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgName,
+			&i.ProjectSlug,
+			&i.DatabaseName,
+			&i.TableNames,
+			&i.Status,
+			&i.TotalTables,
+			&i.ProcessedTables,
+			&i.CreatedModels,
+			&i.SyncedModels,
+			&i.FailedCount,
+			&i.FailedTables,
+			&i.StartedAt,
+			&i.FinishedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.BatchID,
+			&i.DatabaseID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getModelSyncJobsByIDs = `-- name: GetModelSyncJobsByIDs :many
+SELECT id, org_name, project_slug, database_name, table_names, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, started_at, finished_at, created_at, updated_at, batch_id, database_id FROM model_sync_job
+WHERE org_name = ? AND project_slug = ? AND id IN (/*SLICE:ids*/?)
+ORDER BY created_at DESC
+`
+
+type GetModelSyncJobsByIDsParams struct {
+	OrgName     string
+	ProjectSlug string
+	ID          string
+}
+
+func (q *Queries) GetModelSyncJobsByIDs(ctx context.Context, arg GetModelSyncJobsByIDsParams) ([]ModelSyncJob, error) {
+	rows, err := q.db.QueryContext(ctx, getModelSyncJobsByIDs, arg.OrgName, arg.ProjectSlug, arg.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ModelSyncJob
+	for rows.Next() {
+		var i ModelSyncJob
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgName,
+			&i.ProjectSlug,
+			&i.DatabaseName,
+			&i.TableNames,
+			&i.Status,
+			&i.TotalTables,
+			&i.ProcessedTables,
+			&i.CreatedModels,
+			&i.SyncedModels,
+			&i.FailedCount,
+			&i.FailedTables,
+			&i.StartedAt,
+			&i.FinishedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.BatchID,
+			&i.DatabaseID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateModelSyncJob = `-- name: UpdateModelSyncJob :exec

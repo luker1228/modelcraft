@@ -63,6 +63,7 @@ type Querier interface {
 	ExistsOrganizationByPhone(ctx context.Context, phone string) (int64, error)
 	ExistsProjectBySlug(ctx context.Context, arg ExistsProjectBySlugParams) (int64, error)
 	ExistsUserByExternalID(ctx context.Context, externalID sql.NullString) (int64, error)
+	FailStaleModelSyncJobs(ctx context.Context, updatedAt time.Time) error
 	FailStaleSyncJobs(ctx context.Context, updatedAt time.Time) error
 	FindFieldsByBelongsToFKID(ctx context.Context, arg FindFieldsByBelongsToFKIDParams) ([]FindFieldsByBelongsToFKIDRow, error)
 	FindFieldsByRelateFKID(ctx context.Context, arg FindFieldsByRelateFKIDParams) ([]FindFieldsByRelateFKIDRow, error)
@@ -95,6 +96,8 @@ type Querier interface {
 	GetModelGroupByName(ctx context.Context, arg GetModelGroupByNameParams) (ModelGroup, error)
 	GetModelMetaByIDs(ctx context.Context, arg GetModelMetaByIDsParams) ([]Model, error)
 	GetModelSyncJobByID(ctx context.Context, arg GetModelSyncJobByIDParams) (ModelSyncJob, error)
+	GetModelSyncJobsByBatchID(ctx context.Context, arg GetModelSyncJobsByBatchIDParams) ([]ModelSyncJob, error)
+	GetModelSyncJobsByIDs(ctx context.Context, arg GetModelSyncJobsByIDsParams) ([]ModelSyncJob, error)
 	GetOrganizationByName(ctx context.Context, name string) (Organization, error)
 	GetOrganizationByPhone(ctx context.Context, phone string) (Organization, error)
 	GetProfileByUserID(ctx context.Context, arg GetProfileByUserIDParams) (GetProfileByUserIDRow, error)
