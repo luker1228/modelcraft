@@ -36,16 +36,16 @@ func (r *mutationResolver) CreateUserAPIToken(ctx context.Context, name string, 
 		}, nil
 	}
 
-	endUserID, err := ctxutils.GetEndUserIDFromContext(ctx)
+	userID, err := ctxutils.GetUserIDFromContext(ctx)
 	if err != nil {
 		return &generated.CreateAPITokenPayload{
-			Error: &generated.InvalidInput{Message: "end-user ID not found in context"},
+			Error: &generated.InvalidInput{Message: "user ID not found in context"},
 		}, nil
 	}
 
 	result, err := svc.CreateAPIToken(ctx, apitoken.CreateAPITokenCommand{
 		OrgName:   orgName,
-		EndUserID: endUserID,
+		EndUserID: userID,
 		Name:      name,
 		ExpiresAt: expiresAt,
 	})
@@ -78,14 +78,14 @@ func (r *mutationResolver) RevokeUserAPIToken(ctx context.Context, id string) (*
 		}, nil
 	}
 
-	endUserID, err := ctxutils.GetEndUserIDFromContext(ctx)
+	userID, err := ctxutils.GetUserIDFromContext(ctx)
 	if err != nil {
 		return &generated.RevokeAPITokenPayload{
-			Error: &generated.InvalidInput{Message: "end-user ID not found in context"},
+			Error: &generated.InvalidInput{Message: "user ID not found in context"},
 		}, nil
 	}
 
-	if err := svc.RevokeAPIToken(ctx, id, orgName, endUserID); err != nil {
+	if err := svc.RevokeAPIToken(ctx, id, orgName, userID); err != nil {
 		logger := logfacade.GetLogger(ctx)
 		logger.Error(ctx, "failed to revoke API token", logfacade.Err(err))
 		return nil, err
@@ -107,12 +107,12 @@ func (r *queryResolver) UserAPITokens(ctx context.Context) ([]*generated.UserAPI
 		return nil, err
 	}
 
-	endUserID, err := ctxutils.GetEndUserIDFromContext(ctx)
+	userID, err := ctxutils.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	tokens, err := svc.ListAPITokens(ctx, orgName, endUserID)
+	tokens, err := svc.ListAPITokens(ctx, orgName, userID)
 	if err != nil {
 		logger := logfacade.GetLogger(ctx)
 		logger.Error(ctx, "failed to list API tokens", logfacade.Err(err))

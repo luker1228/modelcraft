@@ -3,7 +3,7 @@ package enduser
 import "time"
 
 // APIToken represents an EndUser Personal Access Token (PAT).
-// Stored in mc_meta.end_user_api_tokens with org tenant scope.
+// Stored in mc_meta.user_api_tokens with org tenant scope.
 type APIToken struct {
 	ID          string     // UUID v7, primary key
 	OrgName     string     // org scope key

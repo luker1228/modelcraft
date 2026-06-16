@@ -22,7 +22,7 @@ func NewSqlAPITokenRepository(db *sql.DB) *SqlAPITokenRepository {
 
 func (r *SqlAPITokenRepository) Save(ctx context.Context, token *enduser.APIToken) error {
 	query := `
-        INSERT INTO end_user_api_tokens
+        INSERT INTO user_api_tokens
           (id, org_name, end_user_id, name, token_hash, expires_at, created_at, deleted_at, delete_token)
         VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)`
 	_, err := r.db.ExecContext(ctx, query,
@@ -39,7 +39,7 @@ func (r *SqlAPITokenRepository) FindByHash(ctx context.Context, hash string) (*e
 	query := `
         SELECT id, org_name, end_user_id, name, token_hash,
                expires_at, last_used_at, created_at, deleted_at, delete_token
-        FROM end_user_api_tokens
+        FROM user_api_tokens
         WHERE token_hash = ? AND deleted_at = 0
         LIMIT 1`
 	row := r.db.QueryRowContext(ctx, query, hash)
@@ -52,7 +52,7 @@ func (r *SqlAPITokenRepository) ListByUser(
 	query := `
         SELECT id, org_name, end_user_id, name, token_hash,
                expires_at, last_used_at, created_at, deleted_at, delete_token
-        FROM end_user_api_tokens
+        FROM user_api_tokens
         WHERE org_name = ? AND end_user_id = ? AND deleted_at = 0
         ORDER BY created_at DESC`
 	rows, err := r.db.QueryContext(ctx, query, orgName, endUserID)
@@ -75,7 +75,7 @@ func (r *SqlAPITokenRepository) ListByUser(
 func (r *SqlAPITokenRepository) SoftDelete(ctx context.Context, id, orgName, endUserID string) error {
 	now := time.Now().UnixMilli()
 	query := `
-        UPDATE end_user_api_tokens
+        UPDATE user_api_tokens
         SET deleted_at = ?, delete_token = ?
         WHERE id = ? AND org_name = ? AND end_user_id = ? AND deleted_at = 0`
 	result, err := r.db.ExecContext(ctx, query, now, now, id, orgName, endUserID)
@@ -91,7 +91,7 @@ func (r *SqlAPITokenRepository) SoftDelete(ctx context.Context, id, orgName, end
 
 func (r *SqlAPITokenRepository) UpdateLastUsed(ctx context.Context, id string, at time.Time) error {
 	_, err := r.db.ExecContext(ctx,
-		`UPDATE end_user_api_tokens SET last_used_at = ? WHERE id = ?`, at, id)
+		`UPDATE user_api_tokens SET last_used_at = ? WHERE id = ?`, at, id)
 	return err
 }
 

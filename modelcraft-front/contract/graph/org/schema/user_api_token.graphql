@@ -1,6 +1,6 @@
-# api/graph/org/schema/end_user_api_token.graphql
+# api/graph/org/schema/user_api_token.graphql
 #
-# EndUser Personal Access Token (PAT) 管理
+# User Personal Access Token (PAT) 管理
 # Endpoint: /end-user/graphql/org/{orgName}/
 # 认证：EndUser Bearer JWT（PAT 本身不能管理 PAT）
 
@@ -28,7 +28,7 @@ union RevokeAPITokenError = APITokenNotFound | InvalidInput
 # Data Types
 # ============================================================
 
-type EndUserAPIToken {
+type UserAPIToken {
   id:          ID!
   name:        String!
   createdAt:   Time!
@@ -37,7 +37,7 @@ type EndUserAPIToken {
 }
 
 type CreateAPITokenPayload {
-  token:     EndUserAPIToken
+  token:     UserAPIToken
   plaintext: String
   error:     CreateAPITokenError
 }
@@ -52,14 +52,14 @@ type RevokeAPITokenPayload {
 # ============================================================
 
 extend type Query {
-  endUserAPITokens: [EndUserAPIToken!]!
+  userAPITokens: [UserAPIToken!]!
 }
 
 extend type Mutation {
-  createEndUserAPIToken(
+  createUserAPIToken(
     name:      String!
     expiresAt: Time
   ): CreateAPITokenPayload!
 
-  revokeEndUserAPIToken(id: ID!): RevokeAPITokenPayload!
+  revokeUserAPIToken(id: ID!): RevokeAPITokenPayload!
 }

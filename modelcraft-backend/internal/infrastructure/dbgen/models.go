@@ -272,26 +272,6 @@ func (ns NullModelsCreatedVia) Value() (driver.Value, error) {
 	return string(ns.ModelsCreatedVia), nil
 }
 
-type ApiKey struct {
-	ID     string
-	UserID string
-	// 用户命名，如 GitHub Actions
-	Name string
-	// SHA256 hash，不存明文
-	KeyHash string
-	// 完整 key 前 10 位，如 mc_a1b2c3d4
-	KeyPrefix string
-	// 绑定的角色 ID 列表（roles.id）
-	RoleIds *json.RawMessage
-	// 防抖：距上次 > 1 分钟才更新
-	LastUsedAt sql.NullTime
-	// NULL = 永不过期
-	ExpiresAt sql.NullTime
-	CreatedAt time.Time
-	// NULL = 有效
-	RevokedAt sql.NullTime
-}
-
 // 数据库集群配置信息表
 type DatabaseCluster struct {
 	// 集群唯一标识符

@@ -6,7 +6,7 @@
 -- - 软删除：deleted_at + delete_token 联合避让，支持撤销后同名重建
 -- =============================================================================
 
-CREATE TABLE IF NOT EXISTS `end_user_api_tokens` (
+CREATE TABLE IF NOT EXISTS `user_api_tokens` (
   `id`            VARCHAR(36)   NOT NULL COMMENT '唯一标识符 (UUID v7)',
   `org_name`      VARCHAR(255)  NOT NULL COMMENT '所属组织',
   `end_user_id`   VARCHAR(36)   NOT NULL COMMENT '创建者 EndUser ID',
