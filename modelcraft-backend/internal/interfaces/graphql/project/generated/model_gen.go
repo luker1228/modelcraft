@@ -812,6 +812,28 @@ type ModelRLSPolicy struct {
 	UpdatedAt string `json:"updatedAt"`
 }
 
+type ModelSyncFailedTable struct {
+	TableName string `json:"tableName"`
+	Message   string `json:"message"`
+}
+
+type ModelSyncJob struct {
+	ID              string                  `json:"id"`
+	DatabaseName    string                  `json:"databaseName"`
+	TableNames      []string                `json:"tableNames"`
+	Status          ModelSyncJobStatus      `json:"status"`
+	TotalTables     int32                   `json:"totalTables"`
+	ProcessedTables int32                   `json:"processedTables"`
+	CreatedModels   int32                   `json:"createdModels"`
+	SyncedModels    int32                   `json:"syncedModels"`
+	FailedCount     int32                   `json:"failedCount"`
+	FailedTables    []*ModelSyncFailedTable `json:"failedTables"`
+	StartedAt       *time.Time              `json:"startedAt,omitempty"`
+	FinishedAt      *time.Time              `json:"finishedAt,omitempty"`
+	CreatedAt       time.Time               `json:"createdAt"`
+	UpdatedAt       time.Time               `json:"updatedAt"`
+}
+
 type ModelTableAlreadyExists struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -1065,6 +1087,16 @@ type SyncModelSchemaPayload struct {
 	FieldsSkipped []string `json:"fieldsSkipped"`
 	FieldsDeleted int      `json:"fieldsDeleted"`
 	DeletedFields []string `json:"deletedFields"`
+}
+
+type SyncModelsFromDBInput struct {
+	DatabaseName string   `json:"databaseName"`
+	TableNames   []string `json:"tableNames,omitempty"`
+	SyncAll      *bool    `json:"syncAll,omitempty"`
+}
+
+type SyncModelsFromDBPayload struct {
+	JobID string `json:"jobId"`
 }
 
 type TableInfo struct {
@@ -1827,6 +1859,67 @@ func (e *ModelDatabaseSyncJobStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e ModelDatabaseSyncJobStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type ModelSyncJobStatus string
+
+const (
+	ModelSyncJobStatusPending        ModelSyncJobStatus = "PENDING"
+	ModelSyncJobStatusRunning        ModelSyncJobStatus = "RUNNING"
+	ModelSyncJobStatusSucceeded      ModelSyncJobStatus = "SUCCEEDED"
+	ModelSyncJobStatusPartialSuccess ModelSyncJobStatus = "PARTIAL_SUCCESS"
+	ModelSyncJobStatusFailed         ModelSyncJobStatus = "FAILED"
+)
+
+var AllModelSyncJobStatus = []ModelSyncJobStatus{
+	ModelSyncJobStatusPending,
+	ModelSyncJobStatusRunning,
+	ModelSyncJobStatusSucceeded,
+	ModelSyncJobStatusPartialSuccess,
+	ModelSyncJobStatusFailed,
+}
+
+func (e ModelSyncJobStatus) IsValid() bool {
+	switch e {
+	case ModelSyncJobStatusPending, ModelSyncJobStatusRunning, ModelSyncJobStatusSucceeded, ModelSyncJobStatusPartialSuccess, ModelSyncJobStatusFailed:
+		return true
+	}
+	return false
+}
+
+func (e ModelSyncJobStatus) String() string {
+	return string(e)
+}
+
+func (e *ModelSyncJobStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ModelSyncJobStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ModelSyncJobStatus", str)
+	}
+	return nil
+}
+
+func (e ModelSyncJobStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ModelSyncJobStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ModelSyncJobStatus) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

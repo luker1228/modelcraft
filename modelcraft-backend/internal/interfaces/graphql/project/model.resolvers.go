@@ -547,6 +547,11 @@ func (r *mutationResolver) MoveModelToGroup(ctx context.Context, input generated
 	return &generated.MoveModelToGroupPayload{Success: true}, nil
 }
 
+// SyncModelsFromDb is the resolver for the syncModelsFromDB field.
+func (r *mutationResolver) SyncModelsFromDb(ctx context.Context, input generated.SyncModelsFromDBInput) (*generated.SyncModelsFromDBPayload, error) {
+	panic(fmt.Errorf("not implemented: SyncModelsFromDb - syncModelsFromDB"))
+}
+
 // Model is the resolver for the model field.
 func (r *queryResolver) Model(ctx context.Context, id string, withActualSchema *bool) (*generated.GetModelPayload, error) {
 	errorAdapter := adapter.NewModelErrorAdapter(ctx)
@@ -859,4 +864,9 @@ func (r *queryResolver) ModelGroups(ctx context.Context) ([]*generated.ModelGrou
 		result = append(result, adapter.GroupMapper.ConvertToGraphQLGroup(g))
 	}
 	return result, nil
+}
+
+// ModelSyncJob is the resolver for the modelSyncJob field.
+func (r *queryResolver) ModelSyncJob(ctx context.Context, jobID string) (*generated.ModelSyncJob, error) {
+	panic(fmt.Errorf("not implemented: ModelSyncJob - modelSyncJob"))
 }

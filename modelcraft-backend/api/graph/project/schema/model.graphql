@@ -283,6 +283,50 @@ input MoveModelToGroupInput {
   groupId: ID
 }
 
+# ============================================
+# syncModelsFromDB Job Types
+# ============================================
+
+enum ModelSyncJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  PARTIAL_SUCCESS
+  FAILED
+}
+
+type ModelSyncFailedTable {
+  tableName: String!
+  message:   String!
+}
+
+type ModelSyncJob {
+  id:               ID!
+  databaseName:     String!
+  tableNames:       [String!]!
+  status:           ModelSyncJobStatus!
+  totalTables:      Int!
+  processedTables:  Int!
+  createdModels:    Int!
+  syncedModels:     Int!
+  failedCount:      Int!
+  failedTables:     [ModelSyncFailedTable!]!
+  startedAt:        Time
+  finishedAt:       Time
+  createdAt:        Time!
+  updatedAt:        Time!
+}
+
+type SyncModelsFromDBPayload {
+  jobId: ID!
+}
+
+input SyncModelsFromDBInput {
+  databaseName: String!
+  tableNames:   [String!]
+  syncAll:      Boolean
+}
+
 # Model queries
 extend type Query {
   model(id: ID!, withActualSchema: Boolean): GetModelPayload! @hasPermission(action: "model:read", allowEndUser: true)
@@ -290,6 +334,7 @@ extend type Query {
   modelByName(name: String!, databaseName: String!): GetModelPayload! @hasPermission(action: "model:read")
   modelJsonSchema(id: ID!): ModelJsonSchema @hasPermission(action: "model:read")
   modelGroups: [ModelGroup!]! @hasPermission(action: "model:read")
+  modelSyncJob(jobId: ID!): ModelSyncJob @hasPermission(action: "model:read")
 }
 
 # Model mutations
@@ -306,4 +351,5 @@ extend type Mutation {
   deleteGroup(groupId: ID!): DeleteGroupPayload! @hasPermission(action: "model:delete")
   reorderGroup(input: ReorderGroupInput!): ReorderGroupPayload! @hasPermission(action: "model:update")
   moveModelToGroup(input: MoveModelToGroupInput!): MoveModelToGroupPayload! @hasPermission(action: "model:update")
+  syncModelsFromDB(input: SyncModelsFromDBInput!): SyncModelsFromDBPayload! @hasPermission(action: "model:create")
 }
