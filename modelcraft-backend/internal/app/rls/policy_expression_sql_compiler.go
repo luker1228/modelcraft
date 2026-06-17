@@ -170,6 +170,16 @@ func (p *celWhereParser) parseComparison() (string, []interface{}, error) {
 		return buildMethodCallSQL(left)
 	}
 
+	// Standalone boolean literals (true / false) are complete expressions.
+	if left.kind == celOperandValue {
+		if b, ok := left.value.(bool); ok {
+			if b {
+				return "1=1", nil, nil
+			}
+			return "1=0", nil, nil
+		}
+	}
+
 	op := p.peek()
 	if op.kind != celTokenOperator {
 		return "", nil, fmt.Errorf("expected comparison operator, got %q", op.value)

@@ -184,3 +184,74 @@ func TestPolicyExpressionSQLCompiler_AuthUsername(t *testing.T) {
 	require.Equal(t, "author = ?", compiled.SQL)
 	require.Equal(t, []interface{}{"alice"}, compiled.Params)
 }
+
+func TestPolicyExpressionSQLCompiler_StandaloneBooleanLiterals(t *testing.T) {
+	compiler := NewPolicyExpressionSQLCompiler()
+	ctx := context.Background()
+	userCtx := &domainrls.UserContext{UserIDStr: "u_1"}
+
+	tests := []struct {
+		name       string
+		expr       string
+		wantSQL    string
+		wantParams []interface{}
+	}{
+		{
+			name:       "standalone true",
+			expr:       `true`,
+			wantSQL:    "1=1",
+			wantParams: nil,
+		},
+		{
+			name:       "standalone false",
+			expr:       `false`,
+			wantSQL:    "1=0",
+			wantParams: nil,
+		},
+		{
+			name:       "true ORed with comparison",
+			expr:       `true || row.x == 1`,
+			wantSQL:    "(1=1 OR x = ?)",
+			wantParams: []interface{}{int64(1)},
+		},
+		{
+			name:       "true ANDed with comparison",
+			expr:       `true && row.y == 2`,
+			wantSQL:    "(1=1 AND y = ?)",
+			wantParams: []interface{}{int64(2)},
+		},
+		{
+			name:       "negated true",
+			expr:       `!true`,
+			wantSQL:    "NOT (1=1)",
+			wantParams: nil,
+		},
+		{
+			name:       "negated false",
+			expr:       `!false`,
+			wantSQL:    "NOT (1=0)",
+			wantParams: nil,
+		},
+		{
+			name:       "parenthesized true",
+			expr:       `(true)`,
+			wantSQL:    "(1=1)",
+			wantParams: nil,
+		},
+		{
+			name:       "false ORed with comparison — short-circuit always evaluates to comparison",
+			expr:       `false || row.z == 3`,
+			wantSQL:    "(1=0 OR z = ?)",
+			wantParams: []interface{}{int64(3)},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			compiled, err := compiler.CompileUsing(ctx, tc.expr, userCtx)
+			require.NoError(t, err)
+			require.Equal(t, tc.wantSQL, compiled.SQL)
+			require.Equal(t, tc.wantParams, compiled.Params)
+		})
+	}
+}
