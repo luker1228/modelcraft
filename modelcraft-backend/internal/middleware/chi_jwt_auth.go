@@ -14,13 +14,11 @@ func writeJSONError(w http.ResponseWriter, status int, errMsg, code string) {
 	_, _ = w.Write([]byte(`{"error":"` + errMsg + `"}`))
 }
 
-// ChiJWTAuthMiddleware authenticates design-time requests using the gateway-trusted identity contract.
+// ChiJWTAuthMiddleware authenticates requests using the gateway-trusted identity contract.
 //
-// Authentication paths (in priority order):
-//  1. Short-circuit: upstream middleware already authenticated this request.
-//  2. X-User-ID: injected by the trusted gateway after validating the bearer token.
-//     The backend trusts this header unconditionally; it is safe only because the backend
-//     is not directly reachable from the public internet.
+// X-User-ID is injected by the trusted gateway after validating the bearer token.
+// The backend trusts this header unconditionally; it is safe only because the backend
+// is not directly reachable from the public internet.
 //
 // On /end-user/* routes, X-User-ID carries an end-user ID and is stored as EndUserID.
 // On all other routes, X-User-ID carries a tenant (developer) user ID and is stored as UserID.
@@ -32,16 +30,6 @@ func writeJSONError(w http.ResponseWriter, status int, errMsg, code string) {
 func ChiJWTAuthMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Short-circuit: upstream middleware already authenticated this request.
-			if uid, err := ctxutils.GetUserIDFromContext(r.Context()); err == nil && uid != "" {
-				next.ServeHTTP(w, r)
-				return
-			}
-			if endUserID, err := ctxutils.GetEndUserIDFromContext(r.Context()); err == nil && endUserID != "" {
-				next.ServeHTTP(w, r)
-				return
-			}
-
 			// Gateway-trusted identity: the gateway validates the bearer token,
 			// strips the Authorization header, and injects:
 			// - X-User-ID: user identity (tenant user ID or end-user ID depending on route)
