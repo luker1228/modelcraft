@@ -1,7 +1,5 @@
 package rls
 
-import "strings"
-
 type PolicyExpressionMode string
 
 const (
@@ -12,9 +10,9 @@ const (
 func (m PolicyExpressionMode) AllowsRoot(root string) bool {
 	switch m {
 	case PolicyExpressionModeUsing:
-		return root == "row" || root == "auth"
+		return root == celVarRow || root == celVarAuth
 	case PolicyExpressionModeCheck:
-		return root == "input" || root == "auth"
+		return root == celVarInput || root == celVarAuth
 	default:
 		return false
 	}
@@ -32,9 +30,4 @@ type PolicyExpressionError struct {
 	Path    string
 	Message string
 	Code    string
-}
-
-func IsLegacyJSONExpression(expr string) bool {
-	trimmed := strings.TrimSpace(expr)
-	return trimmed == "true" || trimmed == "false" || strings.HasPrefix(trimmed, "{")
 }

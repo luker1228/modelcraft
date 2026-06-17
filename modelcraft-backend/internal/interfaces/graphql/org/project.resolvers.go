@@ -8,10 +8,8 @@ import (
 	"context"
 	clusterApp "modelcraft/internal/app/cluster"
 	appProject "modelcraft/internal/app/project"
-	appRLS "modelcraft/internal/app/rls"
 	domainCluster "modelcraft/internal/domain/cluster"
 	"modelcraft/internal/domain/project"
-	domainRLS "modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/graphql/org/adapter"
 	"modelcraft/internal/interfaces/graphql/org/generated"
 	"modelcraft/pkg/bizerrors"
@@ -287,52 +285,10 @@ func (r *mutationResolver) TestDatabaseConnection(ctx context.Context, input gen
 	}, nil
 }
 
-// SetProjectAuthSchema is the resolver for the setProjectAuthSchema field.
+// SetProjectAuthSchema is the resolver for the setProjectAuthSchema field (deprecated, no-op).
 func (r *mutationResolver) SetProjectAuthSchema(ctx context.Context, input generated.SetProjectAuthSchemaInput) (*generated.SetProjectAuthSchemaPayload, error) {
-	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
-	if err != nil {
-		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "organization context required")
-	}
-
-	variables := make([]domainRLS.AuthVariable, 0, len(input.Variables))
-	for _, variable := range input.Variables {
-		if variable == nil {
-			continue
-		}
-
-		variables = append(variables, domainRLS.AuthVariable{
-			Name:   variable.Name,
-			Source: variable.Source,
-			Type:   toDomainAuthVarType(variable.Type),
-		})
-	}
-
-	authSchema, err := r.AuthSchemaAppService.SetAuthSchema(ctx, orgName, appRLS.SetProjectAuthSchemaInput{
-		ProjectSlug: input.ProjectSlug,
-		Variables:   variables,
-	})
-	if err != nil {
-		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-			switch bizErr.Info().GetCode() {
-			case bizerrors.ProjectNotFound.GetCode():
-				return &generated.SetProjectAuthSchemaPayload{
-					AuthSchema: nil,
-					Error:      &generated.ResourceNotFound{Message: bizErr.Error(), ResourceType: generated.ResourceTypeProject},
-				}, nil
-			case bizerrors.ParamInvalid.GetCode():
-				return &generated.SetProjectAuthSchemaPayload{
-					AuthSchema: nil,
-					Error: &generated.InvalidInput{
-						Message: bizErr.Error(),
-					},
-				}, nil
-			}
-		}
-		return nil, err
-	}
-
 	return &generated.SetProjectAuthSchemaPayload{
-		AuthSchema: toGraphQLProjectAuthSchema(authSchema),
+		AuthSchema: emptyProjectAuthSchema(),
 		Error:      nil,
 	}, nil
 }

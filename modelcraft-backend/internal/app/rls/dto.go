@@ -22,12 +22,6 @@ type ValidateRLSExprInput struct {
 	ExprType rls.ExprType `json:"exprType"`
 }
 
-// SetProjectAuthSchemaInput 设置 Project AuthSchema 输入
-type SetProjectAuthSchemaInput struct {
-	ProjectSlug string             `json:"projectSlug"`
-	Variables   []rls.AuthVariable `json:"variables"`
-}
-
 // ValidationErrorResult 校验错误结果
 type ValidationErrorResult struct {
 	Errors []rls.ValidationError `json:"errors"`

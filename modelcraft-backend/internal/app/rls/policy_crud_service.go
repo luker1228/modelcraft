@@ -5,18 +5,18 @@ import (
 	"modelcraft/internal/domain/rls"
 )
 
-// PolicyCRUDService V2 策略 CRUD 应用服务
-type PolicyCRUDService struct {
+// DataPolicyService V2 策略 CRUD 应用服务
+type DataPolicyService struct {
 	repo rls.PolicyRepositoryV2
 }
 
-// NewPolicyCRUDService 创建 PolicyCRUDService
-func NewPolicyCRUDService(repo rls.PolicyRepositoryV2) *PolicyCRUDService {
-	return &PolicyCRUDService{repo: repo}
+// NewDataPolicyService 创建 DataPolicyService
+func NewDataPolicyService(repo rls.PolicyRepositoryV2) *DataPolicyService {
+	return &DataPolicyService{repo: repo}
 }
 
 // ListByModel 查询模型的所有策略
-func (s *PolicyCRUDService) ListByModel(
+func (s *DataPolicyService) ListByModel(
 	ctx context.Context, orgName, projectSlug, modelID string,
 ) ([]*rls.Policy, error) {
 	return s.repo.ListByModel(ctx, orgName, projectSlug, modelID)
@@ -33,7 +33,7 @@ type UpsertInput struct {
 }
 
 // Upsert 创建或更新策略
-func (s *PolicyCRUDService) Upsert(
+func (s *DataPolicyService) Upsert(
 	ctx context.Context, orgName, projectSlug string, input UpsertInput,
 ) (*rls.Policy, error) {
 	policy := &rls.Policy{
@@ -63,14 +63,14 @@ func (s *PolicyCRUDService) Upsert(
 }
 
 // Delete 删除单条策略
-func (s *PolicyCRUDService) Delete(
+func (s *DataPolicyService) Delete(
 	ctx context.Context, orgName, projectSlug string, id int64,
 ) error {
 	return s.repo.Delete(ctx, orgName, projectSlug, id)
 }
 
 // DeleteByModel 删除模型的所有策略
-func (s *PolicyCRUDService) DeleteByModel(
+func (s *DataPolicyService) DeleteByModel(
 	ctx context.Context, orgName, projectSlug, modelID string,
 ) error {
 	return s.repo.DeleteByModel(ctx, orgName, projectSlug, modelID)

@@ -32,10 +32,9 @@ type Resolver struct {
 
 	// RLS (Row Level Security)
 	RLSPolicyAppService  *rls.ModelRLSPolicyAppService
-	AuthSchemaAppService *rls.AuthSchemaAppService
 
 	// RLS Policy V2
-	PolicyCRUDService *rls.PolicyCRUDService
+	PolicyCRUDService *rls.DataPolicyService
 
 	// Database management
 	ModelDatabaseAppService     *appmodeldatabase.ModelDatabaseAppService

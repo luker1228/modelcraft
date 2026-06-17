@@ -196,6 +196,36 @@ log-cat reqId:
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     grep "\"$reqIdValue\"" logs/server.log | jq '.' || echo "No logs found for this request ID"
 
+# 按 requestId 查三段链路日志（apisix + backend + agent，docker 模式）
+[doc("Grep requestId across apisix / backend / agent logs (docker mode)")]
+log-trace requestId:
+    #!/usr/bin/env bash
+    set -e
+    rid="{{requestId}}"
+    if [ -z "$rid" ]; then
+        echo "❌ 用法: just log-trace <requestId>"
+        exit 1
+    fi
+    echo "🔍 requestId: $rid"
+    echo ""
+
+    echo "━━━ [1/3] apisix ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    docker exec modelcraft-apisix sh -c \
+        "grep '$rid' /usr/local/apisix/logs/access.log /usr/local/apisix/logs/error.log 2>/dev/null" \
+        || echo "(no logs in apisix)"
+    echo ""
+
+    echo "━━━ [2/3] backend ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    docker exec modelcraft-backend sh -c \
+        "grep '$rid' /app/logs/server.log 2>/dev/null" | jq -rc '.' \
+        || echo "(no logs in backend)"
+    echo ""
+
+    echo "━━━ [3/3] agent ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    docker exec modelcraft-agent sh -c \
+        "grep '$rid' /app/logs/agent.log 2>/dev/null" \
+        || echo "(no logs in agent)"
+
 # 清理构建产物
 [doc("Clean build artifacts")]
 clean:

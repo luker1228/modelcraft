@@ -76,7 +76,6 @@ type DesignHandlers struct {
 	GroupAppService           *modeldesign.ModelGroupAppService
 	LogicalFKAppService       *modeldesign.LogicalFKAppService
 	RLSPolicyAppService       *rls.ModelRLSPolicyAppService
-	AuthSchemaAppService      *rls.AuthSchemaAppService
 
 	// Casbin Permission Services
 	PermRoleService       *appPermission.RoleService
@@ -216,9 +215,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		}
 	}()
 
-	// Create RLS related services (V2: multi-policy matching)
-	authSchemaRepo := rlsRepo.NewSqlAuthSchemaRepository(dbgen.New(loggingDB))
-	authSchemaAppService := rls.NewAuthSchemaAppService(authSchemaRepo, projectRepository)
 	// Create user management related services
 	userRepo := repository.NewSqlUserRepository(dbgen.New(loggingDB))
 	profileRepo := repository.NewSqlProfileRepository(dbgen.New(loggingDB))
@@ -329,7 +325,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		GroupAppService:             groupAppService,
 		LogicalFKAppService:         logicalFKAppService,
 		RLSPolicyAppService:         nil, // TODO: replace with V2 policy CRUD in task 9
-		AuthSchemaAppService:        authSchemaAppService,
 		UserAPITokenService:      apiTokenService,
 		CreateOrgService:            createOrgService,
 		ModelDatabaseAppService:     modelDatabaseAppService,
@@ -355,7 +350,6 @@ func SetupOrgGraphQLRoutesOnChi(
 	orgResolver := &orggraphql.Resolver{
 		ProjectAppService:      handlers.ProjectAppService,
 		ClusterAppService:      handlers.ClusterAppService,
-		AuthSchemaAppService:   handlers.AuthSchemaAppService,
 		OrganizationAppService: handlers.OrgAppService,
 		ProfileAppService:      handlers.ProfileAppService,
 		UserRepo:               handlers.UserRepo,
@@ -414,7 +408,7 @@ func SetupProjectGraphQLRoutesOnChi(
 	// Create RLS policy CRUD service
 	safeQuerier := dbgen.New(handlers.SystemDB)
 		policyRepo := rlsRepo.NewSqlPolicyRepository(safeQuerier)
-		policyCRUDService := rls.NewPolicyCRUDService(policyRepo)
+		policyCRUDService := rls.NewDataPolicyService(policyRepo)
 
 	// Create project resolver
 	projectResolver := &projectgraphql.Resolver{
@@ -429,7 +423,6 @@ func SetupProjectGraphQLRoutesOnChi(
 		UserRoleService:             handlers.PermUserRoleService,
 		FieldSelectionChecker:       projectgraphql.NewFieldSelectionChecker(),
 		RLSPolicyAppService:         handlers.RLSPolicyAppService,
-		AuthSchemaAppService:        handlers.AuthSchemaAppService,
 		ModelDatabaseAppService:     handlers.ModelDatabaseAppService,
 		ModelDatabaseSyncAppService: handlers.ModelDatabaseSyncAppService,
 		SyncModelsAppService:        handlers.SyncModelsAppService,
@@ -557,7 +550,10 @@ func CreateRuntimeHandlers(db *sql.DB) *RuntimeHandlers {
 	loggingDB := dbgen.New(loggedDB)
 	modelRuntimeRepo := repository.NewSqlModelRuntimeRepository(loggingDB)
 	lfkRepo := repository.NewSqlLogicalForeignKeyRepository(loggingDB)
-	graphqlAppService := modelruntime.NewGraphqlAppService(modelRuntimeRepo, lfkRepo, nil, nil)
+	policyRepo := rlsRepo.NewSqlPolicyRepository(loggingDB)
+	permResolver := modelruntime.NewPolicyPermissionResolver(policyRepo)
+	snapshotBuilder := modelruntime.NewRLSSnapshotBuilder(permResolver)
+	graphqlAppService := modelruntime.NewGraphqlAppService(modelRuntimeRepo, lfkRepo, permResolver, snapshotBuilder)
 	handler := runtime.NewModelRuntimeHandler(graphqlAppService)
 	return &RuntimeHandlers{
 		ModelRuntimeHandler: handler,

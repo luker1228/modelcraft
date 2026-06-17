@@ -10,24 +10,33 @@ import (
 
 // ModelRLSPolicyAppService RLS 策略应用服务
 type ModelRLSPolicyAppService struct {
-	policyRepo     modeldesign.ModelRLSPolicyRepository
-	modelRepo      modeldesign.ModelRepository
-	authSchemaRepo AuthSchemaRepository
-	validator      rls.PolicyValidator
+	policyRepo modeldesign.ModelRLSPolicyRepository
+	modelRepo  modeldesign.ModelRepository
+	validator  rls.PolicyValidator
+}
+
+// fixedAuthContext provides the built-in auth variables for RLS validation.
+type fixedAuthContext struct{}
+
+func (fixedAuthContext) IsValidRef(name string) bool {
+	switch name {
+	case "userid", "username", "roles", "uid", "user_id", "user_name":
+		return true
+	default:
+		return false
+	}
 }
 
 // NewModelRLSPolicyAppService 创建 ModelRLSPolicyAppService
 func NewModelRLSPolicyAppService(
 	policyRepo modeldesign.ModelRLSPolicyRepository,
 	modelRepo modeldesign.ModelRepository,
-	authSchemaRepo AuthSchemaRepository,
 	validator rls.PolicyValidator,
 ) *ModelRLSPolicyAppService {
 	return &ModelRLSPolicyAppService{
-		policyRepo:     policyRepo,
-		modelRepo:      modelRepo,
-		authSchemaRepo: authSchemaRepo,
-		validator:      validator,
+		policyRepo: policyRepo,
+		modelRepo:  modelRepo,
+		validator:  validator,
 	}
 }
 
@@ -58,7 +67,7 @@ func (s *ModelRLSPolicyAppService) SetPolicy(ctx context.Context, orgName, proje
 	}
 
 	// 3. 使用固定 auth 上下文校验 CEL 表达式，避免编辑器协议与 runtime header 漂移。
-	authSchema := rls.DefaultAuthContext()
+	authSchema := fixedAuthContext{}
 
 	// 4. 校验五件套表达式
 	exprs := map[rls.ExprType]rls.JsonExpr{
@@ -133,7 +142,7 @@ func (s *ModelRLSPolicyAppService) ValidateExpr(ctx context.Context, orgName, pr
 		}}
 	}
 
-	return s.validator.Validate(ctx, expr, exprType, model, rls.DefaultAuthContext())
+	return s.validator.Validate(ctx, expr, exprType, model, fixedAuthContext{})
 }
 
 func (s *ModelRLSPolicyAppService) DryRunExpr(

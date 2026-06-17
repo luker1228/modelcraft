@@ -9,14 +9,20 @@ import (
 	domainrls "modelcraft/internal/domain/rls"
 )
 
+const (
+	celVarInput = "input"
+	celVarAuth  = "auth"
+	celVarRow   = "row"
+)
+
 type PolicyExpressionInputEvaluator struct {
 	env *cel.Env
 }
 
 func NewPolicyExpressionInputEvaluator() *PolicyExpressionInputEvaluator {
 	env, err := cel.NewEnv(
-		cel.Variable("input", cel.MapType(cel.StringType, cel.DynType)),
-		cel.Variable("auth", cel.MapType(cel.StringType, cel.DynType)),
+		cel.Variable(celVarInput, cel.MapType(cel.StringType, cel.DynType)),
+		cel.Variable(celVarAuth, cel.MapType(cel.StringType, cel.DynType)),
 	)
 	if err != nil {
 		panic(fmt.Sprintf("create CEL env: %v", err))
@@ -35,13 +41,6 @@ func (e *PolicyExpressionInputEvaluator) ValidateInput(
 		return fmt.Errorf("RLS CHECK violation: empty input check")
 	}
 
-	if IsLegacyJSONExpression(expr) {
-		return NewPolicyExecutor().ValidateCheck(context.Background(), domainrls.JsonExpr(expr), input, &domainrls.AuthContext{
-			EndUserID: resolveUserID(userCtx),
-			Variables: buildAuthEvalContext(userCtx),
-		})
-	}
-
 	ast, issues := e.env.Compile(expr)
 	if issues != nil && issues.Err() != nil {
 		return fmt.Errorf("RLS CHECK violation: %w", issues.Err())
@@ -53,8 +52,8 @@ func (e *PolicyExpressionInputEvaluator) ValidateInput(
 	}
 
 	out, _, err := program.Eval(map[string]any{
-		"input": input,
-		"auth":  buildAuthEvalContext(userCtx),
+		celVarInput: input,
+		celVarAuth:  buildAuthEvalContext(userCtx),
 	})
 	if err != nil {
 		return fmt.Errorf("RLS CHECK violation: %w", err)
@@ -83,11 +82,4 @@ func buildAuthEvalContext(userCtx *domainrls.UserContext) map[string]any {
 		"username": userCtx.UserName,
 		"roles":    userCtx.Roles,
 	}
-}
-
-func resolveUserID(userCtx *domainrls.UserContext) string {
-	if userCtx == nil {
-		return ""
-	}
-	return fmt.Sprint(userCtx.UserIDValue())
 }

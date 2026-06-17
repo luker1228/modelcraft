@@ -6,7 +6,7 @@ ORG_NAME="${ORG_NAME:-luke_e6kz}"
 PROJECT_SLUG="${PROJECT_SLUG:-luke}"
 DB_NAME="${DB_NAME:-demo_ecommerce}"
 MODEL_NAME="${MODEL_NAME:-users}"
-PAT="${PAT:-mc_pat_ae51b03f762a3f38f9c20d4d7f7fbf0964ea2ab75ac1663bcc4db6902f40120a}"
+PAT="${PAT:-mc_pat_dd2e173ea4def1d752e2a2e17fc5b2e37e802e72a911d700c39e27910f61cab3}"
 TEST_USER_ID="${TEST_USER_ID:-rls-test-user-001}"
 TEST_USER_NAME="${TEST_USER_NAME:-rls-test-user}"
 

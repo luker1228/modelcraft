@@ -23,9 +23,6 @@ func (c *PolicyExpressionSQLCompiler) CompileUsing(
 	if strings.Contains(expr, "input.") {
 		return nil, fmt.Errorf("input is not allowed in using expression")
 	}
-	if IsLegacyJSONExpression(expr) {
-		return NewPolicyCompiler().Compile(context.Background(), domainrls.JsonExpr(expr), userCtx)
-	}
 
 	sql, params, err := compileSimpleCELWhere(expr, userCtx)
 	if err != nil {
