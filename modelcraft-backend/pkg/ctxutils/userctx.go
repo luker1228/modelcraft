@@ -31,8 +31,6 @@ const (
 	ContextKeyIsAdmin contextKey = "is_admin"
 )
 
-const UserTypeEndUser = "end_user"
-
 // HttpRequestContext encapsulates HTTP request-related data
 // This is for HTTP layer concerns, not business logic
 type HttpRequestContext struct {

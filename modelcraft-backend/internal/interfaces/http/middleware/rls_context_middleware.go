@@ -5,6 +5,7 @@ import (
 	"modelcraft/internal/domain/rls"
 	"modelcraft/pkg/httpheader"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -22,8 +23,17 @@ func NewRLSContextMiddleware() *RLSContextMiddleware {
 func (m *RLSContextMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		uc := &rls.UserContext{
-			UserID:   strings.TrimSpace(r.Header.Get(httpheader.XMCAuthUserID)),
 			UserName: strings.TrimSpace(r.Header.Get(httpheader.XMCAuthUserName)),
+		}
+
+		// userId: numeric takes priority; fall back to string.
+		if raw := r.Header.Get(httpheader.XMCAuthUserIDInt); raw != "" {
+			if n, err := strconv.ParseInt(strings.TrimSpace(raw), 10, 64); err == nil {
+				uc.UserIDNum = &n
+			}
+		}
+		if uc.UserIDNum == nil {
+			uc.UserIDStr = strings.TrimSpace(r.Header.Get(httpheader.XMCAuthUserIDStr))
 		}
 
 		rolesStr := strings.TrimSpace(r.Header.Get(httpheader.XMCAuthRoles))

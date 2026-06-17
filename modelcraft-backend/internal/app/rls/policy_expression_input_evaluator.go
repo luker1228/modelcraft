@@ -79,7 +79,7 @@ func buildAuthEvalContext(userCtx *domainrls.UserContext) map[string]any {
 		}
 	}
 	return map[string]any{
-		"userid":   userCtx.UserID,
+		"userid":   userCtx.UserIDValue(),
 		"username": userCtx.UserName,
 		"roles":    userCtx.Roles,
 	}
@@ -89,5 +89,5 @@ func resolveUserID(userCtx *domainrls.UserContext) string {
 	if userCtx == nil {
 		return ""
 	}
-	return userCtx.UserID
+	return fmt.Sprint(userCtx.UserIDValue())
 }

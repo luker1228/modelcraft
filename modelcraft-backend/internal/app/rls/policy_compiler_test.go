@@ -11,7 +11,7 @@ func TestCompile_Equals_VariableSubstitution(t *testing.T) {
 	ctx := context.Background()
 
 	expr := rls.JsonExpr(`{"tenant_id": {"equals": "{{user_id}}"}}`)
-	userCtx := &rls.UserContext{UserID: "customer_123"}
+	userCtx := &rls.UserContext{UserIDStr: "customer_123"}
 
 	result, err := compiler.Compile(ctx, expr, userCtx)
 	if err != nil {
@@ -37,7 +37,7 @@ func TestCompile_AND_With_Two_Fields(t *testing.T) {
 			{"status": {"equals": "active"}}
 		]
 	}`)
-	userCtx := &rls.UserContext{UserID: "123"}
+	userCtx := &rls.UserContext{UserIDStr: "123"}
 
 	result, err := compiler.Compile(ctx, expr, userCtx)
 	if err != nil {
@@ -242,7 +242,7 @@ func TestCompile_OldAuthReference(t *testing.T) {
 	ctx := context.Background()
 
 	expr := rls.JsonExpr(`{"owner_id": {"_auth": "uid"}}`)
-	userCtx := &rls.UserContext{UserID: "customer_456"}
+	userCtx := &rls.UserContext{UserIDStr: "customer_456"}
 
 	result, err := compiler.Compile(ctx, expr, userCtx)
 	if err != nil {

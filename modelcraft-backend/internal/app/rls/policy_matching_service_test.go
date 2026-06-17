@@ -43,7 +43,7 @@ func TestMatch_MultipleRoles_OrMerge(t *testing.T) {
 	svc := NewPolicyMatchingService(repo, compiler, evaluator)
 
 	ctx := context.Background()
-	userCtx := &rls.UserContext{UserID: "123", Roles: []string{"admin", "user"}}
+	userCtx := &rls.UserContext{UserIDStr: "123", Roles: []string{"admin", "user"}}
 
 	sql, params, err := svc.ResolveUsing(ctx, "my-org", "my-proj", "model-1", rls.ActionRead, userCtx)
 	if err != nil {
@@ -124,7 +124,7 @@ func TestResolveCheck_WithCheck(t *testing.T) {
 	svc := NewPolicyMatchingService(repo, compiler, evaluator)
 
 	ctx := context.Background()
-	userCtx := &rls.UserContext{UserID: "456", Roles: []string{"user"}}
+	userCtx := &rls.UserContext{UserIDStr: "456", Roles: []string{"user"}}
 
 	sql, params, err := svc.ResolveCheck(ctx, "my-org", "my-proj", "model-1", rls.ActionCreate, userCtx)
 	if err != nil {
@@ -183,7 +183,7 @@ func TestResolveUsing_WithCELExpression(t *testing.T) {
 	svc := NewPolicyMatchingService(repo, NewPolicyExpressionSQLCompiler(), NewPolicyExpressionInputEvaluator())
 
 	sql, params, err := svc.ResolveUsing(ctx, "my-org", "my-proj", "model-1", rls.ActionRead, &rls.UserContext{
-		UserID: "u_123",
+		UserIDStr: "u_123",
 		Roles:  []string{"user"},
 	})
 
@@ -213,7 +213,7 @@ func TestValidateCheck_WithCELExpression(t *testing.T) {
 
 	err := svc.ValidateCheck(ctx, "my-org", "my-proj", "model-1", rls.ActionCreate,
 		map[string]any{"owner_id": "u_123"},
-		&rls.UserContext{UserID: "u_123", Roles: []string{"user"}},
+		&rls.UserContext{UserIDStr: "u_123", Roles: []string{"user"}},
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

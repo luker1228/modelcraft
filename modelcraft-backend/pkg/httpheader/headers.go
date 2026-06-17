@@ -27,7 +27,12 @@ const (
 
 	// XMCAuthUserID is injected by the gateway for RLS context propagation.
 	// It carries the authenticated end-user ID into backend middleware.
-	XMCAuthUserID = "X-MC-Auth-Userid"
+	// XMCAuthUserIDInt is injected by the gateway for numeric user IDs (int64).
+	// Mutually exclusive with XMCAuthUserIDStr.
+	XMCAuthUserIDInt = "X-MC-Auth-Userid-Int"
+	// XMCAuthUserIDStr is injected by the gateway for string user IDs.
+	// Mutually exclusive with XMCAuthUserIDInt.
+	XMCAuthUserIDStr = "X-MC-Auth-Userid-Str"
 	// XMCAuthUserName is injected by the gateway for RLS context propagation.
 	// It carries the authenticated end-user name into backend middleware.
 	XMCAuthUserName = "X-MC-Auth-Username"

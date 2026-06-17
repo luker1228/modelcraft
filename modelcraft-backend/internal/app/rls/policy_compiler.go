@@ -305,7 +305,7 @@ func (c *PolicyCompiler) resolveValue(value interface{}, userCtx *rls.UserContex
 	switch v := value.(type) {
 	case string:
 		// {{user_id}} / {{user_name}} 替换
-		v = strings.ReplaceAll(v, "{{user_id}}", userCtx.UserID)
+		v = strings.ReplaceAll(v, "{{user_id}}", fmt.Sprint(userCtx.UserIDValue()))
 		v = strings.ReplaceAll(v, "{{user_name}}", userCtx.UserName)
 		return v
 	case map[string]interface{}:

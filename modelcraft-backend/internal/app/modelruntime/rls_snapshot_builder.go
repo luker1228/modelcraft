@@ -177,7 +177,7 @@ func buildAuthMap(userCtx *rls.UserContext) map[string]any {
 		}
 	}
 	return map[string]any{
-		"userid":   userCtx.UserID,
+		"userid":   userCtx.UserIDValue(),
 		"username": userCtx.UserName,
 		"roles":    userCtx.Roles,
 	}

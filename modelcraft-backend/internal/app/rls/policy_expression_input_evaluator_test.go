@@ -15,7 +15,7 @@ func TestPolicyExpressionInputEvaluator_AllowsMatchingCreateInput(t *testing.T) 
 		context.Background(),
 		`input.owner_id == auth.userid && input.status in ["draft", "pending"]`,
 		map[string]any{"owner_id": "u_123", "status": "draft"},
-		&domainrls.UserContext{UserID: "u_123"},
+		&domainrls.UserContext{UserIDStr: "u_123"},
 	)
 	require.NoError(t, err)
 }
@@ -26,7 +26,7 @@ func TestPolicyExpressionInputEvaluator_DeniesMismatchedInput(t *testing.T) {
 		context.Background(),
 		`input.owner_id == auth.userid`,
 		map[string]any{"owner_id": "u_999"},
-		&domainrls.UserContext{UserID: "u_123"},
+		&domainrls.UserContext{UserIDStr: "u_123"},
 	)
 	require.ErrorContains(t, err, "RLS CHECK violation")
 }
@@ -37,7 +37,7 @@ func TestPolicyExpressionInputEvaluator_UpdateUsesPatchOnly(t *testing.T) {
 		context.Background(),
 		`input.status == "draft"`,
 		map[string]any{"title": "renamed"},
-		&domainrls.UserContext{UserID: "u_123"},
+		&domainrls.UserContext{UserIDStr: "u_123"},
 	)
 	require.ErrorContains(t, err, "no such key")
 }

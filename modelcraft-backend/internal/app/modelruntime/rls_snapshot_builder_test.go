@@ -86,7 +86,7 @@ func TestBuild_Select_SingleUSING(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		&rls.UserContext{UserID: "u1"},
+		&rls.UserContext{UserIDStr: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:    modelruntime.ActionSelect,
 			UsingExpr: `{"status":{"_eq":"open"}}`,
@@ -113,7 +113,7 @@ func TestBuild_Select_MultipleUSING_ORMerged(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		&rls.UserContext{UserID: "u1"},
+		&rls.UserContext{UserIDStr: "u1"},
 		perms(
 			modelruntime.ResolvedPolicy{
 				Action:    modelruntime.ActionSelect,
@@ -147,7 +147,7 @@ func TestBuild_Insert_WithCHECK(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		&rls.UserContext{UserID: "u1"},
+		&rls.UserContext{UserIDStr: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:        modelruntime.ActionInsert,
 			WithCheckExpr: "input.title != ''",
@@ -169,7 +169,7 @@ func TestBuild_Insert_MultipleCHECKs_AllCompiled(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		&rls.UserContext{UserID: "u1"},
+		&rls.UserContext{UserIDStr: "u1"},
 		perms(
 			modelruntime.ResolvedPolicy{
 				Action:        modelruntime.ActionInsert,
@@ -195,7 +195,7 @@ func TestBuild_Insert_InvalidCEL_Error(t *testing.T) {
 	_, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		&rls.UserContext{UserID: "u1"},
+		&rls.UserContext{UserIDStr: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:        modelruntime.ActionInsert,
 			WithCheckExpr: "!!! not valid CEL !!!",
@@ -218,7 +218,7 @@ func TestBuild_Update_BothUSINGAndCHECK(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		&rls.UserContext{UserID: "u1"},
+		&rls.UserContext{UserIDStr: "u1"},
 		perms(
 			modelruntime.ResolvedPolicy{
 				Action:        modelruntime.ActionUpdate,
@@ -248,7 +248,7 @@ func TestBuild_Update_OnlyUSING(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		&rls.UserContext{UserID: "u1"},
+		&rls.UserContext{UserIDStr: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:    modelruntime.ActionUpdate,
 			UsingExpr: "owner = $endUserId",
@@ -271,7 +271,7 @@ func TestBuild_Update_OnlyCHECK(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		&rls.UserContext{UserID: "u1"},
+		&rls.UserContext{UserIDStr: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:        modelruntime.ActionUpdate,
 			WithCheckExpr: "input.title != ''",
@@ -300,7 +300,7 @@ func TestBuild_Delete_WithUSING(t *testing.T) {
 	snap, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		&rls.UserContext{UserID: "u1"},
+		&rls.UserContext{UserIDStr: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:    modelruntime.ActionDelete,
 			UsingExpr: "owner = $endUserId",
@@ -326,7 +326,7 @@ func TestBuild_CompileUsingExprError(t *testing.T) {
 	_, err := b.Build(
 		context.Background(),
 		"org1", "proj1", "model-1",
-		&rls.UserContext{UserID: "u1"},
+		&rls.UserContext{UserIDStr: "u1"},
 		perms(modelruntime.ResolvedPolicy{
 			Action:    modelruntime.ActionSelect,
 			UsingExpr: "bad-expr",
@@ -350,7 +350,7 @@ func TestBuild_UserCtxInAuth(t *testing.T) {
 		context.Background(),
 		"org1", "proj1", "model-1",
 		&rls.UserContext{
-			UserID:   "user-abc",
+			UserIDStr: "user-abc",
 			UserName: "Alice",
 			Roles:    []string{"admin", "member"},
 		},
