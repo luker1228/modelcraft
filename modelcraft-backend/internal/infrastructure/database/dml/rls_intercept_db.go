@@ -49,25 +49,39 @@ func evalCHECKs(
 	return bizerrors.NewError(bizerrors.PermissionDenied, "all CHECK expressions failed")
 }
 
+// errNoPolicy returns a permission denied error for the given action when no policy is configured.
+func errNoPolicy(action string) error {
+	return bizerrors.NewError(bizerrors.PermissionDenied, "no RLS policy configured for action: "+action)
+}
+
 // ---- Read operations ----
 
 func (r *RLSInterceptDB) FindUnique(ctx context.Context, input *modelruntime.FindUniqueInput) (map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(ctx, &input.RawFilters, snap.USING)
+		if snap.NoSelectPolicy {
+			return nil, errNoPolicy("read")
+		}
+		injectUSING(ctx, &input.RawFilters, snap.SelectFilter)
 	}
 	return r.inner.FindUnique(ctx, input)
 }
 
 func (r *RLSInterceptDB) FindFirst(ctx context.Context, input *modelruntime.FindFirstInput) (map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(ctx, &input.RawFilters, snap.USING)
+		if snap.NoSelectPolicy {
+			return nil, errNoPolicy("read")
+		}
+		injectUSING(ctx, &input.RawFilters, snap.SelectFilter)
 	}
 	return r.inner.FindFirst(ctx, input)
 }
 
 func (r *RLSInterceptDB) FindMany(ctx context.Context, input *modelruntime.FindManyInput) ([]map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(ctx, &input.RawFilters, snap.USING)
+		if snap.NoSelectPolicy {
+			return nil, errNoPolicy("read")
+		}
+		injectUSING(ctx, &input.RawFilters, snap.SelectFilter)
 	}
 	return r.inner.FindMany(ctx, input)
 }
@@ -76,21 +90,30 @@ func (r *RLSInterceptDB) ListByCursor(
 	ctx context.Context, input *modelruntime.ListByCursorInput,
 ) ([]map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(ctx, &input.RawFilters, snap.USING)
+		if snap.NoSelectPolicy {
+			return nil, errNoPolicy("read")
+		}
+		injectUSING(ctx, &input.RawFilters, snap.SelectFilter)
 	}
 	return r.inner.ListByCursor(ctx, input)
 }
 
 func (r *RLSInterceptDB) Aggregate(ctx context.Context, input *modelruntime.AggregateInput) (map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(ctx, &input.RawFilters, snap.USING)
+		if snap.NoSelectPolicy {
+			return nil, errNoPolicy("read")
+		}
+		injectUSING(ctx, &input.RawFilters, snap.SelectFilter)
 	}
 	return r.inner.Aggregate(ctx, input)
 }
 
 func (r *RLSInterceptDB) Count(ctx context.Context, input *modelruntime.CountInput) (map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(ctx, &input.RawFilters, snap.USING)
+		if snap.NoSelectPolicy {
+			return nil, errNoPolicy("read")
+		}
+		injectUSING(ctx, &input.RawFilters, snap.SelectFilter)
 	}
 	return r.inner.Count(ctx, input)
 }
@@ -106,7 +129,10 @@ func (r *RLSInterceptDB) FindManyIn(
 
 func (r *RLSInterceptDB) CreateOne(ctx context.Context, input *modelruntime.CreateOneInput) (string, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		if err := evalCHECKs(ctx, snap.CHECKs, input.Data, snap.Auth); err != nil {
+		if snap.NoCreatePolicy {
+			return "", errNoPolicy("create")
+		}
+		if err := evalCHECKs(ctx, snap.CreateChecks, input.Data, snap.Auth); err != nil {
 			return "", err
 		}
 	}
@@ -115,8 +141,11 @@ func (r *RLSInterceptDB) CreateOne(ctx context.Context, input *modelruntime.Crea
 
 func (r *RLSInterceptDB) CreateMany(ctx context.Context, input *modelruntime.CreateManyInput) (interface{}, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
+		if snap.NoCreatePolicy {
+			return nil, errNoPolicy("create")
+		}
 		for _, dataItem := range input.Data {
-			if err := evalCHECKs(ctx, snap.CHECKs, dataItem, snap.Auth); err != nil {
+			if err := evalCHECKs(ctx, snap.CreateChecks, dataItem, snap.Auth); err != nil {
 				return nil, err
 			}
 		}
@@ -128,8 +157,11 @@ func (r *RLSInterceptDB) CreateMany(ctx context.Context, input *modelruntime.Cre
 
 func (r *RLSInterceptDB) UpdateOne(ctx context.Context, input *modelruntime.UpdateOneInput) (map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(ctx, &input.RawFilters, snap.USING)
-		if err := evalCHECKs(ctx, snap.CHECKs, input.Data, snap.Auth); err != nil {
+		if snap.NoUpdatePolicy {
+			return nil, errNoPolicy("update")
+		}
+		injectUSING(ctx, &input.RawFilters, snap.UpdateFilter)
+		if err := evalCHECKs(ctx, snap.UpdateChecks, input.Data, snap.Auth); err != nil {
 			return nil, err
 		}
 	}
@@ -138,8 +170,11 @@ func (r *RLSInterceptDB) UpdateOne(ctx context.Context, input *modelruntime.Upda
 
 func (r *RLSInterceptDB) UpdateMany(ctx context.Context, input *modelruntime.UpdateManyInput) (interface{}, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(ctx, &input.RawFilters, snap.USING)
-		if err := evalCHECKs(ctx, snap.CHECKs, input.Data, snap.Auth); err != nil {
+		if snap.NoUpdatePolicy {
+			return nil, errNoPolicy("update")
+		}
+		injectUSING(ctx, &input.RawFilters, snap.UpdateFilter)
+		if err := evalCHECKs(ctx, snap.UpdateChecks, input.Data, snap.Auth); err != nil {
 			return nil, err
 		}
 	}
@@ -150,14 +185,20 @@ func (r *RLSInterceptDB) UpdateMany(ctx context.Context, input *modelruntime.Upd
 
 func (r *RLSInterceptDB) DeleteOne(ctx context.Context, input *modelruntime.DeleteOneInput) (map[string]any, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(ctx, &input.RawFilters, snap.USING)
+		if snap.NoDeletePolicy {
+			return nil, errNoPolicy("delete")
+		}
+		injectUSING(ctx, &input.RawFilters, snap.DeleteFilter)
 	}
 	return r.inner.DeleteOne(ctx, input)
 }
 
 func (r *RLSInterceptDB) DeleteMany(ctx context.Context, input *modelruntime.DeleteManyInput) (interface{}, error) {
 	if snap := modelruntime.GetRLSSnapshot(ctx); snap != nil {
-		injectUSING(ctx, &input.RawFilters, snap.USING)
+		if snap.NoDeletePolicy {
+			return nil, errNoPolicy("delete")
+		}
+		injectUSING(ctx, &input.RawFilters, snap.DeleteFilter)
 	}
 	return r.inner.DeleteMany(ctx, input)
 }

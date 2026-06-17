@@ -3,12 +3,13 @@ package modelruntime
 import (
 	"context"
 	"fmt"
-	"modelcraft/internal/domain/modelruntime"
-	"modelcraft/internal/domain/rls"
-	"modelcraft/pkg/logfacade"
 	"strings"
 
 	"github.com/google/cel-go/cel"
+
+	"modelcraft/internal/domain/modelruntime"
+	"modelcraft/internal/domain/rls"
+	"modelcraft/pkg/logfacade"
 )
 
 // PolicyResolver provides access to RLS policy expressions.
@@ -48,8 +49,8 @@ func NewRLSSnapshotBuilder(policySvc PolicyResolver) *RLSSnapshotBuilder {
 }
 
 // Build constructs a comprehensive RLSPolicySnapshot for the given model.
-// It merges USING filters from all read/write actions (select, update, delete)
-// and compiles CHECK programs from insert/update actions.
+// It builds per-action USING filters (select/update/delete) independently
+// and compiles CHECK programs separately for create and update actions.
 func (b *RLSSnapshotBuilder) Build(
 	ctx context.Context,
 	orgName, projectSlug, modelID string,
@@ -65,107 +66,113 @@ func (b *RLSSnapshotBuilder) Build(
 	auth := buildAuthMap(userCtx)
 	snap := &modelruntime.RLSPolicySnapshot{Auth: auth}
 
-	// Merge USING from select, update, delete policies (OR logic)
-	filter, err := b.mergeUSING(ctx, perms, []modelruntime.Action{
-		modelruntime.ActionSelect,
-		modelruntime.ActionUpdate,
-		modelruntime.ActionDelete,
-	}, userCtx)
+	// Build per-action USING filters independently.
+	for _, cfg := range []struct {
+		action   modelruntime.Action
+		dest     **modelruntime.RawSQLFilter
+		noPolicy *bool
+	}{
+		{modelruntime.ActionSelect, &snap.SelectFilter, &snap.NoSelectPolicy},
+		{modelruntime.ActionUpdate, &snap.UpdateFilter, &snap.NoUpdatePolicy},
+		{modelruntime.ActionDelete, &snap.DeleteFilter, &snap.NoDeletePolicy},
+	} {
+		f, hasPolicy, err := b.mergeUSING(ctx, perms, cfg.action, userCtx)
+		if err != nil {
+			return nil, err
+		}
+		*cfg.dest = f
+		*cfg.noPolicy = !hasPolicy
+	}
+
+	// Compile CREATE checks.
+	createChecks, hasCreatePolicy, err := b.compileCHECKs(perms, modelruntime.ActionInsert)
 	if err != nil {
 		return nil, err
 	}
-	snap.USING = filter
+	snap.CreateChecks = createChecks
+	snap.NoCreatePolicy = !hasCreatePolicy
 
-	// Compile CHECKs from insert, update policies
-	checks, err := b.compileCHECKs(perms, []modelruntime.Action{
-		modelruntime.ActionInsert,
-		modelruntime.ActionUpdate,
-	})
+	// Compile UPDATE checks.
+	updateChecks, _, err := b.compileCHECKs(perms, modelruntime.ActionUpdate)
 	if err != nil {
 		return nil, err
 	}
-	snap.CHECKs = checks
+	snap.UpdateChecks = updateChecks
 
-	logger.Debugf(ctx, "RLS snapshot: model=%s using=%v checks=%d", modelID, filter != nil, len(checks))
+	logger.Infof(ctx, "RLS snapshot built: model=%s endUser=%s select=%v update=%v delete=%v create=%v",
+		modelID, userCtx.UserIDValue(),
+		!snap.NoSelectPolicy, !snap.NoUpdatePolicy, !snap.NoDeletePolicy, !snap.NoCreatePolicy)
 
 	return snap, nil
 }
 
-// mergeUSING collects all UsingExpr from perms.Policies matching any of the given actions,
+// mergeUSING collects all UsingExpr from perms.Policies matching the given action,
 // compiles each to SQL, and OR-merges the results.
+// Returns (filter, hasPolicy, error).
+// hasPolicy=false means no policy was configured for this action at all (default deny).
 func (b *RLSSnapshotBuilder) mergeUSING(
 	ctx context.Context,
 	perms *modelruntime.ResolvedModelPermissions,
-	actions []modelruntime.Action,
+	action modelruntime.Action,
 	userCtx *rls.UserContext,
-) (*modelruntime.RawSQLFilter, error) {
+) (*modelruntime.RawSQLFilter, bool, error) {
 	if perms == nil {
-		return nil, nil //nolint:nilnil
-	}
-
-	actionSet := make(map[modelruntime.Action]struct{}, len(actions))
-	for _, a := range actions {
-		actionSet[a] = struct{}{}
+		return &modelruntime.RawSQLFilter{SQL: "1=0"}, false, nil
 	}
 
 	var orClauses []string
 	var allParams []interface{}
 
 	for _, pol := range perms.Policies {
-		if _, ok := actionSet[pol.Action]; !ok || pol.UsingExpr == "" {
+		if pol.Action != action || pol.UsingExpr == "" {
 			continue
 		}
 		compiled, err := b.policySvc.CompileUsingExpr(ctx, pol.UsingExpr, userCtx)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		orClauses = append(orClauses, "("+compiled.SQL+")")
 		allParams = append(allParams, compiled.Params...)
 	}
 
 	if len(orClauses) == 0 {
-		// No USING policy matched — default deny: inject 1=0 to block all rows.
-		return &modelruntime.RawSQLFilter{SQL: "1=0", Params: nil}, nil
+		return &modelruntime.RawSQLFilter{SQL: "1=0"}, false, nil
 	}
 
 	return &modelruntime.RawSQLFilter{
 		SQL:    strings.Join(orClauses, " OR "),
 		Params: allParams,
-	}, nil
+	}, true, nil
 }
 
-// compileCHECKs compiles all WithCheckExpr from perms.Policies matching any of the given actions.
+// compileCHECKs compiles all WithCheckExpr from perms.Policies matching the given action.
 // CHECK expressions use OR logic — any single one passing is sufficient.
+// Returns (checks, hasPolicy, error) where hasPolicy=false means no policy configured for this action.
 func (b *RLSSnapshotBuilder) compileCHECKs(
 	perms *modelruntime.ResolvedModelPermissions,
-	actions []modelruntime.Action,
-) ([]*modelruntime.CheckProgram, error) {
+	action modelruntime.Action,
+) ([]*modelruntime.CheckProgram, bool, error) {
 	if perms == nil {
-		return nil, nil
-	}
-
-	actionSet := make(map[modelruntime.Action]struct{}, len(actions))
-	for _, a := range actions {
-		actionSet[a] = struct{}{}
+		return nil, false, nil
 	}
 
 	var checks []*modelruntime.CheckProgram
 	for _, pol := range perms.Policies {
-		if _, ok := actionSet[pol.Action]; !ok || pol.WithCheckExpr == "" {
+		if pol.Action != action || pol.WithCheckExpr == "" {
 			continue
 		}
 		ast, issues := b.celEnv.Compile(pol.WithCheckExpr)
 		if issues != nil && issues.Err() != nil {
-			return nil, fmt.Errorf("compile CHECK expression: %w", issues.Err())
+			return nil, false, fmt.Errorf("compile CHECK expression: %w", issues.Err())
 		}
 		program, err := b.celEnv.Program(ast)
 		if err != nil {
-			return nil, fmt.Errorf("program CHECK expression: %w", err)
+			return nil, false, fmt.Errorf("program CHECK expression: %w", err)
 		}
 		checks = append(checks, modelruntime.NewCheckProgram(program))
 	}
 
-	return checks, nil
+	return checks, len(checks) > 0, nil
 }
 
 // buildAuthMap builds the auth context map for CEL evaluation.

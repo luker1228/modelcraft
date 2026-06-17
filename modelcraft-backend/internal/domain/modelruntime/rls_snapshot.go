@@ -54,13 +54,23 @@ func (e *CheckEvalError) Error() string {
 // Built once at Execute() entry, consumed by RLSInterceptDB at SQL execution time.
 // nil snapshot means RLS is not applicable (developer JWT).
 type RLSPolicySnapshot struct {
-	// USING filter — injected into WHERE clause for SELECT/UPDATE/DELETE.
-	// nil means no filtering needed.
-	USING *RawSQLFilter
+	// Per-action USING filters — injected into WHERE clause for their respective operation.
+	// Always non-nil when snapshot is set; SQL="1=0" when no policy matched (default deny).
+	SelectFilter *RawSQLFilter
+	UpdateFilter *RawSQLFilter
+	DeleteFilter *RawSQLFilter
 
-	// CHECK programs — each evaluated against input data before INSERT/UPDATE.
-	// OR logic: any single program passing is sufficient. nil/empty means no validation.
-	CHECKs []*CheckProgram
+	// NoPolicy flags — true when no policy was configured for that action.
+	// Used to return a clear "permission denied" error rather than silently returning 0 rows.
+	NoSelectPolicy bool
+	NoUpdatePolicy bool
+	NoDeletePolicy bool
+	NoCreatePolicy bool
+
+	// Per-action CHECK programs evaluated against input data before write operations.
+	// OR logic: any single program passing is sufficient.
+	CreateChecks []*CheckProgram
+	UpdateChecks []*CheckProgram
 
 	// Auth holds the pre-built auth context map for CEL evaluation.
 	Auth map[string]any

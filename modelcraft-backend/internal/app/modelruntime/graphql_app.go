@@ -198,9 +198,9 @@ func (s *GraphqlAppService) buildRLSContext(
 		return nil, err
 	}
 	rlsCtx.Snapshot = snap
-	logger.Debugf(ctx, "RLS context built: model=%s endUser=%s policies=%d using=%v checks=%d",
+	logger.Infof(ctx, "RLS context built: model=%s endUser=%s policies=%d select=%v update=%v delete=%v create=%v",
 		modelID, endUserID, len(rlsCtx.Permissions.Policies),
-		snap.USING != nil, len(snap.CHECKs))
+		!snap.NoSelectPolicy, !snap.NoUpdatePolicy, !snap.NoDeletePolicy, !snap.NoCreatePolicy)
 
 	return rlsCtx, nil
 }

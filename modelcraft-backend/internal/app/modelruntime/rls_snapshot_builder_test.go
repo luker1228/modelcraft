@@ -95,11 +95,14 @@ func TestBuild_Select_SingleUSING(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snap.USING == nil {
-		t.Fatal("expected USING")
+	if snap.SelectFilter == nil {
+		t.Fatal("expected SelectFilter")
 	}
-	if snap.USING.SQL != "(status = 'open')" {
-		t.Errorf("expected SQL='(status = \\'open\\')', got %q", snap.USING.SQL)
+	if snap.SelectFilter.SQL != "(status = 'open')" {
+		t.Errorf("expected SQL='(status = \\'open\\')', got %q", snap.SelectFilter.SQL)
+	}
+	if snap.NoSelectPolicy {
+		t.Error("expected NoSelectPolicy=false")
 	}
 }
 
@@ -128,14 +131,34 @@ func TestBuild_Select_MultipleUSING_ORMerged(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snap.USING == nil {
-		t.Fatal("expected USING")
+	if snap.SelectFilter == nil {
+		t.Fatal("expected SelectFilter")
 	}
-	if !strings.Contains(snap.USING.SQL, " OR ") {
-		t.Errorf("expected OR-merged SQL, got %q", snap.USING.SQL)
+	if !strings.Contains(snap.SelectFilter.SQL, " OR ") {
+		t.Errorf("expected OR-merged SQL, got %q", snap.SelectFilter.SQL)
 	}
-	if len(snap.USING.Params) != 2 {
-		t.Errorf("expected 2 params, got %d", len(snap.USING.Params))
+	if len(snap.SelectFilter.Params) != 2 {
+		t.Errorf("expected 2 params, got %d", len(snap.SelectFilter.Params))
+	}
+}
+
+func TestBuild_Select_NoPolicies_DenyFilter(t *testing.T) {
+	b := newTestBuilder(&stubPolicyResolver{})
+
+	snap, err := b.Build(
+		context.Background(),
+		"org1", "proj1", "model-1",
+		&rls.UserContext{UserIDStr: "u1"},
+		perms(), // no policies at all
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snap.SelectFilter == nil || snap.SelectFilter.SQL != "1=0" {
+		t.Errorf("expected deny filter SQL='1=0', got %v", snap.SelectFilter)
+	}
+	if !snap.NoSelectPolicy {
+		t.Error("expected NoSelectPolicy=true")
 	}
 }
 
@@ -156,14 +179,32 @@ func TestBuild_Insert_WithCHECK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snap.CHECKs == nil {
-		t.Fatal("expected CHECKs")
+	if snap.CreateChecks == nil {
+		t.Fatal("expected CreateChecks")
+	}
+	if snap.NoCreatePolicy {
+		t.Error("expected NoCreatePolicy=false")
+	}
+}
+
+func TestBuild_Insert_NoPolicies_NoInsertPolicy(t *testing.T) {
+	b := newTestBuilder(&stubPolicyResolver{})
+
+	snap, err := b.Build(
+		context.Background(),
+		"org1", "proj1", "model-1",
+		&rls.UserContext{UserIDStr: "u1"},
+		perms(), // no policies
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !snap.NoCreatePolicy {
+		t.Error("expected NoCreatePolicy=true")
 	}
 }
 
 func TestBuild_Insert_MultipleCHECKs_AllCompiled(t *testing.T) {
-	// Multiple Insert policies with WithCheckExpr → all are compiled into the slice.
-	// CHECK logic is OR: any single program passing is sufficient.
 	b := newTestBuilder(&stubPolicyResolver{})
 
 	snap, err := b.Build(
@@ -184,8 +225,8 @@ func TestBuild_Insert_MultipleCHECKs_AllCompiled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(snap.CHECKs) != 2 {
-		t.Fatalf("expected 2 CHECK programs, got %d", len(snap.CHECKs))
+	if len(snap.CreateChecks) != 2 {
+		t.Fatalf("expected 2 CreateChecks, got %d", len(snap.CreateChecks))
 	}
 }
 
@@ -230,11 +271,11 @@ func TestBuild_Update_BothUSINGAndCHECK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snap.USING == nil {
-		t.Fatal("expected USING")
+	if snap.UpdateFilter == nil || snap.NoUpdatePolicy {
+		t.Fatal("expected UpdateFilter with policy")
 	}
-	if snap.CHECKs == nil {
-		t.Fatal("expected CHECKs")
+	if snap.UpdateChecks == nil {
+		t.Fatal("expected UpdateChecks")
 	}
 }
 
@@ -257,11 +298,11 @@ func TestBuild_Update_OnlyUSING(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snap.USING == nil {
-		t.Fatal("expected USING")
+	if snap.UpdateFilter == nil || snap.NoUpdatePolicy {
+		t.Fatal("expected UpdateFilter with policy")
 	}
-	if snap.CHECKs != nil {
-		t.Fatal("expected no CHECKs")
+	if snap.UpdateChecks != nil {
+		t.Fatal("expected no UpdateChecks")
 	}
 }
 
@@ -280,11 +321,11 @@ func TestBuild_Update_OnlyCHECK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snap.USING != nil {
-		t.Fatal("expected no USING")
+	if !snap.NoUpdatePolicy {
+		t.Fatal("expected NoUpdatePolicy=true (no usingExpr on update)")
 	}
-	if snap.CHECKs == nil {
-		t.Fatal("expected CHECKs")
+	if snap.UpdateChecks == nil {
+		t.Fatal("expected UpdateChecks")
 	}
 }
 
@@ -309,8 +350,8 @@ func TestBuild_Delete_WithUSING(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snap.USING == nil {
-		t.Fatal("expected USING")
+	if snap.DeleteFilter == nil || snap.NoDeletePolicy {
+		t.Fatal("expected DeleteFilter with policy")
 	}
 }
 
@@ -351,8 +392,8 @@ func TestBuild_UserCtxInAuth(t *testing.T) {
 		"org1", "proj1", "model-1",
 		&rls.UserContext{
 			UserIDStr: "user-abc",
-			UserName: "Alice",
-			Roles:    []string{"admin", "member"},
+			UserName:  "Alice",
+			Roles:     []string{"admin", "member"},
 		},
 		perms(modelruntime.ResolvedPolicy{
 			Action:    modelruntime.ActionSelect,
