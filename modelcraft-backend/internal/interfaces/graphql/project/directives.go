@@ -15,13 +15,25 @@ import (
 
 // HasPermissionDirective implements the @hasPermission directive for operation-level authorization
 type HasPermissionDirective struct {
-	userRoleService *appPermission.UserRoleService
+	userRoleService    *appPermission.UserRoleService
+	enforceEndUserGate bool // true for EndUser link handler, false for internal link handler
 }
 
-// NewHasPermissionDirective creates a new directive handler
+// NewHasPermissionDirective creates a directive handler for the internal GraphQL link.
+// Internal link ignores allowEndUser — all operations go through RBAC.
 func NewHasPermissionDirective(userRoleService *appPermission.UserRoleService) *HasPermissionDirective {
 	return &HasPermissionDirective{
-		userRoleService: userRoleService,
+		userRoleService:    userRoleService,
+		enforceEndUserGate: false,
+	}
+}
+
+// NewEndUserHasPermissionDirective creates a directive handler for the EndUser link.
+// EndUser link enforces allowEndUser: only operations explicitly marked allowEndUser=true are accessible.
+func NewEndUserHasPermissionDirective(userRoleService *appPermission.UserRoleService) *HasPermissionDirective {
+	return &HasPermissionDirective{
+		userRoleService:    userRoleService,
+		enforceEndUserGate: true,
 	}
 }
 
@@ -49,14 +61,16 @@ func (d *HasPermissionDirective) HasPermission(
 		return nil, newGQLError("Invalid permission directive configuration", "INVALID_DIRECTIVE")
 	}
 
-	// End-user callers: default-deny. Only operations explicitly marked allowEndUser=true are accessible.
-	if ctxutils.IsEndUser(ctx) {
+	// End-user link: default-deny. Only operations explicitly marked allowEndUser=true
+	// are accessible. This gate only applies to the EndUser link handler —
+	// the internal link handler has enforceEndUserGate=false and skips this check.
+	if d.enforceEndUserGate {
 		if !allowEndUser {
-			logger.Infof(ctx, "@hasPermission directive: end-user access denied (allowEndUser=false) user=%s action=%s",
+			logger.Infof(ctx, "@hasPermission directive: end-user link access denied (allowEndUser=false) user=%s action=%s",
 				userID, action)
-			return nil, newPermissionDeniedError(action, userID, orgName, "end-user-default-deny")
+			return nil, newPermissionDeniedError(action, userID, orgName, "end-user-link-default-deny")
 		}
-		logger.Infof(ctx, "@hasPermission directive: end-user access granted (allowEndUser=true) user=%s action=%s",
+		logger.Infof(ctx, "@hasPermission directive: end-user link access granted (allowEndUser=true) user=%s action=%s",
 			userID, action)
 		return next(ctx)
 	}

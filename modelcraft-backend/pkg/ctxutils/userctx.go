@@ -29,6 +29,7 @@ const (
 	// ContextKeyIsAdmin stores whether the end-user is an org admin, derived from the
 	// is_admin JWT claim injected by APISIX as X-Is-Admin header.
 	ContextKeyIsAdmin contextKey = "is_admin"
+
 )
 
 // HttpRequestContext encapsulates HTTP request-related data

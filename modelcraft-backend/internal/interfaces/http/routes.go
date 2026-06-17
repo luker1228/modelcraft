@@ -381,7 +381,7 @@ func SetupOrgGraphQLRoutesOnChi(
 		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
 		r.Use(middleware.ChiGraphQLActionMiddleware())
-		r.Post("/", orggraphql.OrgGraphQLHandler(orgResolver))
+		r.Post("/", orggraphql.OrgEndUserGraphQLHandler(orgResolver))
 		r.Get("/", orggraphql.OrgPlaygroundHandler())
 	})
 }
@@ -452,7 +452,7 @@ func SetupProjectGraphQLRoutesOnChi(
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
 		r.Use(middleware.ChiGraphQLProjectMiddleware())
 		r.Use(middleware.ChiGraphQLActionMiddleware())
-		r.Post("/", projectgraphql.ProjectGraphQLHandler(projectResolver))
+		r.Post("/", projectgraphql.ProjectEndUserGraphQLHandler(projectResolver))
 		r.Get("/", projectgraphql.ProjectPlaygroundHandler())
 	})
 }
