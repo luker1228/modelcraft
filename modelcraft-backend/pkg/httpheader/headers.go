@@ -18,7 +18,6 @@ const (
 	XAction        = "X-Action"
 	XInternalToken = "X-Internal-Token"
 	XUserID        = "X-User-ID"
-	XIsAdmin         = "X-Is-Admin"
 	XOrgName         = "X-Org-Name"
 	XProjectSlug     = "X-Project-Slug"
 	XRequestID       = "X-Request-Id"

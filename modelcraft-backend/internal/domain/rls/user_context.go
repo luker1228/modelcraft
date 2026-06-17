@@ -11,6 +11,7 @@ type UserContext struct {
 	UserIDStr string  `json:"userIdStr"` // 字符串型 userId（与 UserIDNum 互斥）
 	UserName  string  `json:"userName"`
 	Roles     []string `json:"roles"`
+	UseAdmin  bool     `json:"useAdmin"` // 是否请求 admin 级别访问
 }
 
 // UserIDValue 返回 userId 的正确 Go 类型：int64 或 string。

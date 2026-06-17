@@ -95,7 +95,8 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 	}
 
 	var rlsCtx *modelruntime.RLSContext
-	if ctxutils.GetIsAdminFromContext(ctx) {
+	userCtx := middleware.GetUserContext(ctx)
+	if userCtx != nil && userCtx.UseAdmin {
 		rlsCtx = &modelruntime.RLSContext{
 			IsAdmin: true,
 		}
@@ -165,9 +166,10 @@ func (s *GraphqlAppService) buildRLSContext(
 ) (*modelruntime.RLSContext, error) {
 	logger := logfacade.GetLogger(ctx)
 
+	userCtx := middleware.GetUserContext(ctx)
 	rlsCtx := &modelruntime.RLSContext{
-		IsAdmin:     ctxutils.GetIsAdminFromContext(ctx),
-		UserContext: middleware.GetUserContext(ctx),
+		IsAdmin:     userCtx != nil && userCtx.UseAdmin,
+		UserContext: userCtx,
 	}
 	if rlsCtx.IsAdmin {
 		return rlsCtx, nil

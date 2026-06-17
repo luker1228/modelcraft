@@ -47,6 +47,8 @@ func (m *RLSContextMiddleware) Middleware(next http.Handler) http.Handler {
 			}
 		}
 
+		uc.UseAdmin = strings.TrimSpace(r.Header.Get(httpheader.XMCAuthUseAdmin)) == "true"
+
 		ctx := context.WithValue(r.Context(), rlsContextKey{}, uc)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

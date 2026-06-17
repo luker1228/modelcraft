@@ -567,8 +567,6 @@ func SetupRuntimeGraphQLRoutesOnChi(
 	handlers *RuntimeHandlers,
 	cfg *config.Config,
 ) {
-	orgMW := middleware.ChiGraphQLOrgMiddleware()
-	jwtMW := middleware.ChiJWTAuthMiddleware()
 	cacheMW := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			useCache := req.URL.Query().Get("useCache") != "false"
@@ -576,23 +574,24 @@ func SetupRuntimeGraphQLRoutesOnChi(
 		})
 	}
 
-	// NOTE: GraphQL responses already carry requestId in extensions, so we skip
-	// the JSON-body injector here to avoid duplicating requestId at the top level.
-	runtimeMW := func(next http.Handler) http.Handler {
-		return jwtMW(orgMW(cacheMW(next)))
-	}
+	// ── Tenant route (JWT only) ──────────────────────────────────────────
+	router.Route("/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}", func(r chi.Router) {
+		r.Use(middleware.ChiJWTAuthMiddleware())
+		r.Use(middleware.ChiGraphQLOrgMiddleware())
+		r.Use(middleware.ChiGraphQLProjectMiddleware())
+		r.Use(cacheMW)
+		r.Post("/", handlers.ModelRuntimeHandler.HandleQuery)
+		r.Get("/", handlers.ModelRuntimeHandler.HandlePlayground)
+	})
 
-	// End-user runtime: JWT auth (PAT→JWT conversion is handled by APISIX gateway).
-	// Also accepts X-MC-Auth-* headers for RLS context injection.
-	endUserRuntimeMW := func(next http.Handler) http.Handler {
-		return httpmiddleware.NewRLSContextMiddleware().Middleware(jwtMW(orgMW(cacheMW(next))))
-	}
-
-	runtimePath := "/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}"
-	router.With(runtimeMW).Get(runtimePath, handlers.ModelRuntimeHandler.HandlePlayground)
-	router.With(runtimeMW).Post(runtimePath, handlers.ModelRuntimeHandler.HandleQuery)
-
-	endUserRuntimePath := "/end-user/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}"
-	router.With(endUserRuntimeMW).Get(endUserRuntimePath, handlers.ModelRuntimeHandler.HandlePlayground)
-	router.With(endUserRuntimeMW).Post(endUserRuntimePath, handlers.ModelRuntimeHandler.HandleQuery)
+	// ── End-user route (gateway-facing, JWT from gateway PAT→JWT conversion)
+	router.Route("/end-user/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}", func(r chi.Router) {
+		r.Use(httpmiddleware.NewRLSContextMiddleware().Middleware)
+		r.Use(middleware.ChiJWTAuthMiddleware())
+		r.Use(middleware.ChiGraphQLOrgMiddleware())
+		r.Use(middleware.ChiGraphQLProjectMiddleware())
+		r.Use(cacheMW)
+		r.Post("/", handlers.ModelRuntimeHandler.HandleQuery)
+		r.Get("/", handlers.ModelRuntimeHandler.HandlePlayground)
+	})
 }
