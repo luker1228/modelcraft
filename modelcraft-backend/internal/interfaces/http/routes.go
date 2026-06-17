@@ -350,7 +350,6 @@ func SetupOrgGraphQLRoutesOnChi(
 	router chi.Router,
 	handlers *DesignHandlers,
 	cfg *config.Config,
-	jwtConfig *middleware.JWTAuthConfig,
 ) {
 	// Create org resolver with only org-domain services
 	orgResolver := &orggraphql.Resolver{
@@ -369,7 +368,7 @@ func SetupOrgGraphQLRoutesOnChi(
 
 	// ── Tenant route (internal) ──────────────────────────────────────────
 	router.Route("/graphql/org/{orgName}", func(r chi.Router) {
-		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
+		r.Use(middleware.ChiJWTAuthMiddleware())
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
 		r.Use(middleware.ChiGraphQLActionMiddleware())
 		r.Post("/", orggraphql.OrgGraphQLHandler(orgResolver))
@@ -378,7 +377,7 @@ func SetupOrgGraphQLRoutesOnChi(
 
 	// ── End-user route (gateway-facing, JWT from gateway PAT→JWT conversion)
 	router.Route("/end-user/graphql/org/{orgName}", func(r chi.Router) {
-		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
+		r.Use(middleware.ChiJWTAuthMiddleware())
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
 		r.Use(middleware.ChiGraphQLActionMiddleware())
 		r.Post("/", orggraphql.OrgEndUserGraphQLHandler(orgResolver))
@@ -397,7 +396,6 @@ func SetupProjectGraphQLRoutesOnChi(
 	router chi.Router,
 	handlers *DesignHandlers,
 	cfg *config.Config,
-	jwtConfig *middleware.JWTAuthConfig,
 ) {
 	// Create services needed for project domain
 	typeMapper := domainModelDesign.NewMySQLTypeMapper()
@@ -438,7 +436,7 @@ func SetupProjectGraphQLRoutesOnChi(
 
 	// ── Tenant route (JWT only) ──────────────────────────────────────────
 	router.Route("/graphql/org/{orgName}/project/{projectSlug}", func(r chi.Router) {
-		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
+		r.Use(middleware.ChiJWTAuthMiddleware())
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
 		r.Use(middleware.ChiGraphQLProjectMiddleware())
 		r.Use(middleware.ChiGraphQLActionMiddleware())
@@ -448,7 +446,7 @@ func SetupProjectGraphQLRoutesOnChi(
 
 	// ── End-user route (gateway-facing, JWT from gateway PAT→JWT conversion)
 	router.Route("/end-user/graphql/org/{orgName}/project/{projectSlug}", func(r chi.Router) {
-		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
+		r.Use(middleware.ChiJWTAuthMiddleware())
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
 		r.Use(middleware.ChiGraphQLProjectMiddleware())
 		r.Use(middleware.ChiGraphQLActionMiddleware())
@@ -569,12 +567,8 @@ func SetupRuntimeGraphQLRoutesOnChi(
 	handlers *RuntimeHandlers,
 	cfg *config.Config,
 ) {
-	jwtConfig := &middleware.JWTAuthConfig{
-		SkipValidation: !cfg.Auth.Runtime.Enabled,
-	}
-
 	orgMW := middleware.ChiGraphQLOrgMiddleware()
-	jwtMW := middleware.ChiJWTAuthMiddleware(jwtConfig)
+	jwtMW := middleware.ChiJWTAuthMiddleware()
 	cacheMW := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			useCache := req.URL.Query().Get("useCache") != "false"

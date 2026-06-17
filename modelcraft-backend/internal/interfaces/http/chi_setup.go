@@ -36,7 +36,6 @@ type ChiRouterConfig struct {
 	RuntimeHandlers *RuntimeHandlers
 
 	// JWT configuration for protected routes
-	JWTConfig *middleware.JWTAuthConfig
 
 	// APITokenService for PAT Bearer token validation (nil = disabled)
 	APITokenService *apitoken.APITokenService
@@ -47,7 +46,6 @@ func NewChiRouterConfig(
 	cfg *config.Config,
 	designHandlers *DesignHandlers,
 	runtimeHandlers *RuntimeHandlers,
-	jwtConfig *middleware.JWTAuthConfig,
 	logger logfacade.Logger,
 ) *ChiRouterConfig {
 	return &ChiRouterConfig{
@@ -58,7 +56,7 @@ func NewChiRouterConfig(
 		UserHandler:     designHandlers.UserHandler,
 		DesignHandlers:  designHandlers,
 		RuntimeHandlers: runtimeHandlers,
-		JWTConfig:       jwtConfig,
+		
 		APITokenService: designHandlers.UserAPITokenService,
 	}
 }
@@ -112,8 +110,8 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	// GraphQL Routes - Tenant + End-User (Org + Project)
 	// Both use JWT auth; gateway converts PAT→JWT for end-user routes.
 	// ============================================================
-	SetupOrgGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
-	SetupProjectGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
+	SetupOrgGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config)
+	SetupProjectGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config)
 
 	// ============================================================
 	// GraphQL Routes - Runtime API
@@ -134,7 +132,7 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 
 	// Create generated Chi handler with NO built-in middleware.
 	// Use generated.ChiServerOptions.Middlewares to apply our middleware to all routes.
-	authMiddleware := conditionalAuthMiddleware(cfg.JWTConfig)
+	authMiddleware := conditionalAuthMiddleware()
 
 	// Register generated OpenAPI routes with middleware
 	_ = generated.HandlerWithOptions(server, generated.ChiServerOptions{
@@ -151,8 +149,8 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 // conditionalAuthMiddleware applies JWT middleware to all routes
 // EXCEPT known public paths that should not require authentication.
 // These routes (Auth, Org, User) never require organization context.
-func conditionalAuthMiddleware(jwtConfig *middleware.JWTAuthConfig) func(http.Handler) http.Handler {
-	jwtMW := middleware.ChiJWTAuthMiddleware(jwtConfig)
+func conditionalAuthMiddleware() func(http.Handler) http.Handler {
+	jwtMW := middleware.ChiJWTAuthMiddleware()
 
 	// Paths that are public and should NOT require authentication.
 	// Tenant auth endpoints bypass the design-time JWT middleware because they

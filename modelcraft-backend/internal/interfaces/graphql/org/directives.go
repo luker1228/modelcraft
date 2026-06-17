@@ -55,7 +55,7 @@ func (d *HasPermissionDirective) HasPermission(
 		return nil, newGQLError("Invalid permission directive configuration", "INVALID_DIRECTIVE")
 	}
 
-	// FAST PATH: If wildcard permissions are set in context (e.g. from X-Internal-Token),
+	// FAST PATH: If wildcard permissions are already set in context,
 	// skip user identity validation and grant access immediately.
 	if permissions, pErr := ctxutils.GetPermissionsFromContext(ctx); pErr == nil && len(permissions) > 0 {
 		if middleware.CheckPermission(permissions, "*") || middleware.CheckPermission(permissions, action) {

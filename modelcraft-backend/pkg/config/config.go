@@ -78,7 +78,6 @@ type CookieConfig struct {
 
 // AuthConfig 认证配置
 type AuthConfig struct {
-	InternalToken string            `mapstructure:"internal_token"` // 内网接口共享令牌（X-Internal-Token）
 	Cookie        CookieConfig      `mapstructure:"cookie"`         // 刷新令牌 Cookie 配置
 	Design        DesignAuthConfig  `mapstructure:"design"`         // 设计时API认证配置
 	Runtime       RuntimeAuthConfig `mapstructure:"runtime"`        // 运行时API认证配置
@@ -89,7 +88,6 @@ type DesignAuthConfig struct {
 	Enabled             bool   `mapstructure:"enabled"`               // 是否启用认证
 	JWTPublicKeyPath    string `mapstructure:"jwt_public_key_path"`   // JWT 公钥路径
 	JWTPublicKey        string `mapstructure:"jwt_public_key"`        // JWT 公钥内容
-	SkipJWTValidation   bool   `mapstructure:"skip_jwt_validation"`   // 是否跳过JWT验证
 	AcceptModelcraftJWT bool   `mapstructure:"accept_modelcraft_jwt"` // 是否接受 ModelCraft JWT (migration flag)
 }
 

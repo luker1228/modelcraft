@@ -25,7 +25,7 @@ func TestChiJWTAuthMiddleware_GatewayTrustedRequest(t *testing.T) {
 	// Backend MUST accept the request and propagate the userID.
 	reached := false
 	gotUserID := ""
-	mw := ChiJWTAuthMiddleware(&JWTAuthConfig{})
+	mw := ChiJWTAuthMiddleware()
 	handler := mw(sentinelHandler(t, &reached, &gotUserID))
 
 	req := httptest.NewRequest(http.MethodPost, "/graphql/org/acme/", nil)
@@ -50,7 +50,7 @@ func TestChiJWTAuthMiddleware_DirectBearerTokenRejected(t *testing.T) {
 	// Backend MUST reject this request — direct JWT validation is no longer supported.
 	reached := false
 	gotUserID := ""
-	mw := ChiJWTAuthMiddleware(&JWTAuthConfig{})
+	mw := ChiJWTAuthMiddleware()
 	handler := mw(sentinelHandler(t, &reached, &gotUserID))
 
 	req := httptest.NewRequest(http.MethodPost, "/graphql/org/acme/", nil)
@@ -71,7 +71,7 @@ func TestChiJWTAuthMiddleware_NoCredentials(t *testing.T) {
 	// Request with neither X-User-ID nor Authorization header must be rejected.
 	reached := false
 	gotUserID := ""
-	mw := ChiJWTAuthMiddleware(&JWTAuthConfig{})
+	mw := ChiJWTAuthMiddleware()
 	handler := mw(sentinelHandler(t, &reached, &gotUserID))
 
 	req := httptest.NewRequest(http.MethodPost, "/graphql/org/acme/", nil)
@@ -87,64 +87,3 @@ func TestChiJWTAuthMiddleware_NoCredentials(t *testing.T) {
 	}
 }
 
-func TestChiJWTAuthMiddleware_SkipValidation(t *testing.T) {
-	// SkipValidation=true must pass all requests through (dev/test mode).
-	reached := false
-	gotUserID := ""
-	mw := ChiJWTAuthMiddleware(&JWTAuthConfig{SkipValidation: true})
-	handler := mw(sentinelHandler(t, &reached, &gotUserID))
-
-	req := httptest.NewRequest(http.MethodPost, "/graphql/org/acme/", nil)
-	rr := httptest.NewRecorder()
-
-	handler.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rr.Code)
-	}
-	if !reached {
-		t.Fatal("expected downstream handler to be reached when SkipValidation is true")
-	}
-}
-
-func TestChiJWTAuthMiddleware_InternalToken(t *testing.T) {
-	// Valid X-Internal-Token must be accepted without X-User-ID.
-	reached := false
-	gotUserID := ""
-	mw := ChiJWTAuthMiddleware(&JWTAuthConfig{InternalToken: "secret-internal-token"})
-	handler := mw(sentinelHandler(t, &reached, &gotUserID))
-
-	req := httptest.NewRequest(http.MethodPost, "/internal/v1/end-user/auth/login", nil)
-	req.Header.Set(httpheader.XInternalToken, "secret-internal-token")
-	rr := httptest.NewRecorder()
-
-	handler.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rr.Code)
-	}
-	if !reached {
-		t.Fatal("expected downstream handler to be reached with valid internal token")
-	}
-}
-
-func TestChiJWTAuthMiddleware_InvalidInternalToken(t *testing.T) {
-	// Wrong X-Internal-Token must be rejected.
-	reached := false
-	gotUserID := ""
-	mw := ChiJWTAuthMiddleware(&JWTAuthConfig{InternalToken: "secret-internal-token"})
-	handler := mw(sentinelHandler(t, &reached, &gotUserID))
-
-	req := httptest.NewRequest(http.MethodPost, "/internal/v1/end-user/auth/login", nil)
-	req.Header.Set(httpheader.XInternalToken, "wrong-token")
-	rr := httptest.NewRecorder()
-
-	handler.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d", rr.Code)
-	}
-	if reached {
-		t.Fatal("downstream handler must NOT be reached with invalid internal token")
-	}
-}
