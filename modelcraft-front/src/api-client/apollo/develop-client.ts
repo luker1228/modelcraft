@@ -174,6 +174,38 @@ export function getOrgScopedClient(orgName?: string): ApolloClient<object> {
   return orgScopedClients.get(key)!
 }
 
+const projectScopedClients = new Map<string, ApolloClient<object>>()
+
+/**
+ * Get or create a project-scoped ApolloClient.
+ * Clients are cached per org+project key so all hooks within the same project
+ * share a single InMemoryCache.  This ensures that refetchQueries from a
+ * mutation in one hook actually invalidates the query cache that another hook
+ * is watching — otherwise each hook gets its own client/cache and list views
+ * never see mutation results.
+ */
+function getProjectScopedClient(
+  orgName: string,
+  projectSlug: string,
+): ApolloClient<object> {
+  const key = `${orgName}/${projectSlug}`
+  if (!projectScopedClients.has(key)) {
+    projectScopedClients.set(key, createProjectScopedClient(orgName, projectSlug))
+  }
+  return projectScopedClients.get(key)!
+}
+
+/**
+ * Synchronously wipe ALL project-scoped Apollo caches (and the org-scoped cache).
+ * Call this when the user clicks the global refresh button so that the
+ * subsequent React re-mount (via contentRefreshKey) forces every useQuery
+ * to fetch fresh data from the network.
+ */
+export function clearAllScopedCaches() {
+  orgScopedClients.forEach((client) => client.cache.reset())
+  projectScopedClients.forEach((client) => client.cache.reset())
+}
+
 export function useProjectScopedClient(
   projectSlug: string | null | undefined
 ): ApolloClient<object> {
@@ -194,7 +226,7 @@ export function useProjectScopedClient(
     // When projectSlug is null the caller is skipping the query (skip: !projectSlug).
     // Return an org-scoped client as a harmless placeholder so hooks rules are satisfied.
     () => projectSlug
-      ? createProjectScopedClient(resolvedOrg, projectSlug)
+      ? getProjectScopedClient(resolvedOrg, projectSlug)
       : getOrgScopedClient(resolvedOrg),
     [projectSlug, resolvedOrg],
   )

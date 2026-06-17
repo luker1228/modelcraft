@@ -20,6 +20,8 @@ import { getCachedMemberships } from '@shared/cache/memberships-cache'
 import { useProjectStore } from '@web/stores/project'
 import { useAppStore } from '@web/stores/app'
 import { getToken, getUserInfoFromToken, removeToken } from '@api-client/auth/public'
+import { clearApolloCache } from '@web/providers/apollo-wrapper'
+import { clearAllScopedCaches } from '@api-client/apollo/develop-client'
 import {
   Search,
   RefreshCw,
@@ -161,6 +163,10 @@ export function AppLayout({
   }, [])
 
   const handleRefreshContent = useCallback(() => {
+    // Clear all Apollo caches so the subsequent re-mount forces
+    // every useQuery to fetch fresh data from the network.
+    clearApolloCache()
+    clearAllScopedCaches()
     setContentRefreshKey((prev) => prev + 1)
     router.refresh()
   }, [router])

@@ -33,3 +33,19 @@ export const tenantRuntimeGraphQL = (
 
 export const tenantAuthPath = (path: string) =>
   `${gatewayUrl()}/api/tenant/auth/${path}`
+
+// ── End-User GraphQL ───────────────────────────────────────────────────────
+// PAT Bearer token or gateway-injected JWT.  Used by the CLI (mc).
+
+export const endUserOrgGraphQL = (orgName: string) =>
+  `${gatewayUrl()}/end-user/graphql/org/${orgName}`
+
+export const endUserProjectGraphQL = (orgName: string, projectSlug: string) =>
+  `${gatewayUrl()}/end-user/graphql/org/${orgName}/project/${projectSlug}`
+
+export const endUserRuntimeGraphQL = (
+  orgName: string,
+  projectSlug: string,
+  db: string,
+  model: string,
+) => `${gatewayUrl()}/end-user/graphql/org/${orgName}/project/${projectSlug}/db/${db}/model/${model}`

@@ -95,25 +95,16 @@ func TestExitCode_NoProjectContextIs5(t *testing.T) {
 
 func TestUpstreamError_401_MapsToUnauthenticated(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/cli/end-user/auth/refresh":
-			w.WriteHeader(http.StatusUnauthorized)
-			_, _ = w.Write([]byte(`{"code":"UNAUTHORIZED","message":"token expired"}`))
-		default:
-			w.WriteHeader(http.StatusUnauthorized)
-			_, _ = w.Write([]byte(`{"code":"UNAUTHORIZED","message":"token expired"}`))
-		}
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"code":"UNAUTHORIZED","message":"token expired"}`))
 	}))
 	defer srv.Close()
 
 	cp := credPath(t)
-	// Use an expired token to force a refresh attempt that will fail.
 	writeCredJSON(t, cp, map[string]any{
 		"server":         srv.URL,
 		"orgName":        "acme",
 		"accessToken":    "expired",
-		"refreshToken":   "rt1",
-		"expiresAt":      "2020-01-01T00:00:00Z", // in the past → triggers refresh
 		"currentProject": "dev",
 	})
 

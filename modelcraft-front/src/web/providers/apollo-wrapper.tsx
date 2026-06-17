@@ -186,6 +186,22 @@ export function resetApolloCache() {
   }
 }
 
+/**
+ * Synchronously wipe the global Apollo cache without refetching active queries.
+ * Use this together with a React re-mount (key change) to force all queries
+ * to fetch fresh data from the network on the next render.
+ */
+export function clearApolloCache() {
+  apolloClient?.cache.reset()
+}
+
+/**
+ * Get the global Apollo client instance (may be null before provider mounts).
+ */
+export function getApolloClient() {
+  return apolloClient
+}
+
 export function ApolloWrapper({ children }: { children: React.ReactNode }) {
   return (
     <ApolloProvider client={getClient()}>
