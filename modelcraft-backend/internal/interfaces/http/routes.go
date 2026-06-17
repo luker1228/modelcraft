@@ -568,13 +568,10 @@ func SetupRuntimeGraphQLRoutesOnChi(
 	router chi.Router,
 	handlers *RuntimeHandlers,
 	cfg *config.Config,
-	apiTokenSvc *apitoken.APITokenService,
 ) {
 	jwtConfig := &middleware.JWTAuthConfig{
 		SkipValidation: !cfg.Auth.Runtime.Enabled,
 	}
-
-	logger := logfacade.GetLogger(context.Background())
 
 	orgMW := middleware.ChiGraphQLOrgMiddleware()
 	jwtMW := middleware.ChiJWTAuthMiddleware(jwtConfig)
@@ -591,26 +588,16 @@ func SetupRuntimeGraphQLRoutesOnChi(
 		return jwtMW(orgMW(cacheMW(next)))
 	}
 
-	// End-user runtime: PAT Token takes priority, JWT is fallback
-	var patMW func(http.Handler) http.Handler
-	if apiTokenSvc != nil {
-		patMW = httpmiddleware.ChiRuntimePATMiddleware(
-			apiTokenSvc,
-			logger,
-		)
-	} else {
-		patMW = func(next http.Handler) http.Handler { return next }
-	}
+	// End-user runtime: JWT auth (PAT→JWT conversion is handled by APISIX gateway).
+	// Also accepts X-MC-Auth-* headers for RLS context injection.
 	endUserRuntimeMW := func(next http.Handler) http.Handler {
-		return httpmiddleware.NewRLSContextMiddleware().Middleware(patMW(jwtMW(orgMW(cacheMW(next)))))
+		return httpmiddleware.NewRLSContextMiddleware().Middleware(jwtMW(orgMW(cacheMW(next))))
 	}
 
 	runtimePath := "/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}"
 	router.With(runtimeMW).Get(runtimePath, handlers.ModelRuntimeHandler.HandlePlayground)
 	router.With(runtimeMW).Post(runtimePath, handlers.ModelRuntimeHandler.HandleQuery)
 
-	// End-user runtime routes — PAT Bearer token or gateway-injected JWT.
-	// Also accepts X-MC-Auth-* headers for RLS context injection.
 	endUserRuntimePath := "/end-user/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}"
 	router.With(endUserRuntimeMW).Get(endUserRuntimePath, handlers.ModelRuntimeHandler.HandlePlayground)
 	router.With(endUserRuntimeMW).Post(endUserRuntimePath, handlers.ModelRuntimeHandler.HandleQuery)
