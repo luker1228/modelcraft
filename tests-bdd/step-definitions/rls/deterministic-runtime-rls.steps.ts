@@ -178,10 +178,10 @@ const DET_POLICIES: Array<{
   usingExpr?: string
   withCheckExpr?: string
 }> = [
-  { policyName: 'det_select', action: 'read',   role: '', usingExpr: '{"owner":{"_eq":{"_auth":"uid"}}}' },
-  { policyName: 'det_insert', action: 'create', role: '', withCheckExpr: '{"owner":{"_eq":{"_auth":"uid"}}}' },
-  { policyName: 'det_update', action: 'update', role: '', usingExpr: '{"owner":{"_eq":{"_auth":"uid"}}}', withCheckExpr: '{"owner":{"_eq":{"_auth":"uid"}}}' },
-  { policyName: 'det_delete', action: 'delete', role: '', usingExpr: '{"owner":{"_eq":{"_auth":"uid"}}}' },
+  { policyName: 'det_select', action: 'read',   role: '', usingExpr: 'row.owner == auth.userid' },
+  { policyName: 'det_insert', action: 'create', role: '', withCheckExpr: 'input.owner == auth.userid' },
+  { policyName: 'det_update', action: 'update', role: '', usingExpr: 'row.owner == auth.userid', withCheckExpr: 'input.owner == auth.userid' },
+  { policyName: 'det_delete', action: 'delete', role: '', usingExpr: 'row.owner == auth.userid' },
 ]
 
 async function setupDetPolicies(
