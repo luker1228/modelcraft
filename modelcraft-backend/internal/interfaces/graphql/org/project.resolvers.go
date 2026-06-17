@@ -285,14 +285,6 @@ func (r *mutationResolver) TestDatabaseConnection(ctx context.Context, input gen
 	}, nil
 }
 
-// SetProjectAuthSchema is the resolver for the setProjectAuthSchema field (deprecated, no-op).
-func (r *mutationResolver) SetProjectAuthSchema(ctx context.Context, input generated.SetProjectAuthSchemaInput) (*generated.SetProjectAuthSchemaPayload, error) {
-	return &generated.SetProjectAuthSchemaPayload{
-		AuthSchema: emptyProjectAuthSchema(),
-		Error:      nil,
-	}, nil
-}
-
 // Project is the resolver for the project field.
 func (r *queryResolver) Project(ctx context.Context, slug string) (*generated.GetProjectPayload, error) {
 	errorAdapter := adapter.NewProjectErrorAdapter(ctx)

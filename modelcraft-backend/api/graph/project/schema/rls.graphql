@@ -39,12 +39,6 @@ enum RLSPreset {
   NO_ACCESS
 }
 
-enum AuthVariableType {
-  UUID
-  STRING
-  INTEGER
-}
-
 enum RLSExprType {
   SELECT_PREDICATE
   INSERT_CHECK
@@ -102,30 +96,6 @@ type ModelRLSPolicy {
   更新时间
   """
   updatedAt: String!
-}
-
-type AuthVariable {
-  """
-  变量名（如 "tenant_id"）
-  """
-  name: String!
-
-  """
-  JWT 来源路径（如 "jwt.tenant_id"）
-  """
-  source: String!
-
-  """
-  变量类型
-  """
-  type: AuthVariableType!
-}
-
-type ProjectAuthSchema {
-  """
-  认证变量列表（不含内置 uid）
-  """
-  variables: [AuthVariable!]!
 }
 
 type ValidationResult {
@@ -188,8 +158,6 @@ type RLSCheckViolation implements Error {
   operation: String
 }
 
-union SetProjectAuthSchemaError = ResourceNotFound | InvalidInput
-
 type DangerousPolicyNotConfirmed implements Error {
   message: String!
   suggestion: String
@@ -217,11 +185,6 @@ type RLSExprDryRun {
   sql: String
   params: [String!]
   result: Boolean
-}
-
-type SetProjectAuthSchemaPayload {
-  authSchema: ProjectAuthSchema
-  error: SetProjectAuthSchemaError
 }
 
 # ----------------------------------------
@@ -282,30 +245,6 @@ input ValidateRLSExprInput {
   sampleInput: String
 }
 
-input AuthVariableInput {
-  """
-  变量名
-  """
-  name: String!
-
-  """
-  JWT 来源路径
-  """
-  source: String!
-
-  """
-  变量类型
-  """
-  type: AuthVariableType!
-}
-
-input SetProjectAuthSchemaInput {
-  """
-  认证变量列表（uid 内置，无需声明）
-  """
-  variables: [AuthVariableInput!]!
-}
-
 # ----------------------------------------
 # Queries & Mutations
 # ----------------------------------------
@@ -316,10 +255,6 @@ extend type Query {
   """
   modelRLSPolicy(modelId: ID!): ModelRLSPolicy @hasPermission(action: "model:read")
 
-  """
-  获取当前项目 auth_schema
-  """
-  projectAuthSchema: ProjectAuthSchema! @hasPermission(action: "project:read")
 }
 
 extend type Mutation {
@@ -335,8 +270,4 @@ extend type Mutation {
   """
   validateRLSExpr(input: ValidateRLSExprInput!): ValidateRLSExprPayload! @hasPermission(action: "model:read")
 
-  """
-  设置当前项目 auth_schema
-  """
-  setProjectAuthSchema(input: SetProjectAuthSchemaInput!): SetProjectAuthSchemaPayload! @hasPermission(action: "project:update")
 }

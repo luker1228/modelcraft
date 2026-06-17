@@ -142,10 +142,6 @@ func contains(s, substr string) bool {
 	return strings.Contains(s, substr)
 }
 
-func emptyProjectAuthSchema() *generated.ProjectAuthSchema {
-	return &generated.ProjectAuthSchema{Variables: []*generated.AuthVariable{}}
-}
-
 func attachModelRLSPolicy(
 	ctx context.Context,
 	policySvc *rls.ModelRLSPolicyAppService,

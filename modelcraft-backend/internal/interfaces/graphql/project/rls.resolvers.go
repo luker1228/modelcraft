@@ -121,14 +121,6 @@ func (r *mutationResolver) ValidateRLSExpr(ctx context.Context, input generated.
 	}, nil
 }
 
-// SetProjectAuthSchema is the resolver for the setProjectAuthSchema field (deprecated, no-op).
-func (r *mutationResolver) SetProjectAuthSchema(ctx context.Context, input generated.SetProjectAuthSchemaInput) (*generated.SetProjectAuthSchemaPayload, error) {
-	return &generated.SetProjectAuthSchemaPayload{
-		AuthSchema: emptyProjectAuthSchema(),
-		Error:      nil,
-	}, nil
-}
-
 // ModelRLSPolicy is the resolver for the modelRLSPolicy field.
 func (r *queryResolver) ModelRLSPolicy(ctx context.Context, modelID string) (*generated.ModelRLSPolicy, error) {
 	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
@@ -147,9 +139,4 @@ func (r *queryResolver) ModelRLSPolicy(ctx context.Context, modelID string) (*ge
 	}
 
 	return convertPolicyToGraphQL(policy), nil
-}
-
-// ProjectAuthSchema is the resolver for the projectAuthSchema field (deprecated, no-op).
-func (r *queryResolver) ProjectAuthSchema(ctx context.Context) (*generated.ProjectAuthSchema, error) {
-	return emptyProjectAuthSchema(), nil
 }

@@ -104,10 +104,6 @@ type SetModelRLSPolicyError interface {
 	IsSetModelRLSPolicyError()
 }
 
-type SetProjectAuthSchemaError interface {
-	IsSetProjectAuthSchemaError()
-}
-
 type TestConnectionError interface {
 	IsTestConnectionError()
 }
@@ -167,24 +163,6 @@ type AddFieldsPayload struct {
 	Model   *Model                `json:"model,omitempty"`
 	Results []*AddFieldItemResult `json:"results"`
 	Error   AddFieldsError        `json:"error,omitempty"`
-}
-
-type AuthVariable struct {
-	// 变量名（如 "tenant_id"）
-	Name string `json:"name"`
-	// JWT 来源路径（如 "jwt.tenant_id"）
-	Source string `json:"source"`
-	// 变量类型
-	Type AuthVariableType `json:"type"`
-}
-
-type AuthVariableInput struct {
-	// 变量名
-	Name string `json:"name"`
-	// JWT 来源路径
-	Source string `json:"source"`
-	// 变量类型
-	Type AuthVariableType `json:"type"`
 }
 
 type BatchRegisterError struct {
@@ -642,8 +620,6 @@ func (InvalidInput) IsCreateModelError() {}
 
 func (InvalidInput) IsUpdateModelError() {}
 
-func (InvalidInput) IsSetProjectAuthSchemaError() {}
-
 func (InvalidInput) IsUpsertRlsPolicyError() {}
 
 type InvalidRLSExpression struct {
@@ -877,11 +853,6 @@ type PageInfo struct {
 	EndCursor       *string `json:"endCursor,omitempty"`
 }
 
-type ProjectAuthSchema struct {
-	// 认证变量列表（不含内置 uid）
-	Variables []*AuthVariable `json:"variables"`
-}
-
 type Query struct {
 }
 
@@ -1010,8 +981,6 @@ func (ResourceNotFound) IsReorderGroupError() {}
 
 func (ResourceNotFound) IsMoveModelToGroupError() {}
 
-func (ResourceNotFound) IsSetProjectAuthSchemaError() {}
-
 func (ResourceNotFound) IsSetModelRLSPolicyError() {}
 
 func (ResourceNotFound) IsValidateRLSExprError() {}
@@ -1072,16 +1041,6 @@ type SetModelRLSPolicyInput struct {
 type SetModelRLSPolicyPayload struct {
 	Policy *ModelRLSPolicy        `json:"policy,omitempty"`
 	Error  SetModelRLSPolicyError `json:"error,omitempty"`
-}
-
-type SetProjectAuthSchemaInput struct {
-	// 认证变量列表（uid 内置，无需声明）
-	Variables []*AuthVariableInput `json:"variables"`
-}
-
-type SetProjectAuthSchemaPayload struct {
-	AuthSchema *ProjectAuthSchema        `json:"authSchema,omitempty"`
-	Error      SetProjectAuthSchemaError `json:"error,omitempty"`
 }
 
 type StartModelDatabaseSyncPayload struct {
@@ -1293,63 +1252,6 @@ func (e *ActualConstraintType) UnmarshalJSON(b []byte) error {
 }
 
 func (e ActualConstraintType) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	e.MarshalGQL(&buf)
-	return buf.Bytes(), nil
-}
-
-type AuthVariableType string
-
-const (
-	AuthVariableTypeUUID    AuthVariableType = "UUID"
-	AuthVariableTypeString  AuthVariableType = "STRING"
-	AuthVariableTypeInteger AuthVariableType = "INTEGER"
-)
-
-var AllAuthVariableType = []AuthVariableType{
-	AuthVariableTypeUUID,
-	AuthVariableTypeString,
-	AuthVariableTypeInteger,
-}
-
-func (e AuthVariableType) IsValid() bool {
-	switch e {
-	case AuthVariableTypeUUID, AuthVariableTypeString, AuthVariableTypeInteger:
-		return true
-	}
-	return false
-}
-
-func (e AuthVariableType) String() string {
-	return string(e)
-}
-
-func (e *AuthVariableType) UnmarshalGQL(v any) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = AuthVariableType(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid AuthVariableType", str)
-	}
-	return nil
-}
-
-func (e AuthVariableType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-func (e *AuthVariableType) UnmarshalJSON(b []byte) error {
-	s, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	return e.UnmarshalGQL(s)
-}
-
-func (e AuthVariableType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil
