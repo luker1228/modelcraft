@@ -26,9 +26,6 @@ const (
 	// ContextKeyProjectSlug is the key for storing the project slug in context.
 	ContextKeyProjectSlug contextKey = "project_slug"
 
-	// ContextKeyUserType distinguishes "end_user" from "tenant" (developer) callers.
-	ContextKeyUserType contextKey = "user_type"
-
 	// ContextKeyIsAdmin stores whether the end-user is an org admin, derived from the
 	// is_admin JWT claim injected by APISIX as X-Is-Admin header.
 	ContextKeyIsAdmin contextKey = "is_admin"
@@ -169,11 +166,6 @@ func GetPermissionsFromContext(ctx context.Context) ([]string, error) {
 	return permissions, nil
 }
 
-// SetUserType stores the user type ("end_user" or "tenant") in context.
-func SetUserType(ctx context.Context, userType string) context.Context {
-	return context.WithValue(ctx, ContextKeyUserType, userType)
-}
-
 // SetIsAdmin stores the end-user admin flag in context.
 // This is populated from the X-Is-Admin header injected by APISIX.
 func SetIsAdmin(ctx context.Context, isAdmin bool) context.Context {
@@ -188,9 +180,10 @@ func GetIsAdminFromContext(ctx context.Context) bool {
 }
 
 // IsEndUser returns true if the request is from an EndUser caller.
+// End-user callers have EndUserID set in context; tenant callers do not.
 func IsEndUser(ctx context.Context) bool {
-	val, _ := ctx.Value(ContextKeyUserType).(string)
-	return val == UserTypeEndUser
+	id, err := GetEndUserIDFromContext(ctx)
+	return err == nil && id != ""
 }
 
 // SetUseCache stores the useCache flag in context.

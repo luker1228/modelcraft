@@ -257,12 +257,28 @@ func (h *Handler) HandlePATWhoami(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
+	// Issue a short-lived JWT so the gateway can replace the raw PAT bearer
+	// token before forwarding to downstream GraphQL endpoints.
+	var accessToken string
+	if h.tokenService != nil {
+		var jwtErr error
+		accessToken, jwtErr = h.tokenService.IssueToken(token.EndUserID, token.OrgName, isAdmin)
+		if jwtErr != nil {
+			logfacade.GetLogger(r.Context()).Warnf(r.Context(),
+				"PAT whoami jwt issue failed requestId=%s err=%v", requestID, jwtErr)
+		}
+	}
+
+	resp := map[string]any{
 		"requestId": requestID,
 		"userId":    token.EndUserID,
 		"orgName":   token.OrgName,
 		"isAdmin":   isAdmin,
-	})
+	}
+	if accessToken != "" {
+		resp["accessToken"] = accessToken
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // handleBusinessError maps a BusinessError to the appropriate HTTP error response.

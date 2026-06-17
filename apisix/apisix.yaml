@@ -67,7 +67,7 @@ routes:
                 return
               end
 
-              -- PAT token: mc_pat_* → validate via backend whoami, then inject identity
+              -- PAT token: mc_pat_* → validate via backend whoami, get JWT, inject identity
               if token:sub(1, 7) == "mc_pat_" then
                 core.log.warn("[PAT] start validation request_id=", request_id, " uri=", ctx.var.uri)
                 local httpc = http.new()
@@ -119,6 +119,11 @@ routes:
                 end
                 if payload.orgName then
                   core.request.set_header(ctx, "X-Org-Name", payload.orgName)
+                end
+                -- Replace raw PAT with short-lived JWT from whoami.
+                -- The backend never sees the long-lived PAT on design-time GraphQL routes.
+                if payload.accessToken then
+                  core.request.set_header(ctx, "Authorization", "Bearer " .. payload.accessToken)
                 end
                 return
               end

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"modelcraft/internal/interfaces/http/generated"
-	httpmiddleware "modelcraft/internal/interfaces/http/middleware"
 	"modelcraft/internal/middleware"
 	"modelcraft/pkg/config"
 	"modelcraft/pkg/logfacade"
@@ -110,21 +109,16 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	r.Get("/api/openapi.json", openAPISpecHandler())
 
 	// ============================================================
-	// GraphQL Routes - Tenant (Org + Project)
+	// GraphQL Routes - Tenant + End-User (Org + Project)
+	// Both use JWT auth; gateway converts PAT→JWT for end-user routes.
 	// ============================================================
 	SetupOrgGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
 	SetupProjectGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
 
 	// ============================================================
-	// GraphQL Routes - End-User (Org + Project, same resolvers)
-	// ============================================================
-
-	// ============================================================
 	// GraphQL Routes - Runtime API
 	// ============================================================
-	var isOrgAdminFn httpmiddleware.IsOrgAdminFn
-	isOrgAdminFn = cfg.DesignHandlers.IsOrgAdminFn
-	SetupRuntimeGraphQLRoutesOnChi(r, cfg.RuntimeHandlers, cfg.Config, cfg.APITokenService, isOrgAdminFn)
+	SetupRuntimeGraphQLRoutesOnChi(r, cfg.RuntimeHandlers, cfg.Config, cfg.APITokenService)
 
 	// ============================================================
 	// OpenAPI Routes via Generated Chi Handler

@@ -111,6 +111,13 @@ func (s *TokenService) WithEndUserSupport(factory EndUserRepositoryFactory, syst
 	return s
 }
 
+// IssueToken 签发短效 JWT（用于 PAT → JWT 交换等场景）。
+// 由 APISIX 网关在验证 PAT 后通过 /api/tenant/auth/whoami 获取此 JWT，
+// 再转发给后端 GraphQL endpoint，从而避免 raw PAT 在内部链路中传播。
+func (s *TokenService) IssueToken(userID, orgName string, isAdmin bool) (string, error) {
+	return s.jwtSigner.IssueAccessToken(userID, orgName, isAdmin)
+}
+
 // Register 手机号+密码注册新用户。
 // 注册成功后会同事务初始化 profile，并创建用户的个人组织。
 // 流程：先建 Org（含 phone 全局唯一校验）→ 再建 User（绑定 orgName）→ 建 Profile。

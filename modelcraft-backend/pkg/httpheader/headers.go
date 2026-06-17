@@ -18,9 +18,6 @@ const (
 	XAction        = "X-Action"
 	XInternalToken = "X-Internal-Token"
 	XUserID        = "X-User-ID"
-	// XUserType is injected by the gateway to distinguish end-user from tenant callers.
-	// It is used to decide which APIs the end-user chain is allowed to call.
-	XUserType        = "X-User-Type"
 	XIsAdmin         = "X-Is-Admin"
 	XOrgName         = "X-Org-Name"
 	XProjectSlug     = "X-Project-Slug"
@@ -37,6 +34,9 @@ const (
 	// XMCAuthRoles is injected by the gateway for RLS context propagation.
 	// It carries the caller's role list as a comma-separated string.
 	XMCAuthRoles = "X-MC-Auth-Roles"
+	// XMCAuthUseAdmin is set by the PAT caller to request admin-level access.
+	// Valid value: "true".  Absent or any other value means no admin elevation.
+	XMCAuthUseAdmin = "X-MC-Auth-Useadmin"
 
 	AccessControlAllowOrigin      = "Access-Control-Allow-Origin"
 	AccessControlAllowCredentials = "Access-Control-Allow-Credentials"

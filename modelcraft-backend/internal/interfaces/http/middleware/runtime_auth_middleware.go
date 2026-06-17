@@ -93,7 +93,7 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 		// 端点级鉴权将通过 aud 字段实现（后续迭代）。
 
 		ctx = ctxutils.SetEndUserID(ctx, endUserID)
-		ctx = ctxutils.SetUserType(ctx, ctxutils.UserTypeEndUser)
+		ctx = ctxutils.SetUserID(ctx, endUserID)
 
 		m.logger.Debug(ctx, "EndUser authenticated",
 			logfacade.String("endUserId", endUserID),

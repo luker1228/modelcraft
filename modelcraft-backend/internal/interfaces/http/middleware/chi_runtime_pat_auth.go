@@ -20,22 +20,20 @@ func writeRuntimeJSONError(w http.ResponseWriter, status int, errMsg, _ string) 
 	_, _ = w.Write([]byte(`{"error":"` + errMsg + `"}`))
 }
 
-// IsOrgAdminFn is a function that checks whether a user has org-admin status.
-// Injected into ChiRuntimePATMiddleware so it can set the IsAdmin context flag
-// without importing the full repository package.
+// IsOrgAdminFn checks whether an end-user has org-admin status.
+// Used by the PAT whoami handler to report admin status in the whoami response.
 type IsOrgAdminFn func(ctx context.Context, orgName, userID string) (bool, error)
 
-// ChiRuntimePATMiddleware handles mc_pat_* Bearer tokens for /end-user/ runtime routes.
+// ChiRuntimePATMiddleware handles mc_pat_* Bearer tokens for /end-user/ routes.
 // On success it injects:
-//   - ctxutils end-user fields (EndUserID, OrgName, UserType) so the JWT middleware short-circuits
-//   - ctxutils IsAdmin flag when the user's user_orgs.is_admin=true, mirroring the
-//     APISIX/JWT path so graphql_app.go can skip permission checks for org admins
+//   - ctxutils end-user fields (EndUserID, UserID, OrgName, UserType)
+//   - ctxutils UseAdmin flag when the caller sets X-MC-Auth-Useadmin: true,
+//     indicating the caller explicitly requests admin-level access
 //
-// Non-PAT requests pass through unchanged (JWT middleware handles them).
+// Non-PAT requests pass through unchanged.
 func ChiRuntimePATMiddleware(
 	svc *apitoken.APITokenService,
 	logger logfacade.Logger,
-	isOrgAdminFn IsOrgAdminFn,
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -66,18 +64,16 @@ func ChiRuntimePATMiddleware(
 
 			ctx := r.Context()
 
-			// Inject ctxutils fields so downstream handlers can distinguish internal user
-			// identity from end-user identity without overloading ContextKeyUserID.
+			// Inject both end-user and internal user identity so downstream
+			// handlers (graphql_app, resolvers) can resolve the caller.
 			ctx = ctxutils.SetEndUserID(ctx, token.EndUserID)
+			ctx = ctxutils.SetUserID(ctx, token.EndUserID)
 			ctx = ctxutils.SetOrgName(ctx, token.OrgName)
-			ctx = ctxutils.SetUserType(ctx, ctxutils.UserTypeEndUser)
 
-			// Check org-admin status and inject IsAdmin flag, mirroring the
-			// APISIX X-Is-Admin header path for JWT callers.
-			if isOrgAdminFn != nil {
-				if admin, adminErr := isOrgAdminFn(ctx, token.OrgName, token.EndUserID); adminErr == nil && admin {
-					ctx = ctxutils.SetIsAdmin(ctx, true)
-				}
+			// UseAdmin is an explicit opt-in by the PAT caller via header.
+			// It represents the caller's intent to use admin privileges.
+			if strings.EqualFold(r.Header.Get(httpheader.XMCAuthUseAdmin), "true") {
+				ctx = ctxutils.SetIsAdmin(ctx, true)
 			}
 
 			pathOrgName := chi.URLParam(r, "orgName")
