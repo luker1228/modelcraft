@@ -22,6 +22,10 @@ func writeJSONError(w http.ResponseWriter, status int, errMsg, code string) {
 //     The backend trusts this header unconditionally; it is safe only because the backend
 //     is not directly reachable from the public internet.
 //
+// On /end-user/* routes, X-User-ID carries an end-user ID and is stored as EndUserID.
+// On all other routes, X-User-ID carries a tenant (developer) user ID and is stored as UserID.
+// These are separate identities — userId ≠ endUserId.
+//
 // Direct bearer token validation has been removed. All auth is now handled exclusively
 // by the gateway, which strips the Authorization header and injects X-User-ID before
 // forwarding to the backend.
@@ -40,17 +44,18 @@ func ChiJWTAuthMiddleware() func(http.Handler) http.Handler {
 
 			// Gateway-trusted identity: the gateway validates the bearer token,
 			// strips the Authorization header, and injects:
-			// - X-User-ID: user identity (tenant user ID or end-user ID)
+			// - X-User-ID: user identity (tenant user ID or end-user ID depending on route)
 			// - X-Is-Admin: "true" / "false" (from is_admin JWT claim)
 			//
-			// EndUserID is set for /end-user/* routes so that IsEndUser() can
-			// distinguish end-user callers from tenant callers. Both callers
-			// always get UserID set — it is required for all authenticated requests.
+			// userId and endUserId are distinct identities:
+			//   /end-user/*  → X-User-ID is an end-user ID → EndUserID
+			//   /graphql/*   → X-User-ID is a tenant user ID  → UserID
 			if userID := r.Header.Get(httpheader.XUserID); userID != "" {
 				ctx := r.Context()
-				ctx = ctxutils.SetUserID(ctx, userID)
 				if strings.HasPrefix(r.URL.Path, "/end-user/") {
 					ctx = ctxutils.SetEndUserID(ctx, userID)
+				} else {
+					ctx = ctxutils.SetUserID(ctx, userID)
 				}
 				if r.Header.Get(httpheader.XIsAdmin) == "true" {
 					ctx = ctxutils.SetIsAdmin(ctx, true)

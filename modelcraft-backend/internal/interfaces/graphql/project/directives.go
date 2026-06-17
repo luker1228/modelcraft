@@ -93,8 +93,11 @@ func (d *HasPermissionDirective) validateContext(
 	ctx context.Context,
 	logger logfacade.Logger,
 ) (userID, orgName string, err error) {
-	// All authenticated callers use the standard user ID in context.
+	// Internal link callers have UserID set; EndUser link callers have EndUserID set.
 	userID, err = ctxutils.GetUserIDFromContext(ctx)
+	if err != nil || userID == "" {
+		userID, err = ctxutils.GetEndUserIDFromContext(ctx)
+	}
 	if err != nil || userID == "" {
 		logger.Errorf(ctx, "@hasPermission directive: missing user authentication: %v", err)
 		return "", "", &gqlerror.Error{

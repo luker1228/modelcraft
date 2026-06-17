@@ -80,6 +80,7 @@ endUserID, _ := ctxutils.GetUserIDFromContext(ctx)
 ### 平台用户
 
 - 来源：Gateway 注入的 `X-User-ID`
+- 路径：`/graphql/*`（内部链路）
 - 语义：系统内部 `UserID`
 
 ### Runtime EndUser
@@ -90,7 +91,46 @@ endUserID, _ := ctxutils.GetUserIDFromContext(ctx)
   - end-user PAT
 - 语义：`EndUserID`
 
-这里的重点不是“有没有 userId”，而是**这个 ID 属于哪套身份体系**。
+### 设计时 EndUser 链路
+
+- 来源：Gateway 注入的 `X-User-ID`（注意：此链路的 `X-User-ID` 携带的是 **end-user ID**，不是平台 user ID）
+- 路径：`/end-user/graphql/*`
+- 语义：`EndUserID`
+- **禁止**同时设置 `UserID` — userId ≠ endUserId，两个身份体系不应混淆
+
+这里的重点不是”有没有 userId”，而是**这个 ID 属于哪套身份体系**。
+
+## 5a. ChiJWTAuthMiddleware: link-based identity routing
+
+```go
+// /end-user/*  → X-User-ID 是 end-user ID → SetEndUserID（不设 UserID）
+// /graphql/*   → X-User-ID 是 tenant user ID → SetUserID（不设 EndUserID）
+if strings.HasPrefix(r.URL.Path, “/end-user/”) {
+    ctx = ctxutils.SetEndUserID(ctx, userID)
+} else {
+    ctx = ctxutils.SetUserID(ctx, userID)
+}
+```
+
+## 5b. @hasPermission validateContext: dual identity fallback
+
+`validateContext` 尝试 `UserID`（内部链路），失败时回退到 `EndUserID`（EndUser 链路）：
+
+```go
+userID, err = ctxutils.GetUserIDFromContext(ctx)
+if err != nil || userID == “” {
+    userID, err = ctxutils.GetEndUserIDFromContext(ctx)
+}
+```
+
+## 5c. Link-based allowEndUser gating (no context leak)
+
+`allowEndUser` 门禁通过 **独立的 handler 实例** 区分链路，不通过 context 传递链路信息：
+
+- 内部链路 handler：`NewHasPermissionDirective` → `enforceEndUserGate: false`，忽略 `allowEndUser`，统一走 RBAC
+- EndUser 链路 handler：`NewEndUserHasPermissionDirective` → `enforceEndUserGate: true`，执行 `allowEndUser` 门禁
+
+路由层为两种链路选择不同 handler，下游无需感知链路类型。
 
 ## 6. 代码判断原则
 
