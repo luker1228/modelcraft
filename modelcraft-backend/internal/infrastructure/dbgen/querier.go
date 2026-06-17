@@ -72,6 +72,7 @@ type Querier interface {
 	FindLogicalForeignKeysByPairID(ctx context.Context, arg FindLogicalForeignKeysByPairIDParams) ([]FindLogicalForeignKeysByPairIDRow, error)
 	FindLogicalForeignKeysByRefModelID(ctx context.Context, arg FindLogicalForeignKeysByRefModelIDParams) ([]FindLogicalForeignKeysByRefModelIDRow, error)
 	FindModelsByDeploymentStatus(ctx context.Context, statuses []sql.NullString) ([]Model, error)
+	GetAPITokenByHash(ctx context.Context, tokenHash string) (UserApiToken, error)
 	GetActiveModelDatabaseSyncJobByDatabase(ctx context.Context, arg GetActiveModelDatabaseSyncJobByDatabaseParams) (ModelDatabaseSyncJob, error)
 	GetActiveModelSyncJobByDatabase(ctx context.Context, arg GetActiveModelSyncJobByDatabaseParams) (ModelSyncJob, error)
 	GetAllModels(ctx context.Context) ([]Model, error)
@@ -125,8 +126,10 @@ type Querier interface {
 	GetUserByNameInOrg(ctx context.Context, arg GetUserByNameInOrgParams) (GetUserByNameInOrgRow, error)
 	GetUserByPhoneInOrg(ctx context.Context, arg GetUserByPhoneInOrgParams) (GetUserByPhoneInOrgRow, error)
 	GetUserRole(ctx context.Context, arg GetUserRoleParams) (UserRole, error)
+	InsertAPIToken(ctx context.Context, arg InsertAPITokenParams) error
 	InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) error
 	InsertSecurityAuditLog(ctx context.Context, arg InsertSecurityAuditLogParams) error
+	ListAPITokensByUser(ctx context.Context, arg ListAPITokensByUserParams) ([]UserApiToken, error)
 	ListDatabaseClusters(ctx context.Context, arg ListDatabaseClustersParams) ([]DatabaseCluster, error)
 	// 全局扫描：不按租户过滤，供连接池同步使用
 	ListDatabaseClustersUpdatedAfter(ctx context.Context, updatedAt sql.NullTime) ([]DatabaseCluster, error)
@@ -156,6 +159,8 @@ type Querier interface {
 	PolicyExists(ctx context.Context, arg PolicyExistsParams) (bool, error)
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
 	RevokeRefreshToken(ctx context.Context, id string) error
+	SoftDeleteAPIToken(ctx context.Context, arg SoftDeleteAPITokenParams) (int64, error)
+	UpdateAPITokenLastUsed(ctx context.Context, arg UpdateAPITokenLastUsedParams) error
 	UpdateDatabaseClusterWithVersion(ctx context.Context, arg UpdateDatabaseClusterWithVersionParams) (sql.Result, error)
 	UpdateEnum(ctx context.Context, arg UpdateEnumParams) error
 	UpdateField(ctx context.Context, arg UpdateFieldParams) (sql.Result, error)

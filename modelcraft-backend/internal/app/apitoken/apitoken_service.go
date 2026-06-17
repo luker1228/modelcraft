@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"modelcraft/internal/app/auth"
+	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizutils"
 	"time"
 
@@ -98,10 +99,13 @@ func (s *APITokenService) ValidateToken(
 	hash := auth.HashToken(raw)
 	token, err := s.repo.FindByHash(ctx, hash)
 	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return nil, fmt.Errorf("token not found")
+		}
 		return nil, fmt.Errorf("find token: %w", err)
 	}
-	if token == nil || !token.IsValid() {
-		return nil, fmt.Errorf("invalid or expired token")
+	if !token.IsValid() {
+		return nil, fmt.Errorf("token expired or revoked")
 	}
 	return token, nil
 }

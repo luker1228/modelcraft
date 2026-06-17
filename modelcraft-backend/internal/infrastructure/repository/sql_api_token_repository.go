@@ -3,9 +3,12 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"modelcraft/internal/domain/enduser"
+	"modelcraft/internal/domain/shared"
+	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/dbgenwrap"
+	"modelcraft/internal/infrastructure/sqlerr"
 	"time"
 )
 
@@ -13,110 +16,95 @@ import (
 var _ enduser.APITokenRepository = (*SqlAPITokenRepository)(nil)
 
 type SqlAPITokenRepository struct {
-	db *sql.DB
+	q dbgen.Querier
 }
 
-func NewSqlAPITokenRepository(db *sql.DB) *SqlAPITokenRepository {
-	return &SqlAPITokenRepository{db: db}
+func NewSqlAPITokenRepository(q dbgen.Querier) *SqlAPITokenRepository {
+	return &SqlAPITokenRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 func (r *SqlAPITokenRepository) Save(ctx context.Context, token *enduser.APIToken) error {
-	query := `
-        INSERT INTO user_api_tokens
-          (id, org_name, end_user_id, name, token_hash, expires_at, created_at, deleted_at, delete_token)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)`
-	_, err := r.db.ExecContext(ctx, query,
-		token.ID, token.OrgName, token.EndUserID, token.Name,
-		token.TokenHash, token.ExpiresAt, token.CreatedAt,
-	)
-	if err != nil {
-		return fmt.Errorf("save api token: %w", err)
-	}
-	return nil
+	return r.q.InsertAPIToken(ctx, dbgen.InsertAPITokenParams{
+		ID:        token.ID,
+		OrgName:   token.OrgName,
+		EndUserID: token.EndUserID,
+		Name:      token.Name,
+		TokenHash: token.TokenHash,
+		ExpiresAt: ptrToNullTime(token.ExpiresAt),
+		CreatedAt: token.CreatedAt,
+	})
 }
 
 func (r *SqlAPITokenRepository) FindByHash(ctx context.Context, hash string) (*enduser.APIToken, error) {
-	query := `
-        SELECT id, org_name, end_user_id, name, token_hash,
-               expires_at, last_used_at, created_at, deleted_at, delete_token
-        FROM user_api_tokens
-        WHERE token_hash = ? AND deleted_at = 0
-        LIMIT 1`
-	row := r.db.QueryRowContext(ctx, query, hash)
-	return scanAPIToken(row)
+	row, err := r.q.GetAPITokenByHash(ctx, hash)
+	if err != nil {
+		return nil, fmt.Errorf("find token by hash: %w", err)
+	}
+	return toDomainToken(&row), nil
 }
 
 func (r *SqlAPITokenRepository) ListByUser(
 	ctx context.Context, orgName, endUserID string,
 ) ([]*enduser.APIToken, error) {
-	query := `
-        SELECT id, org_name, end_user_id, name, token_hash,
-               expires_at, last_used_at, created_at, deleted_at, delete_token
-        FROM user_api_tokens
-        WHERE org_name = ? AND end_user_id = ? AND deleted_at = 0
-        ORDER BY created_at DESC`
-	rows, err := r.db.QueryContext(ctx, query, orgName, endUserID)
+	rows, err := r.q.ListAPITokensByUser(ctx, dbgen.ListAPITokensByUserParams{
+		OrgName:   orgName,
+		EndUserID: endUserID,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("list api tokens: %w", err)
 	}
-	defer rows.Close()
 
-	var tokens []*enduser.APIToken
-	for rows.Next() {
-		token, err := scanAPIToken(rows)
-		if err != nil {
-			return nil, err
-		}
-		tokens = append(tokens, token)
+	tokens := make([]*enduser.APIToken, 0, len(rows))
+	for i := range rows {
+		tokens = append(tokens, toDomainToken(&rows[i]))
 	}
-	return tokens, rows.Err()
+	return tokens, nil
 }
 
 func (r *SqlAPITokenRepository) SoftDelete(ctx context.Context, id, orgName, endUserID string) error {
-	now := time.Now().UnixMilli()
-	query := `
-        UPDATE user_api_tokens
-        SET deleted_at = ?, delete_token = ?
-        WHERE id = ? AND org_name = ? AND end_user_id = ? AND deleted_at = 0`
-	result, err := r.db.ExecContext(ctx, query, now, now, id, orgName, endUserID)
+	now := uint64(time.Now().UnixMilli())
+	affected, err := r.q.SoftDeleteAPIToken(ctx, dbgen.SoftDeleteAPITokenParams{
+		DeletedAt:   now,
+		DeleteToken: now,
+		ID:          id,
+		OrgName:     orgName,
+		EndUserID:   endUserID,
+	})
 	if err != nil {
 		return fmt.Errorf("soft delete api token: %w", err)
 	}
-	affected, _ := result.RowsAffected()
 	if affected == 0 {
-		return fmt.Errorf("api token not found or already deleted")
+		return shared.NewNotFoundError("api token not found or already deleted")
 	}
 	return nil
 }
 
 func (r *SqlAPITokenRepository) UpdateLastUsed(ctx context.Context, id string, at time.Time) error {
-	_, err := r.db.ExecContext(ctx,
-		`UPDATE user_api_tokens SET last_used_at = ? WHERE id = ?`, at, id)
-	return err
+	return r.q.UpdateAPITokenLastUsed(ctx, dbgen.UpdateAPITokenLastUsedParams{
+		ID:         id,
+		LastUsedAt: sql.NullTime{Time: at, Valid: true},
+	})
 }
 
-type apiTokenScanner interface {
-	Scan(dest ...any) error
+// toDomainToken converts a generated dbgen.UserApiToken to a domain enduser.APIToken.
+func toDomainToken(row *dbgen.UserApiToken) *enduser.APIToken {
+	return &enduser.APIToken{
+		ID:          row.ID,
+		OrgName:     row.OrgName,
+		EndUserID:   row.EndUserID,
+		Name:        row.Name,
+		TokenHash:   row.TokenHash,
+		ExpiresAt:   sqlerr.NullTimeToPtr(row.ExpiresAt),
+		LastUsedAt:  sqlerr.NullTimeToPtr(row.LastUsedAt),
+		CreatedAt:   row.CreatedAt,
+		DeletedAt:   int64(row.DeletedAt),
+		DeleteToken: int64(row.DeleteToken),
+	}
 }
 
-func scanAPIToken(s apiTokenScanner) (*enduser.APIToken, error) {
-	var t enduser.APIToken
-	var expiresAt, lastUsedAt sql.NullTime
-	err := s.Scan(
-		&t.ID, &t.OrgName, &t.EndUserID, &t.Name, &t.TokenHash,
-		&expiresAt, &lastUsedAt, &t.CreatedAt, &t.DeletedAt, &t.DeleteToken,
-	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil //nolint:nilnil // not found is a valid state
-		}
-		return nil, fmt.Errorf("scan api token: %w", err)
+func ptrToNullTime(t *time.Time) sql.NullTime {
+	if t == nil {
+		return sql.NullTime{}
 	}
-	if expiresAt.Valid {
-		t.ExpiresAt = &expiresAt.Time
-	}
-	if lastUsedAt.Valid {
-		t.LastUsedAt = &lastUsedAt.Time
-	}
-	return &t, nil
+	return sql.NullTime{Time: *t, Valid: true}
 }

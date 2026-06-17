@@ -18,6 +18,7 @@
     "test:report": "cucumber-js --format @cucumber/html-formatter:reports/test-report.html",
     "test:cli": "cucumber-js features/cli",
     "test:cli-smoke": "cucumber-js features/cli --tags @smoke",
+    "test:rls-det": "cucumber-js features/rls --tags @deterministic",
     "get-token": "tsx support/get-token.ts"
   },
   "dependencies": {

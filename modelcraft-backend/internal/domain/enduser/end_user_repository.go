@@ -80,7 +80,7 @@ type APITokenRepository interface {
 	// Save 插入新 token 记录（id 已由调用方生成）。
 	Save(ctx context.Context, token *APIToken) error
 	// FindByHash 通过 SHA-256 hash 查找活跃 token（未软删除）。
-	// 未找到时返回 (nil, nil)。
+	// 未找到时返回 shared.NotFoundError。
 	FindByHash(ctx context.Context, hash string) (*APIToken, error)
 	// ListByUser 返回指定用户的全部活跃 token 列表（按 created_at DESC）。
 	ListByUser(ctx context.Context, orgName, endUserID string) ([]*APIToken, error)

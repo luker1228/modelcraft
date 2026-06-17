@@ -1,17 +1,15 @@
 ---
 name: backend-debug
 description: >
-  排查和修复 ModelCraft 服务端错误（backend + gateway）。仅在"明确服务端排错"场景触发，必须同时满足：
-  (A) 服务端上下文明确（如：后端 / backend / modelcraft-backend / gateway / API / GraphQL resolver / Go 服务）；
-  (B) 排错意图明确（如：报错 / 异常 / requestId / logs / debug / 定位原因 / 修复错误）。
-  典型触发：
-  (1) 用户粘贴了带 errors/requestId 的后端或 gateway 响应/日志；
-  (2) 明确说"后端报错了""gateway 报错了""接口返回错误""帮我定位服务端问题"；
-  (3) 明确要求查看 backend/gateway 日志并定位根因。
-  不触发：
-  - 纯功能开发、重构、代码讲解、部署配置修改、前端问题；
-  - 仅出现"日志""错误"等泛词但未指向服务端。
-  规则：默认不自动触发；只有在满足 A+B 时才使用本 skill。
+  排查 ModelCraft 服务端问题、查询后端日志（backend + gateway + apisix + agent）。
+  以下任一场景均应触发：
+  (1) 查日志 / 看日志 / 查 requestId / grep 日志 / tail 日志 / 查 server.log / 查 backend 日志；
+  (2) 用户粘贴了带 errors / requestId 的后端或 gateway 响应或日志内容；
+  (3) 明确说"后端报错了""gateway 报错了""接口返回错误""帮我定位服务端问题"；
+  (4) 明确要求查看 backend / gateway / apisix / agent 日志并定位根因；
+  (5) 用户提供 requestId，想知道发生了什么。
+  只要与后端日志或服务端排错有关，就应使用本 skill。
+  不触发：纯功能开发、重构、代码讲解、部署配置修改、前端问题。
 ---
 
 # 服务端问题排查与修复（Backend + Gateway）
@@ -109,11 +107,16 @@ docker exec modelcraft-backend sh -c "grep '<requestId>' /app/logs/server.log"
 docker exec modelcraft-agent sh -c "grep '<requestId>' /app/logs/agent.log"
 ```
 
-经验判断：
+**错误定位原则：错误发生在最后一个有日志的服务层。**
 
-- `apisix` 有，`backend` 没有：大概率卡在网关鉴权、路由、转发前
-- `backend` 有，`agent` 没有：问题在 backend 内部，或该链路未调用 agent
-- 三边都有：按时间顺序找第一条 `error` / `warn`
+| apisix | backend | agent | 结论 |
+|--------|---------|-------|------|
+| 有日志 | 无日志  | —     | 错误在 apisix（请求未到达 backend） |
+| 有日志 | 有日志  | 无日志 | 错误在 backend 内部，或该链路未调用 agent |
+| 有日志 | 有日志  | 有日志 | 按时间顺序找第一条 `error` / `warn` |
+| 无日志 | —       | —     | 请求未进入网关（客户端问题 / 网络问题） |
+
+> requestId 已经串联三段链路的所有日志，grep 只需要 requestId 关键字，不需要查附近行（无需 `-A` / `-B`）。
 
 ### 日志格式
 
@@ -156,7 +159,33 @@ docker exec modelcraft-agent sh -c "grep '<requestId>' /app/logs/agent.log"
 
 ---
 
-## 第三步：定位源码
+## 第三步：对准——把证据和判断告诉用户，等确认再继续
+
+查到日志后，**停下来**，向用户报告：
+
+1. **证据**：贴出关键日志行（level、msg、caller、error 字段）
+2. **定位层**：错误发生在哪一层（apisix / backend / agent）
+3. **猜测根因**：你认为是什么问题，以及为什么这样判断
+4. **等用户确认**：明确说"请确认后我再继续"，不要自行推进到修复
+
+示例格式：
+
+> **证据**
+> ```
+> level=ERROR caller=app/modeldesign/field_app.go:87
+> msg="failed to create field"
+> error="CONFLICT.FIELD: field name 'id' already exists"
+> ```
+>
+> **定位**：错误在 backend，apisix 和 agent 均无异常日志。
+>
+> **猜测根因**：字段名 `id` 已存在，触发唯一键冲突。问题在 Application 层的重复校验逻辑或数据库唯一约束。
+>
+> 请确认是否符合你的预期，确认后我再继续定位源码。
+
+---
+
+## 第四步：定位源码
 
 从日志的 `caller` 字段（如 `app/modeldesign/field_app.go:87`）直接定位文件和行号。
 

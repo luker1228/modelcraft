@@ -88,14 +88,20 @@ routes:
                   end
                   core.log.error("[PAT] whoami subrequest failed request_id=", request_id, " err=", err or "nil", " status=", status, " body=", body)
                   local failed_request_id = request_id
+                  local err_message = "Invalid or expired PAT token"
                   if res and res.body then
                     local cjson = require("cjson")
                     local ok, payload = pcall(cjson.decode, res.body)
-                    if ok and payload and payload.requestId then
-                      failed_request_id = payload.requestId
+                    if ok and payload then
+                      if payload.requestId then
+                        failed_request_id = payload.requestId
+                      end
+                      if payload.error and payload.error.message then
+                        err_message = payload.error.message
+                      end
                     end
                   end
-                  core.response.exit(401, {message = "Invalid or expired PAT token", requestId = failed_request_id})
+                  core.response.exit(401, {message = err_message, requestId = failed_request_id})
                   return
                 end
                 local cjson = require("cjson")

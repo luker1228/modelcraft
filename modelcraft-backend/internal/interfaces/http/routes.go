@@ -300,7 +300,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	)
 
 	// Create auth handler with token service
-	apiTokenRepo := repository.NewSqlAPITokenRepository(repoFactory.SqlDB)
+	apiTokenRepo := repository.NewSqlAPITokenRepository(dbgen.New(loggingDB))
 	apiTokenService := apitoken.NewAPITokenService(apiTokenRepo)
 
 	authHandler := authHandlers.NewHandler(tokenService, apiTokenService, cfg.Auth.Cookie, nil)
@@ -412,7 +412,9 @@ func SetupProjectGraphQLRoutesOnChi(
 	actualSchemaQueryUseCase := modeldesign.NewActualSchemaQueryUseCase(actualSchemaService, handlers.ClusterManager)
 
 	// Create RLS policy CRUD service
-	policyCRUDService := (*rls.PolicyCRUDService)(nil)
+	safeQuerier := dbgen.New(handlers.SystemDB)
+		policyRepo := rlsRepo.NewSqlPolicyRepository(safeQuerier)
+		policyCRUDService := rls.NewPolicyCRUDService(policyRepo)
 
 	// Create project resolver
 	projectResolver := &projectgraphql.Resolver{

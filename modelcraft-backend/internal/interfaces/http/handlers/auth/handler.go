@@ -239,8 +239,12 @@ func (h *Handler) HandlePATWhoami(w http.ResponseWriter, r *http.Request) {
 	plaintext := strings.TrimPrefix(authHeader, "Bearer ")
 	token, err := h.apiTokenSvc.ValidateToken(r.Context(), plaintext)
 	if err != nil || token == nil {
+		msg := "valid PAT token required"
+		if err != nil {
+			msg = err.Error()
+		}
 		logfacade.GetLogger(r.Context()).Warnf(r.Context(), "PAT whoami validation failed requestId=%s err=%v", requestID, err)
-		writeAuthError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", "valid PAT token required")
+		writeAuthError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", msg)
 		return
 	}
 
