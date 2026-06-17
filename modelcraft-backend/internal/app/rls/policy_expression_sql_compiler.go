@@ -67,16 +67,18 @@ type celWhereParser struct {
 type celOperandKind string
 
 const (
-	celOperandField celOperandKind = "field"
-	celOperandValue celOperandKind = "value"
-	celOperandList  celOperandKind = "list"
+	celOperandField      celOperandKind = "field"
+	celOperandValue      celOperandKind = "value"
+	celOperandList       celOperandKind = "list"
+	celOperandMethodCall celOperandKind = "method_call"
 )
 
 type celOperand struct {
-	kind  celOperandKind
-	field string
-	value interface{}
-	list  []interface{}
+	kind       celOperandKind
+	field      string
+	methodName string // only set for celOperandMethodCall
+	value      interface{}
+	list       []interface{}
 }
 
 func newCELWhereParser(expr string, userCtx *domainrls.UserContext) *celWhereParser {
@@ -163,6 +165,11 @@ func (p *celWhereParser) parseComparison() (string, []interface{}, error) {
 		return "", nil, err
 	}
 
+	// Method calls (e.g. row.col.startsWith("x")) are self-contained boolean expressions.
+	if left.kind == celOperandMethodCall {
+		return buildMethodCallSQL(left)
+	}
+
 	op := p.peek()
 	if op.kind != celTokenOperator {
 		return "", nil, fmt.Errorf("expected comparison operator, got %q", op.value)
@@ -186,11 +193,24 @@ func (p *celWhereParser) parseOperand() (celOperand, error) {
 	case celTokenIdentifier:
 		switch {
 		case strings.HasPrefix(token.value, "row."):
-			field := strings.TrimPrefix(token.value, "row.")
-			if field == "" || strings.Contains(field, ".") {
+			rest := strings.TrimPrefix(token.value, "row.")
+			if rest == "" {
 				return celOperand{}, fmt.Errorf("unsupported row reference %q", token.value)
 			}
-			return celOperand{kind: celOperandField, field: field}, nil
+			// row.field.method(args) — method call form
+			if dotIdx := strings.LastIndex(rest, "."); dotIdx >= 0 {
+				field, method := rest[:dotIdx], rest[dotIdx+1:]
+				if field == "" || strings.Contains(field, ".") || method == "" {
+					return celOperand{}, fmt.Errorf("unsupported row reference %q", token.value)
+				}
+				args, err := p.parseCallArgs()
+				if err != nil {
+					return celOperand{}, err
+				}
+				return celOperand{kind: celOperandMethodCall, field: field, methodName: method, list: args}, nil
+			}
+			// plain row.field
+			return celOperand{kind: celOperandField, field: rest}, nil
 		case strings.HasPrefix(token.value, "auth."):
 			ref := strings.TrimPrefix(token.value, "auth.")
 			if ref == "" || strings.Contains(ref, ".") {
@@ -290,6 +310,66 @@ func buildComparisonSQL(left celOperand, op string, right celOperand) (string, [
 		return left.field + " " + op + " ?", []interface{}{right.value}, nil
 	default:
 		return "", nil, fmt.Errorf("unsupported operator %q", op)
+	}
+}
+
+// parseCallArgs consumes "(arg1, arg2, ...)" and returns the scalar values.
+func (p *celWhereParser) parseCallArgs() ([]interface{}, error) {
+	if _, err := p.expect(celTokenLParen, "("); err != nil {
+		return nil, fmt.Errorf("method call expects '(': %w", err)
+	}
+	var args []interface{}
+	if p.peek().kind == celTokenRParen {
+		p.next()
+		return args, nil
+	}
+	for {
+		item, err := p.parseOperand()
+		if err != nil {
+			return nil, err
+		}
+		if item.kind != celOperandValue {
+			return nil, fmt.Errorf("method call arguments must be scalar values")
+		}
+		args = append(args, item.value)
+		if p.peek().kind == celTokenComma {
+			p.next()
+			continue
+		}
+		if _, err := p.expect(celTokenRParen, ")"); err != nil {
+			return nil, err
+		}
+		break
+	}
+	return args, nil
+}
+
+// buildMethodCallSQL translates CEL string-method calls to SQL LIKE / REGEXP.
+//
+//	row.col.startsWith("x")  →  col LIKE 'x%'
+//	row.col.endsWith("x")    →  col LIKE '%x'
+//	row.col.contains("x")    →  col LIKE '%x%'
+//	row.col.matches("x")     →  col REGEXP ?   (MySQL)
+func buildMethodCallSQL(op celOperand) (string, []interface{}, error) {
+	if len(op.list) != 1 {
+		return "", nil, fmt.Errorf("method %q requires exactly one argument", op.methodName)
+	}
+	arg, ok := op.list[0].(string)
+	if !ok {
+		return "", nil, fmt.Errorf("method %q argument must be a string", op.methodName)
+	}
+	col := op.field
+	switch op.methodName {
+	case "startsWith":
+		return col + " LIKE ?", []interface{}{arg + "%"}, nil
+	case "endsWith":
+		return col + " LIKE ?", []interface{}{"%" + arg}, nil
+	case "contains":
+		return col + " LIKE ?", []interface{}{"%" + arg + "%"}, nil
+	case "matches":
+		return col + " REGEXP ?", []interface{}{arg}, nil
+	default:
+		return "", nil, fmt.Errorf("unsupported string method %q", op.methodName)
 	}
 }
 
@@ -414,6 +494,9 @@ func resolveAuthValue(userCtx *domainrls.UserContext, ref string) interface{} {
 	switch ref {
 	case "roles":
 		return userCtx.Roles
+	case "userid", "uid", "user_id":
+		// Preserve the native type (int64 or string) so SQL parameter binding is type-safe.
+		return userCtx.UserIDValue()
 	default:
 		return userCtx.ResolveVariable(ref)
 	}
