@@ -178,10 +178,10 @@ const DET_POLICIES: Array<{
   usingExpr?: string
   withCheckExpr?: string
 }> = [
-  { policyName: 'det_select', action: 'read',   role: '', usingExpr: 'row.owner == auth.userid' },
-  { policyName: 'det_insert', action: 'create', role: '', withCheckExpr: 'input.owner == auth.userid' },
-  { policyName: 'det_update', action: 'update', role: '', usingExpr: 'row.owner == auth.userid', withCheckExpr: 'input.owner == auth.userid' },
-  { policyName: 'det_delete', action: 'delete', role: '', usingExpr: 'row.owner == auth.userid' },
+  { policyName: 'det_select', action: 'read',   role: '*', usingExpr: 'row.owner == auth.userid' },
+  { policyName: 'det_insert', action: 'create', role: '*', withCheckExpr: 'input.owner == auth.userid' },
+  { policyName: 'det_update', action: 'update', role: '*', usingExpr: 'row.owner == auth.userid', withCheckExpr: 'input.owner == auth.userid' },
+  { policyName: 'det_delete', action: 'delete', role: '*', usingExpr: 'row.owner == auth.userid' },
 ]
 
 async function setupDetPolicies(
@@ -264,7 +264,7 @@ When('我为确定性拨测模型配置以下 RLS v2 policies:', async function 
     const input: Record<string, string> = {
       policyName: row.policyName,
       action: row.action,
-      role: row.role ?? '',
+      role: row.role ?? '*',
     }
     if (row.usingExpr) input.usingExpr = row.usingExpr
     if (row.withCheckExpr) input.withCheckExpr = row.withCheckExpr

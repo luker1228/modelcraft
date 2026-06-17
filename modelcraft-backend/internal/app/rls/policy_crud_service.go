@@ -2,6 +2,7 @@ package rls
 
 import (
 	"context"
+	"fmt"
 	"modelcraft/internal/domain/rls"
 )
 
@@ -36,6 +37,10 @@ type UpsertInput struct {
 func (s *DataPolicyService) Upsert(
 	ctx context.Context, orgName, projectSlug string, input UpsertInput,
 ) (*rls.Policy, error) {
+	if input.Role == "" {
+		return nil, fmt.Errorf("role must not be empty: use \"*\" to match all end-users")
+	}
+
 	policy := &rls.Policy{
 		ModelID:       input.ModelID,
 		PolicyName:    input.PolicyName,

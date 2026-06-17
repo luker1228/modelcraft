@@ -38,7 +38,7 @@ Feature: Runtime RLS 注入和行级过滤
     And 终端用户 "userB" 创建了一条 "ScopedOrdersUsing" 记录，name 为 "ScopedOrderB"
     And 我为该模型配置以下 RLS v2 policies:
       | policyName | action | role | usingExpr                          | withCheckExpr |
-      | owner_read | read   |      | {"owner":{"_eq":{"_auth":"uid"}}} |               |
+      | owner_read | read   | *    | {"owner":{"_eq":{"_auth":"uid"}}} |               |
     When 终端用户 "userA" 查询 "ScopedOrdersUsing"
     Then 查询结果只包含 "ScopedOrderA"
     And 查询结果不包含 "ScopedOrderB"
@@ -48,7 +48,7 @@ Feature: Runtime RLS 注入和行级过滤
     And 模型已有名为 "name" 格式为 "STRING" 的字段
     And 我为该模型配置以下 RLS v2 policies:
       | policyName   | action | role | usingExpr | withCheckExpr                      |
-      | owner_create | create |      |           | {"owner":{"_eq":{"_auth":"uid"}}} |
+      | owner_create | create | *    |           | {"owner":{"_eq":{"_auth":"uid"}}} |
     And 终端用户 "userA" 已登录
     And 终端用户 "userB" 的用户 ID 为 "userB_id"
     When 终端用户 "userA" 创建一条 "ScopedOrdersWithCheck" 记录，name 为 "ScopedOrderBad"，owner 为 "userB_id"

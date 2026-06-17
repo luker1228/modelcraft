@@ -1,160 +1,177 @@
-# RLS 策略规划
+# RLS 测试策略规划
 
-> 基于 luke_e6kz / project luke 的现有模型结构，规划 Open Data API 行级安全策略。
-> 表达式语法：`row.<field>` 读取行字段，`input.<field>` 读取写入值，`auth.userid` 为当前 EndUser ID。
-
----
-
-## 模型字段速查
-
-| 数据库 | 模型 | 用户关联字段 | 说明 |
-|--------|------|------------|------|
-| demo_ecommerce | users | id, username, email, phone | 用户表本身 |
-| demo_ecommerce | orders | user_id | 订单归属用户 |
-| demo_ecommerce | addresses | user_id | 收货地址归属用户 |
-| demo_ecommerce | products | — | 公开商品目录 |
-| demo_ecommerce | categories | — | 公开分类目录 |
-| demo_ecommerce | order_items | order_id | 通过订单间接归属 |
-| demo_pm | tasks | reporter_id, assignee_id | 创建者/负责人双维度 |
-| demo_pm | task_comments | author_id | 评论作者 |
-| demo_pm | projects | owner_id | 项目拥有者 |
-| demo_pm | project_members | member_id | 成员关联 |
-| demo_pm | milestones | project_id | 通过项目间接归属 |
-| demo_pm | members | id | 成员自身即标识 |
+> 目标：覆盖尽可能多的 RLS 表达式类型、角色组合、操作场景，为 BDD 拨测提供完整的测试矩阵。
+> 环境：luke_e6kz / project luke，两个数据库 demo_ecommerce / demo_pm。
 
 ---
 
-## demo_ecommerce 策略
+## 测试场景矩阵
 
-### orders — 用户只能操作自己的订单
-
-| policyName | action | role | usingExpr | withCheckExpr |
-|------------|--------|------|-----------|---------------|
-| orders_read | read | | `row.user_id == auth.userid` | |
-| orders_create | create | | | `input.user_id == auth.userid` |
-| orders_update | update | | `row.user_id == auth.userid` | `input.user_id == auth.userid` |
-| orders_delete | delete | | `row.user_id == auth.userid` | |
-| orders_admin_read | read | admin | `true` | |
-| orders_admin_write | create | admin | | `true` |
-
-### addresses — 用户只能管理自己的收货地址
-
-| policyName | action | role | usingExpr | withCheckExpr |
-|------------|--------|------|-----------|---------------|
-| addr_read | read | | `row.user_id == auth.userid` | |
-| addr_create | create | | | `input.user_id == auth.userid` |
-| addr_update | update | | `row.user_id == auth.userid` | |
-| addr_delete | delete | | `row.user_id == auth.userid` | |
-| addr_admin_read | read | admin | `true` | |
-
-### products — 公开只读，admin 可写
-
-| policyName | action | role | usingExpr | withCheckExpr |
-|------------|--------|------|-----------|---------------|
-| products_read | read | | `true` | |
-| products_create | create | admin | | `true` |
-| products_update | update | admin | `true` | |
-| products_delete | delete | admin | `true` | |
-
-### categories — 公开只读，admin 可写
-
-| policyName | action | role | usingExpr | withCheckExpr |
-|------------|--------|------|-----------|---------------|
-| categories_read | read | | `true` | |
-| categories_create | create | admin | | `true` |
-| categories_update | update | admin | `true` | |
-| categories_delete | delete | admin | `true` | |
-
-### order_items — 通过订单间接归属（暂开放只读）
-
-| policyName | action | role | usingExpr | withCheckExpr |
-|------------|--------|------|-----------|---------------|
-| order_items_read | read | | `true` | |
-| order_items_admin | create | admin | | `true` |
-
-> 说明：order_items 没有直接 user_id，完整隔离需要 JOIN 查询，当前 RLS 表达式不支持跨表，暂用 `true` 开放只读。
+| # | 场景 | 模型 | 策略类型 | 预期结果 |
+|---|------|------|---------|---------|
+| T1 | 无角色用户只能读自己的行 | orders | `row.user_id == auth.userid` | 只返回 user_id 匹配行 |
+| T2 | 创建时 withCheckExpr 校验 owner | orders | `input.user_id == auth.userid` | owner 匹配则成功，否则 RLSCheckViolation |
+| T3 | 更新时 using + withCheck 双重校验 | orders | using + withCheck 同字段 | 只能改自己的行且不能换 owner |
+| T4 | 删除时只能删自己的行 | orders | `row.user_id == auth.userid` | 非 owner 行返回 0 affected |
+| T5 | admin 角色绕过行过滤读全量 | orders | `role=admin, usingExpr=true` | admin 可见所有行 |
+| T6 | viewer 角色只读，写操作被拒 | orders | viewer 无写策略 | create 返回 RLSCheckViolation |
+| T7 | `true` 表达式——全员可读 | products | `usingExpr=true` | 任意 EndUser 均可 findMany |
+| T8 | 纯角色写控制（admin only write） | products | `role=admin, withCheckExpr=true` | 非 admin 写入被拒 |
+| T9 | OR 表达式——双字段任一匹配 | tasks | `row.reporter_id == auth.userid \|\| row.assignee_id == auth.userid` | reporter 或 assignee 均可读 |
+| T10 | 创建者和负责人权限不对称 | tasks | reporter 可删，assignee 不可删 | assignee 删除返回 0 affected |
+| T11 | 评论：全员可读 + 作者限写 | task_comments | read=true, create/update/delete by author_id | 任何人能读，只有作者能改 |
+| T12 | self-read：id == auth.userid | members | `row.id == auth.userid` | 只能查到自己的成员记录 |
+| T13 | 无策略模型返回 403 | milestones（未配置） | — | 所有请求 403 |
+| T14 | count 受 RLS 过滤 | orders | 同 T1 | count 只统计自己的行数 |
+| T15 | 角色叠加：同时命中多条策略 | orders | user 策略 + admin 策略均存在 | admin 走 admin 策略，普通用户走 user 策略 |
 
 ---
 
-## demo_pm 策略
+## 策略配置
 
-### tasks — reporter 创建，reporter+assignee 可读/更新
+### orders（demo_ecommerce）— 核心 CRUD 测试基准
 
-| policyName | action | role | usingExpr | withCheckExpr |
-|------------|--------|------|-----------|---------------|
-| tasks_read | read | | `row.reporter_id == auth.userid \|\| row.assignee_id == auth.userid` | |
-| tasks_create | create | | | `input.reporter_id == auth.userid` |
-| tasks_update | update | | `row.reporter_id == auth.userid \|\| row.assignee_id == auth.userid` | |
-| tasks_delete | delete | | `row.reporter_id == auth.userid` | |
-| tasks_admin_read | read | admin | `true` | |
-| tasks_admin_write | create | admin | | `true` |
+字段：`id, order_no, user_id, total_amount, paid_amount, remark, created_at`
 
-### task_comments — 评论全员可读，作者可写/删
+| policyName | action | role | usingExpr | withCheckExpr | 覆盖测试 |
+|------------|--------|------|-----------|---------------|---------|
+| orders_user_read | read | | `row.user_id == auth.userid` | | T1, T14 |
+| orders_user_create | create | | | `input.user_id == auth.userid` | T2 |
+| orders_user_update | update | | `row.user_id == auth.userid` | `input.user_id == auth.userid` | T3 |
+| orders_user_delete | delete | | `row.user_id == auth.userid` | | T4 |
+| orders_admin_read | read | admin | `true` | | T5, T15 |
+| orders_admin_create | create | admin | | `true` | T8（借用） |
 
-| policyName | action | role | usingExpr | withCheckExpr |
-|------------|--------|------|-----------|---------------|
-| comments_read | read | | `true` | |
-| comments_create | create | | | `input.author_id == auth.userid` |
-| comments_update | update | | `row.author_id == auth.userid` | |
-| comments_delete | delete | | `row.author_id == auth.userid` | |
+> `viewer` 角色无额外策略 → viewer 用 orders_user_* 策略（无角色命中所有人），viewer 写入时因 create 策略只有 withCheckExpr 约束，需要 input.user_id 正确才能通过。
 
-### projects — owner 完全控制，全员可读列表
+### products（demo_ecommerce）— 公开读 + 角色写
 
-| policyName | action | role | usingExpr | withCheckExpr |
-|------------|--------|------|-----------|---------------|
-| projects_read | read | | `true` | |
-| projects_create | create | | | `input.owner_id == auth.userid` |
-| projects_update | update | | `row.owner_id == auth.userid` | |
-| projects_delete | delete | | `row.owner_id == auth.userid` | |
+字段：`id, name, description, price, stock, category_id`
 
-### members — 只读自己的成员信息
+| policyName | action | role | usingExpr | withCheckExpr | 覆盖测试 |
+|------------|--------|------|-----------|---------------|---------|
+| products_all_read | read | | `true` | | T7 |
+| products_admin_create | create | admin | | `true` | T8 |
+| products_admin_update | update | admin | `true` | | T8 |
+| products_admin_delete | delete | admin | `true` | | T8 |
 
-| policyName | action | role | usingExpr | withCheckExpr |
-|------------|--------|------|-----------|---------------|
-| members_self_read | read | | `row.id == auth.userid` | |
-| members_admin_read | read | admin | `true` | |
+### tasks（demo_pm）— OR 表达式 + 权限不对称
 
-### project_members — 成员只能读自己的关联记录
+字段：`id, title, description, reporter_id, assignee_id, project_id, story_points`
 
-| policyName | action | role | usingExpr | withCheckExpr |
-|------------|--------|------|-----------|---------------|
-| pm_read | read | | `row.member_id == auth.userid` | |
-| pm_admin_read | read | admin | `true` | |
-| pm_admin_write | create | admin | | `true` |
+| policyName | action | role | usingExpr | withCheckExpr | 覆盖测试 |
+|------------|--------|------|-----------|---------------|---------|
+| tasks_read | read | | `row.reporter_id == auth.userid \|\| row.assignee_id == auth.userid` | | T9 |
+| tasks_create | create | | | `input.reporter_id == auth.userid` | T9 |
+| tasks_update | update | | `row.reporter_id == auth.userid \|\| row.assignee_id == auth.userid` | | T10 |
+| tasks_reporter_delete | delete | | `row.reporter_id == auth.userid` | | T10 |
+| tasks_admin_read | read | admin | `true` | | T5（demo_pm 侧） |
 
-### milestones — 项目公开，里程碑全员可读
+> T10 验证：以 assignee 身份删除自己被 assign 但不是 reporter 的任务 → 返回 0 affected（usingExpr 不命中）。
 
-| policyName | action | role | usingExpr | withCheckExpr |
-|------------|--------|------|-----------|---------------|
-| milestones_read | read | | `true` | |
-| milestones_admin_write | create | admin | | `true` |
+### task_comments（demo_pm）— 混合开放/限制
+
+字段：`id, task_id, author_id, content, created_at`
+
+| policyName | action | role | usingExpr | withCheckExpr | 覆盖测试 |
+|------------|--------|------|-----------|---------------|---------|
+| comments_all_read | read | | `true` | | T11 |
+| comments_author_create | create | | | `input.author_id == auth.userid` | T11 |
+| comments_author_update | update | | `row.author_id == auth.userid` | | T11 |
+| comments_author_delete | delete | | `row.author_id == auth.userid` | | T11 |
+
+### members（demo_pm）— self-read 模式
+
+字段：`id, name, email, avatar_url, joined_at`
+
+| policyName | action | role | usingExpr | withCheckExpr | 覆盖测试 |
+|------------|--------|------|-----------|---------------|---------|
+| members_self_read | read | | `row.id == auth.userid` | | T12 |
+| members_admin_read | read | admin | `true` | | T12（admin 侧） |
+
+### milestones（demo_pm）— 不配置任何策略
+
+> 保持无策略状态，用于验证 T13：所有 EndUser 请求均返回 403。
+
+### addresses（demo_ecommerce）— 补充覆盖（update 无 withCheck）
+
+字段：`id, user_id, name, phone, province, city, district, detail, is_default`
+
+| policyName | action | role | usingExpr | withCheckExpr | 覆盖测试 |
+|------------|--------|------|-----------|---------------|---------|
+| addr_user_read | read | | `row.user_id == auth.userid` | | 补充 T1 |
+| addr_user_create | create | | | `input.user_id == auth.userid` | 补充 T2 |
+| addr_user_update | update | | `row.user_id == auth.userid` | | update 无 withCheck（对比 T3）|
+| addr_user_delete | delete | | `row.user_id == auth.userid` | | 补充 T4 |
 
 ---
 
-## BDD 测试推荐模型
+## BDD 测试覆盖计划
 
-优先选 **`orders`（demo_ecommerce）** 作为确定性拨测模型：
+### 必测（确定性拨测 @deterministic）
 
-- 字段 `user_id` 语义等价 `owner`，RLS 模式最标准
-- 支持 read / create / update / delete 四种操作测试
-- 没有多字段联合判断，测试用例简单清晰
-
-`.env.test` 修改建议：
 ```
 DET_DB_NAME=demo_ecommerce
 DET_MODEL_NAME=orders
 ```
 
-对应 Open Data API 字段调整：
-- `findMany` 查询字段：`id order_no user_id total_amount`
-- `create` 写入字段：`user_id`（触发 withCheckExpr 验证）
-- RLS 表达式：`row.user_id == auth.userid` / `input.user_id == auth.userid`
+| Scenario | 操作 | EndUser | 预期 |
+|----------|------|---------|------|
+| findMany 只返回自己的订单 | GET findMany | user-a | 仅返回 user_id=user-a 的行 |
+| count 只统计自己的订单 | GET count | user-a | count <= 全量 |
+| 创建 user_id 匹配的订单成功 | POST create(user_id=user-a) | user-a | 返回新建行 |
+| 创建 user_id 不匹配被拒 | POST create(user_id=other) | user-a | RLSCheckViolation |
+| 更新非自己的订单无效 | PUT update(id=other-row) | user-a | 0 affected，无 error |
+| 删除非自己的订单无效 | DEL delete(id=other-row) | user-a | 0 affected，无 error |
+| admin 可读所有订单 | GET findMany (role=admin) | user-a | 返回全量数据 |
+| viewer 无策略写被拒 | POST create(user_id=wrong) | user-a | RLSCheckViolation |
+
+### 扩展测试（@extended）
+
+```
+DET_DB_NAME=demo_pm
+DET_MODEL_NAME=tasks
+```
+
+| Scenario | 操作 | 预期 |
+|----------|------|------|
+| reporter 能读自己创建的任务 | findMany as reporter-a | 返回 reporter_id=reporter-a 的行 |
+| assignee 也能读被分配的任务 | findMany as assignee-b | 返回 assignee_id=assignee-b 的行 |
+| assignee 无法删除非自己 reporter 的任务 | delete as assignee-b | 0 affected |
+| 无策略模型返回 403 | GET milestones findMany | 403 |
+| 评论全员可读 | GET task_comments findMany | 200 + 数据 |
+| 只有作者能删评论 | DELETE comment as non-author | 0 affected |
+| self-read：members 只能读到自己 | GET members findMany | 仅返回 id=auth.userid 的行 |
+
+---
+
+## `.env.test` 完整参数
+
+```bash
+# 核心拨测模型（orders）
+DET_ORG_NAME=luke_e6kz
+DET_PROJECT_SLUG=luke
+DET_DB_NAME=demo_ecommerce
+DET_MODEL_NAME=orders
+DET_PAT=mc_pat_dd2e173ea4def1d752e2a2e17fc5b2e37e802e72a911d700c39e27910f61cab3
+DET_END_USER_ID=rls-test-user-001
+DET_END_USER_NAME=rls-test-user
+
+# 扩展拨测（tasks / task_comments / members）
+DET_PM_DB_NAME=demo_pm
+DET_TASK_MODEL=tasks
+DET_COMMENTS_MODEL=task_comments
+DET_MEMBERS_MODEL=members
+DET_REPORTER_USER_ID=rls-reporter-001
+DET_ASSIGNEE_USER_ID=rls-assignee-002
+```
 
 ---
 
 ## 注意事项
 
-1. **`||` 表达式**：tasks 的双字段策略（`reporter_id || assignee_id`）需确认 RLS 引擎是否支持 `||` 运算符，若不支持需拆成两条策略。
-2. **order_items 跨表**：当前 RLS 不支持 JOIN，只能开放只读或在业务层控制写入。
-3. **admin 角色**：`role="admin"` 的策略只对携带 `X-MC-Auth-Roles: admin` 的请求生效，与 `role=""` 策略叠加（任一命中即通过）。
-4. **无策略 = 403**：模型未配置任何策略时，所有 EndUser 请求返回 403 Permission denied。
+1. **OR 表达式**：`||` 是否受支持待实测，若不支持，tasks 的双字段策略需拆为两条。
+2. **`true` vs 空策略**：`usingExpr=true` 表示全员通过；不配置策略则 403，两者语义不同。
+3. **withCheckExpr 只在写操作触发**：read 时只看 usingExpr。
+4. **0 affected vs error**：update/delete 不命中 usingExpr 时返回空结果而非报错，测试断言要区分。
+5. **角色叠加**：同一 action 多条策略 OR 关系，任一命中即通过，admin 策略不会覆盖 user 策略。

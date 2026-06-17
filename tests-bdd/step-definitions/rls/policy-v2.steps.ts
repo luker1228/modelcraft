@@ -56,7 +56,7 @@ Given('我为该模型配置以下 RLS v2 policies:', async function (
     const input: Record<string, string> = {
       policyName: row.policyName,
       action: row.action,
-      role: row.role ?? '',
+      role: row.role ?? '*',
     }
     if (row.usingExpr) {
       input.usingExpr = row.usingExpr

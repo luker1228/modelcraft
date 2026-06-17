@@ -124,7 +124,8 @@ func (b *RLSSnapshotBuilder) mergeUSING(
 	}
 
 	if len(orClauses) == 0 {
-		return nil, nil //nolint:nilnil
+		// No USING policy matched — default deny: inject 1=0 to block all rows.
+		return &modelruntime.RawSQLFilter{SQL: "1=0", Params: nil}, nil
 	}
 
 	return &modelruntime.RawSQLFilter{

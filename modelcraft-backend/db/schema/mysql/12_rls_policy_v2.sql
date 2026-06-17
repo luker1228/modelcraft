@@ -15,7 +15,7 @@ CREATE TABLE model_rls_policies (
     -- 策略元信息
     policy_name     VARCHAR(255) NOT NULL COMMENT '策略名称（model 内唯一）',
     action          ENUM('read', 'create', 'update', 'delete') NOT NULL COMMENT '操作类型',
-    role            VARCHAR(255) NOT NULL DEFAULT '' COMMENT '匹配角色（空=默认策略）',
+    role            VARCHAR(255) NOT NULL DEFAULT '*' COMMENT '匹配角色（*=通配，匹配所有 EndUser）',
 
     -- 表达式（CEL / legacy JSON 文本）
     using_expr      TEXT NULL COMMENT 'USING 表达式（read/update/delete）',

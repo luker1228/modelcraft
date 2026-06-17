@@ -7,9 +7,9 @@ import (
 
 // UserContext 从 Header 提取的用户上下文
 type UserContext struct {
-	UserIDNum *int64  `json:"userIdNum"` // 数值型 userId（与 UserIDStr 互斥）
-	UserIDStr string  `json:"userIdStr"` // 字符串型 userId（与 UserIDNum 互斥）
-	UserName  string  `json:"userName"`
+	UserIDNum *int64   `json:"userIdNum"` // 数值型 userId（与 UserIDStr 互斥）
+	UserIDStr string   `json:"userIdStr"` // 字符串型 userId（与 UserIDNum 互斥）
+	UserName  string   `json:"userName"`
 	Roles     []string `json:"roles"`
 	UseAdmin  bool     `json:"useAdmin"` // 是否请求 admin 级别访问
 }
@@ -24,9 +24,9 @@ func (uc *UserContext) UserIDValue() interface{} {
 }
 
 // HasRole 判断是否包含指定 role
-// role="" 总是匹配（默认策略）
+// role="*" 总是匹配（通配策略）
 func (uc *UserContext) HasRole(role string) bool {
-	if role == "" {
+	if role == "*" {
 		return true
 	}
 	for _, r := range uc.Roles {

@@ -26,10 +26,10 @@ Feature: 确定性 RLS 运行时拨测
   Scenario: 为确定性拨测模型配置 RLS v2 策略
     When 我为确定性拨测模型配置以下 RLS v2 policies:
       | policyName    | action | role | usingExpr                   | withCheckExpr               |
-      | det_select    | read   |      | row.owner == auth.userid    |                             |
-      | det_insert    | create |      |                              | input.owner == auth.userid  |
-      | det_update    | update |      | row.owner == auth.userid    | input.owner == auth.userid  |
-      | det_delete    | delete |      | row.owner == auth.userid    |                             |
+      | det_select    | read   | *    | row.owner == auth.userid    |                             |
+      | det_insert    | create | *    |                              | input.owner == auth.userid  |
+      | det_update    | update | *    | row.owner == auth.userid    | input.owner == auth.userid  |
+      | det_delete    | delete | *    | row.owner == auth.userid    |                             |
     Then 确定性拨测模型的 RLS v2 策略数量应为 4
     And 策略配置成功
 

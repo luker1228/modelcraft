@@ -2,9 +2,10 @@ package modelruntime
 
 import (
 	"context"
+	"strings"
+
 	"modelcraft/internal/domain/modelruntime"
 	"modelcraft/internal/domain/rls"
-	"strings"
 
 	apprls "modelcraft/internal/app/rls"
 )
@@ -32,7 +33,7 @@ func (r *PolicyPermissionResolver) ResolveFromV2Policy(
 	for _, role := range endUserRoles {
 		roleSet[role] = struct{}{}
 	}
-	roleSet[""] = struct{}{}
+	roleSet["*"] = struct{}{} // wildcard: matches all end-users regardless of role
 
 	var resolved []modelruntime.ResolvedPolicy
 	for _, p := range policies {
@@ -142,4 +143,3 @@ func (r *PolicyPermissionResolver) GetCheckExpr(
 	}
 	return "", nil
 }
-
