@@ -53,6 +53,20 @@ test -f ./tests-bdd/.env.test || echo "FAIL:envtest"
 - 后端不可达 → **停止执行**，告诉用户：`后端未运行，请先执行 just run`
 - `.env.test` 不存在 → **停止执行**，告诉用户需要创建
 
+**Token 自动刷新（新增）**：检查 `TEST_ACCESS_TOKEN` 是否过期，过期则自动刷新：
+
+```bash
+# 读取 .env.test 里的登录凭据并刷新 token
+cd ./tests-bdd
+PHONE=$(grep '^TEST_LOGIN_PHONE=' .env.test | cut -d= -f2)
+PASS=$(grep '^TEST_LOGIN_PASSWORD=' .env.test | cut -d= -f2)
+if [ -n "$PHONE" ] && [ -n "$PASS" ]; then
+  npm run get-token -- --phone "$PHONE" --password "$PASS" --write
+fi
+```
+
+仅当 `.env.test` 含有 `TEST_LOGIN_PHONE` 和 `TEST_LOGIN_PASSWORD` 时才执行。没有这两个变量则跳过，继续测试。
+
 如果全部正常，不输出任何检查信息，直接进 Step 3。
 
 ### Step 3 — 运行测试
@@ -206,7 +220,52 @@ tests-bdd/
 3. `./tests-bdd/.env.test` 存在，至少包含 `TEST_ORG_NAME` 和 `TEST_PROJECT_SLUG`
    - `TEST_ACCESS_TOKEN` 推荐提供（优先级最高）
    - 若未提供 token，当前 BDD 会先用 `TEST_LOGIN_PHONE` + `TEST_LOGIN_PASSWORD` 登录；必要时由 `tests-bdd/support/jwt.ts` 生成测试用 token
-   - 默认不应把“注册新用户”当作所有 BDD 场景的通用前置；只有测试注册链路本身时才依赖注册流程
+   - 默认不应把”注册新用户”当作所有 BDD 场景的通用前置；只有测试注册链路本身时才依赖注册流程
+
+## Token 刷新
+
+遇到 `401 Invalid token` / `401 Unauthorized` 失败时，**先刷新 token，再重跑**，不要直接报告为 `[ENV]`。
+
+### TEST_ACCESS_TOKEN（Developer GraphQL API）
+
+```bash
+# 方式一：npm script（自动写入 .env.test）
+cd ./tests-bdd && npm run get-token -- --phone <phone> --password <password> --write
+
+# 方式二：如果 .env.test 里有 TEST_LOGIN_PHONE / TEST_LOGIN_PASSWORD
+cd ./tests-bdd && npm run get-token -- --phone $(grep TEST_LOGIN_PHONE .env.test | cut -d= -f2) \
+  --password $(grep TEST_LOGIN_PASSWORD .env.test | cut -d= -f2) --write
+```
+
+### DET_PAT（Open Data API PAT token）
+
+justfile 里暂无直接生成 PAT 的 recipe。PAT 需要通过前端界面或 API 手动创建后填入 `.env.test`：
+
+```
+DET_PAT=mc_pat_xxxxxxxxxxxxxxxx
+```
+
+PAT 失效的典型错误：Open Data API 返回 `Unauthorized`（非 JSON），或 `callOpenDataApi` 抛出 `FetchError: invalid json`。
+
+### 快速判断 token 状态
+
+```bash
+# 检查 TEST_ACCESS_TOKEN 过期时间（exp 字段）
+grep TEST_ACCESS_TOKEN ./tests-bdd/.env.test | cut -d= -f2 | cut -d. -f2 | base64 -d 2>/dev/null | python3 -c “import sys,json; d=json.load(sys.stdin); print('exp:', __import__('datetime').datetime.fromtimestamp(d['exp']))”
+
+# 检查 DET_PAT 是否有效
+PAT=$(grep DET_PAT ./tests-bdd/.env.test | cut -d= -f2)
+ORG=$(grep DET_ORG_NAME ./tests-bdd/.env.test | cut -d= -f2)
+PROJ=$(grep DET_PROJECT_SLUG ./tests-bdd/.env.test | cut -d= -f2)
+DB=$(grep DET_DB_NAME ./tests-bdd/.env.test | cut -d= -f2)
+MODEL=$(grep DET_MODEL_NAME ./tests-bdd/.env.test | cut -d= -f2)
+curl -s -o /dev/null -w “%{http_code}” -X POST \
+  “http://localhost:8080/end-user/graphql/org/${ORG}/project/${PROJ}/db/${DB}/model/${MODEL}” \
+  -H “Content-Type: application/json” -H “Authorization: Bearer ${PAT}” \
+  -H “X-MC-Auth-Useadmin: true” \
+  --data-raw '{“query”:”query { count { count } }”}'
+# 200 = 有效，401 = 已过期需重建
+```
 
 ## 架构要点
 

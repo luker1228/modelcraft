@@ -9,8 +9,8 @@ _default:
 
 # 复制 apisix 配置到构建上下文
 cp-apisix-config:
-    cp ../apisix/config.yaml {{APISIX_CTX}}/config.yaml
-    cp ../apisix/apisix.yaml {{APISIX_CTX}}/apisix.yaml
+    cp ../../apisix/config.yaml {{APISIX_CTX}}/config.yaml
+    cp ../../apisix/apisix.yaml {{APISIX_CTX}}/apisix.yaml
     @echo "✅ APISIX 配置已复制到 deploy/cloudrun/{{APISIX_CTX}}/"
 
 # 本地构建所有镜像

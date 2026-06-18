@@ -34,6 +34,30 @@ function detModelName(): string {
   return v
 }
 
+function detProductsModelName(): string {
+  return process.env.DET_PRODUCTS_MODEL_NAME ?? 'products'
+}
+
+function detPmDbName(): string {
+  return process.env.DET_PM_DB_NAME ?? 'demo_pm'
+}
+
+function detTaskModelName(): string {
+  return process.env.DET_TASK_MODEL ?? 'tasks'
+}
+
+function detCommentsModelName(): string {
+  return process.env.DET_COMMENTS_MODEL ?? 'task_comments'
+}
+
+function detReporterUserId(): string {
+  return process.env.DET_REPORTER_USER_ID ?? 'rls-reporter-001'
+}
+
+function detAssigneeUserId(): string {
+  return process.env.DET_ASSIGNEE_USER_ID ?? 'rls-assignee-002'
+}
+
 function detPat(): string {
   const v = process.env.DET_PAT
   if (!v) throw new Error('环境变量 DET_PAT 未设置（Open Data API 需要 PAT token）')
@@ -51,6 +75,24 @@ function detEndUserName(): string {
 function getDetModelId(world: ModelCraftWorld): string {
   const id = world.modelMap['detModelId']
   if (!id) throw new Error('确定性拨测模型 ID 未就绪（请确认 Background 已执行）')
+  return id
+}
+
+function getDetProductsModelId(world: ModelCraftWorld): string {
+  const id = world.modelMap['detProductsModelId']
+  if (!id) throw new Error('products 模型 ID 未就绪（请确认 Background 已执行）')
+  return id
+}
+
+function getDetTasksModelId(world: ModelCraftWorld): string {
+  const id = world.modelMap['detTasksModelId']
+  if (!id) throw new Error('tasks 模型 ID 未就绪（请确认 Background 已执行）')
+  return id
+}
+
+function getDetCommentsModelId(world: ModelCraftWorld): string {
+  const id = world.modelMap['detCommentsModelId']
+  if (!id) throw new Error('task_comments 模型 ID 未就绪（请确认 Background 已执行）')
   return id
 }
 
@@ -74,6 +116,19 @@ function openDataEndpoint(world: ModelCraftWorld): string {
   return `${API_BASE_URL}/end-user/graphql/org/${org}/project/${project}/db/${db}/model/${model}`
 }
 
+function openDataEndpointForModel(world: ModelCraftWorld, modelName: string): string {
+  const org = detOrgName(world)
+  const project = detProjectSlug(world)
+  const db = detDbName()
+  return `${API_BASE_URL}/end-user/graphql/org/${org}/project/${project}/db/${db}/model/${modelName}`
+}
+
+function openDataEndpointForModelInDb(world: ModelCraftWorld, dbName: string, modelName: string): string {
+  const org = detOrgName(world)
+  const project = detProjectSlug(world)
+  return `${API_BASE_URL}/end-user/graphql/org/${org}/project/${project}/db/${dbName}/model/${modelName}`
+}
+
 /**
  * 调用 Open Data API
  */
@@ -85,6 +140,79 @@ async function callOpenDataApi(
   userName?: string,
 ): Promise<OpenDataApiResult> {
   const endpoint = openDataEndpoint(world)
+  const pat = detPat()
+  const uid = userId ?? detEndUserId()
+  const uname = userName ?? detEndUserName()
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${pat}`,
+    'X-MC-Auth-Userid-Str': uid,
+    'X-MC-Auth-Username': uname,
+    'X-MC-Auth-Roles': role,
+  }
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ query }),
+  })
+
+  const body = await res.json()
+
+  return {
+    status: res.status,
+    data: body.data,
+    errors: body.errors,
+  }
+}
+
+async function callOpenDataApiForModel(
+  world: ModelCraftWorld,
+  modelName: string,
+  query: string,
+  role: string,
+  userId?: string,
+  userName?: string,
+): Promise<OpenDataApiResult> {
+  const endpoint = openDataEndpointForModel(world, modelName)
+  const pat = detPat()
+  const uid = userId ?? detEndUserId()
+  const uname = userName ?? detEndUserName()
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${pat}`,
+    'X-MC-Auth-Userid-Str': uid,
+    'X-MC-Auth-Username': uname,
+    'X-MC-Auth-Roles': role,
+  }
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ query }),
+  })
+
+  const body = await res.json()
+
+  return {
+    status: res.status,
+    data: body.data,
+    errors: body.errors,
+  }
+}
+
+async function callOpenDataApiForModelInDb(
+  world: ModelCraftWorld,
+  dbName: string,
+  modelName: string,
+  query: string,
+  role: string,
+  userId?: string,
+  userName?: string,
+): Promise<OpenDataApiResult> {
+  const endpoint = openDataEndpointForModelInDb(world, dbName, modelName)
   const pat = detPat()
   const uid = userId ?? detEndUserId()
   const uname = userName ?? detEndUserName()
@@ -165,6 +293,50 @@ function openDelete(id: string): string {
   return `mutation { delete(where: { id: "${id}" }) { id } }`
 }
 
+function productsCreate(name: string): string {
+  const ts = Date.now().toString(36)
+  const id = `prod-bdd-${ts}`.slice(0, 36)
+  const uniqueName = `${name.slice(0, 24)}-${ts}`.slice(0, 64)
+  return `mutation { create(data: { id: "${id}", name: "${uniqueName}", price: 0, stock: 0, category_id: 1 }) { id } }`
+}
+
+function productsUpdate(id: string, name: string): string {
+  return `mutation { update(where: { id: "${id}" }, data: { name: "${name}" }) { id } }`
+}
+
+// tasks mutation builders
+function tasksCreate(title: string, reporterId: string, projectId?: string): string {
+  const ts = Date.now().toString(36)
+  const id = `task-bdd-${ts}`.slice(0, 36)
+  const uniqueTitle = `${title.slice(0, 24)}-${ts}`.slice(0, 64)
+  const pid = projectId ?? 'proj-allowed-1'
+  return `mutation { create(data: { id: "${id}", title: "${uniqueTitle}", reporter_id: "${reporterId}", project_id: "${pid}" }) { id } }`
+}
+
+function tasksUpdate(id: string, title: string): string {
+  return `mutation { update(where: { id: "${id}" }, data: { title: "${title}" }) { id } }`
+}
+
+function tasksDelete(id: string): string {
+  return `mutation { delete(where: { id: "${id}" }) { id } }`
+}
+
+// task_comments mutation builders
+function commentsCreate(content: string, authorId: string, taskId?: string): string {
+  const ts = Date.now().toString(36)
+  const id = `cmt-bdd-${ts}`.slice(0, 36)
+  const taskField = taskId ? `, task_id: "${taskId}"` : ', task_id: "task-bdd-default"'
+  return `mutation { create(data: { id: "${id}", content: "${content}", author_id: "${authorId}"${taskField} }) { id } }`
+}
+
+function commentsUpdate(id: string, content: string): string {
+  return `mutation { update(where: { id: "${id}" }, data: { content: "${content}" }) { id } }`
+}
+
+function commentsDelete(id: string): string {
+  return `mutation { delete(where: { id: "${id}" }) { id } }`
+}
+
 // ─── State store ───────────────────────────────────────────────
 
 function setLastOpenDataResult(world: ModelCraftWorld, result: OpenDataApiResult) {
@@ -239,6 +411,39 @@ Given('确定性拨测环境已就绪', async function (this: ModelCraftWorld) {
   }
 
   this.modelMap['detModelId'] = foundModel.id
+
+  // 查找 products 模型（用于 products 专项测试）
+  const productsModelName = detProductsModelName()
+  const productsRes = await client.query<{
+    models: { items: Array<{ id: string; name: string; databaseName: string }> }
+  }>(MODELS_LIST, { input: { databaseName: detDbName() } })
+  const productsModel = productsRes.models.items.find(m => m.name === productsModelName)
+  if (productsModel) {
+    this.modelMap['detProductsModelId'] = productsModel.id
+  }
+
+  // 查找 demo_pm 下的 tasks 和 task_comments 模型
+  const pmRes = await client.query<{
+    models: { items: Array<{ id: string; name: string; databaseName: string }> }
+  }>(MODELS_LIST, { input: { databaseName: detPmDbName() } })
+  const tasksModel = pmRes.models.items.find(m => m.name === detTaskModelName())
+  if (tasksModel) {
+    this.modelMap['detTasksModelId'] = tasksModel.id
+    // 清理旧 tasks_ 策略
+    const tp = await client.query<{ rlsPolicies: Array<{ id: string; policyName: string }> }>(GET_RLS_POLICIES, { modelId: tasksModel.id })
+    for (const p of tp.rlsPolicies.filter(p => p.policyName.startsWith('tasks_'))) {
+      await client.mutate(`mutation DeleteRlsPolicy($id: ID!) { deleteRlsPolicy(id: $id) { success error { __typename } } }`, { id: p.id })
+    }
+  }
+  const commentsModel = pmRes.models.items.find(m => m.name === detCommentsModelName())
+  if (commentsModel) {
+    this.modelMap['detCommentsModelId'] = commentsModel.id
+    // 清理旧 comments_ 策略
+    const cp = await client.query<{ rlsPolicies: Array<{ id: string; policyName: string }> }>(GET_RLS_POLICIES, { modelId: commentsModel.id })
+    for (const p of cp.rlsPolicies.filter(p => p.policyName.startsWith('comments_'))) {
+      await client.mutate(`mutation DeleteRlsPolicy($id: ID!) { deleteRlsPolicy(id: $id) { success error { __typename } } }`, { id: p.id })
+    }
+  }
 
   // 清理已有 det_* 策略，然后重建（保证每个 Scenario 独立）
   const existingPolicies = await client.query<{
@@ -505,3 +710,615 @@ Then('创建结果为合法的 GraphQL 响应且无 errors', function (this: Mod
   expect(result.errors?.length ?? 0).toBe(0)
   expect(result.data).not.toBeNull()
 })
+
+// ─── Products 步骤 ─────────────────────────────────────────────
+
+When('我为 products 模型配置以下 RLS v2 policies:', async function (
+  this: ModelCraftWorld,
+  table: DataTable,
+) {
+  const modelId = getDetProductsModelId(this)
+  const rows = table.hashes()
+
+  for (const row of rows) {
+    const input: Record<string, string> = {
+      policyName: row.policyName,
+      action: row.action,
+      role: row.role ?? '*',
+    }
+    if (row.usingExpr) input.usingExpr = row.usingExpr
+    if (row.withCheckExpr) input.withCheckExpr = row.withCheckExpr
+
+    const res = await this.projectClient.mutate<{
+      upsertRlsPolicy: {
+        policy: { id: string; policyName: string } | null
+        error: { __typename: string; message?: string } | null
+      }
+    }>(UPSERT_RLS_POLICY, { modelId, input })
+
+    if (res.upsertRlsPolicy.error) {
+      throw new Error(
+        `products RLS v2 policy "${row.policyName}" 配置失败: ${res.upsertRlsPolicy.error.__typename} — ${res.upsertRlsPolicy.error.message ?? ''}`,
+      )
+    }
+  }
+
+  this.lastResponse = { productsRlsConfigured: true }
+})
+
+Then('products 模型的 RLS v2 策略数量应为 {int}', async function (
+  this: ModelCraftWorld,
+  expectedCount: number,
+) {
+  const modelId = getDetProductsModelId(this)
+  const res = await this.projectClient.query<{
+    rlsPolicies: Array<{ id: string; policyName: string }>
+  }>(GET_RLS_POLICIES, { modelId })
+
+  const relevant = res.rlsPolicies.filter(p => p.policyName.startsWith('products_'))
+  expect(relevant.length).toBe(expectedCount)
+})
+
+When('以 EndUser {string} 对 products 模型调用 Open Data API 执行 findMany', async function (
+  this: ModelCraftWorld,
+  _userLabel: string,
+) {
+  const result = await callOpenDataApiForModel(this, detProductsModelName(), OPEN_FIND_MANY, 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以 EndUser {string} 对 products 模型调用 Open Data API 执行 count 查询', async function (
+  this: ModelCraftWorld,
+  _userLabel: string,
+) {
+  const result = await callOpenDataApiForModel(this, detProductsModelName(), OPEN_COUNT, 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以 EndUser {string} 对 products 模型调用 Open Data API 创建一条记录，name 为 {string}', async function (
+  this: ModelCraftWorld,
+  _userLabel: string,
+  name: string,
+) {
+  const result = await callOpenDataApiForModel(this, detProductsModelName(), productsCreate(name), 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以角色 {string} 对 products 模型调用 Open Data API 执行 findMany', async function (
+  this: ModelCraftWorld,
+  role: string,
+) {
+  const result = await callOpenDataApiForModel(this, detProductsModelName(), OPEN_FIND_MANY, role)
+  setLastOpenDataResult(this, result)
+})
+
+When('以角色 {string} 对 products 模型调用 Open Data API 创建一条记录，name 为 {string}', async function (
+  this: ModelCraftWorld,
+  role: string,
+  name: string,
+) {
+  const result = await callOpenDataApiForModel(this, detProductsModelName(), productsCreate(name), role)
+  setLastOpenDataResult(this, result)
+})
+
+When('以角色 {string} 对 products 模型调用 Open Data API 更新 id 为 {string} 的记录，设置 name 为 {string}', async function (
+  this: ModelCraftWorld,
+  role: string,
+  recordId: string,
+  newName: string,
+) {
+  const result = await callOpenDataApiForModel(this, detProductsModelName(), productsUpdate(recordId, newName), role)
+  setLastOpenDataResult(this, result)
+})
+
+// ─── Tasks / Task_comments 通用 helper ─────────────────────────
+
+async function callPmModel(
+  world: ModelCraftWorld,
+  modelName: string,
+  query: string,
+  role: string,
+  userId?: string,
+): Promise<OpenDataApiResult> {
+  return callOpenDataApiForModelInDb(world, detPmDbName(), modelName, query, role, userId)
+}
+
+// ─── Tasks 步骤 ────────────────────────────────────────────────
+
+When('我为 tasks 模型配置以下 RLS v2 policies:', async function (
+  this: ModelCraftWorld,
+  table: DataTable,
+) {
+  const modelId = getDetTasksModelId(this)
+  const rows = table.hashes()
+
+  for (const row of rows) {
+    const input: Record<string, string> = {
+      policyName: row.policyName,
+      action: row.action,
+      role: row.role ?? '*',
+    }
+    if (row.usingExpr) input.usingExpr = row.usingExpr
+    if (row.withCheckExpr) input.withCheckExpr = row.withCheckExpr
+
+    const res = await this.projectClient.mutate<{
+      upsertRlsPolicy: {
+        policy: { id: string } | null
+        error: { __typename: string; message?: string } | null
+      }
+    }>(UPSERT_RLS_POLICY, { modelId, input })
+
+    if (res.upsertRlsPolicy.error) {
+      throw new Error(`tasks RLS policy "${row.policyName}" 失败: ${res.upsertRlsPolicy.error.__typename} — ${res.upsertRlsPolicy.error.message ?? ''}`)
+    }
+  }
+  this.lastResponse = { tasksRlsConfigured: true }
+})
+
+When('我为 tasks 模型追加以下 RLS v2 policy:', async function (
+  this: ModelCraftWorld,
+  table: DataTable,
+) {
+  const modelId = getDetTasksModelId(this)
+  const row = table.hashes()[0]
+  const input: Record<string, string> = {
+    policyName: row.policyName,
+    action: row.action,
+    role: row.role ?? '*',
+  }
+  if (row.usingExpr) input.usingExpr = row.usingExpr
+  if (row.withCheckExpr) input.withCheckExpr = row.withCheckExpr
+
+  const res = await this.projectClient.mutate<{
+    upsertRlsPolicy: {
+      policy: { id: string } | null
+      error: { __typename: string; message?: string } | null
+    }
+  }>(UPSERT_RLS_POLICY, { modelId, input })
+
+  if (res.upsertRlsPolicy.error) {
+    throw new Error(`tasks RLS policy "${row.policyName}" 追加失败: ${res.upsertRlsPolicy.error.__typename}`)
+  }
+  this.lastResponse = { tasksRlsAppended: true }
+})
+
+Then('tasks 模型的 RLS v2 策略数量应为 {int}', async function (
+  this: ModelCraftWorld,
+  expectedCount: number,
+) {
+  const modelId = getDetTasksModelId(this)
+  const res = await this.projectClient.query<{
+    rlsPolicies: Array<{ id: string; policyName: string }>
+  }>(GET_RLS_POLICIES, { modelId })
+  const relevant = res.rlsPolicies.filter(p => p.policyName.startsWith('tasks_'))
+  expect(relevant.length).toBe(expectedCount)
+})
+
+When('以 reporter 用户身份对 tasks 模型调用 Open Data API 执行 findMany', async function (
+  this: ModelCraftWorld,
+) {
+  const result = await callPmModel(this, detTaskModelName(), OPEN_FIND_MANY, 'viewer', detReporterUserId())
+  setLastOpenDataResult(this, result)
+})
+
+When('以 assignee 用户身份对 tasks 模型调用 Open Data API 执行 findMany', async function (
+  this: ModelCraftWorld,
+) {
+  const result = await callPmModel(this, detTaskModelName(), OPEN_FIND_MANY, 'viewer', detAssigneeUserId())
+  setLastOpenDataResult(this, result)
+})
+
+When('以 reporter 用户身份对 tasks 模型调用 Open Data API 创建一条 reporter 为当前用户的 task，title 为 {string}', async function (
+  this: ModelCraftWorld,
+  title: string,
+) {
+  const userId = detReporterUserId()
+  const result = await callPmModel(this, detTaskModelName(), tasksCreate(title, userId), 'viewer', userId)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 reporter 用户身份对 tasks 模型调用 Open Data API 创建一条 reporter 为 {string} 的 task，title 为 {string}', async function (
+  this: ModelCraftWorld,
+  reporterId: string,
+  title: string,
+) {
+  const userId = detReporterUserId()
+  const result = await callPmModel(this, detTaskModelName(), tasksCreate(title, reporterId), 'viewer', userId)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 reporter 用户身份对 tasks 模型调用 Open Data API 创建一条 reporter 为当前用户且 project_id 为 {string} 的 task，title 为 {string}', async function (
+  this: ModelCraftWorld,
+  projectId: string,
+  title: string,
+) {
+  const userId = detReporterUserId()
+  const result = await callPmModel(this, detTaskModelName(), tasksCreate(title, userId, projectId), 'viewer', userId)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 reporter 用户身份对 tasks 模型调用 Open Data API 更新 id 为 {string} 的 task，设置 title 为 {string}', async function (
+  this: ModelCraftWorld,
+  recordId: string,
+  title: string,
+) {
+  const result = await callPmModel(this, detTaskModelName(), tasksUpdate(recordId, title), 'viewer', detReporterUserId())
+  setLastOpenDataResult(this, result)
+})
+
+When('以 assignee 用户身份对 tasks 模型调用 Open Data API 更新 id 为 {string} 的 task，设置 title 为 {string}', async function (
+  this: ModelCraftWorld,
+  recordId: string,
+  title: string,
+) {
+  const result = await callPmModel(this, detTaskModelName(), tasksUpdate(recordId, title), 'viewer', detAssigneeUserId())
+  setLastOpenDataResult(this, result)
+})
+
+When('以 reporter 用户身份对 tasks 模型调用 Open Data API 删除 id 为 {string} 的 task', async function (
+  this: ModelCraftWorld,
+  recordId: string,
+) {
+  const result = await callPmModel(this, detTaskModelName(), tasksDelete(recordId), 'viewer', detReporterUserId())
+  setLastOpenDataResult(this, result)
+})
+
+When('以 assignee 用户身份对 tasks 模型调用 Open Data API 删除 id 为 {string} 的 task', async function (
+  this: ModelCraftWorld,
+  recordId: string,
+) {
+  const result = await callPmModel(this, detTaskModelName(), tasksDelete(recordId), 'viewer', detAssigneeUserId())
+  setLastOpenDataResult(this, result)
+})
+
+When('以角色 {string} 对 tasks 模型调用 Open Data API 执行 findMany', async function (
+  this: ModelCraftWorld,
+  role: string,
+) {
+  const result = await callPmModel(this, detTaskModelName(), OPEN_FIND_MANY, role)
+  setLastOpenDataResult(this, result)
+})
+
+// ─── Task_comments 步骤 ────────────────────────────────────────
+
+When('我为 task_comments 模型配置以下 RLS v2 policies:', async function (
+  this: ModelCraftWorld,
+  table: DataTable,
+) {
+  const modelId = getDetCommentsModelId(this)
+  const rows = table.hashes()
+
+  for (const row of rows) {
+    const input: Record<string, string> = {
+      policyName: row.policyName,
+      action: row.action,
+      role: row.role ?? '*',
+    }
+    if (row.usingExpr) input.usingExpr = row.usingExpr
+    if (row.withCheckExpr) input.withCheckExpr = row.withCheckExpr
+
+    const res = await this.projectClient.mutate<{
+      upsertRlsPolicy: {
+        policy: { id: string } | null
+        error: { __typename: string; message?: string } | null
+      }
+    }>(UPSERT_RLS_POLICY, { modelId, input })
+
+    if (res.upsertRlsPolicy.error) {
+      throw new Error(`task_comments RLS policy "${row.policyName}" 失败: ${res.upsertRlsPolicy.error.__typename}`)
+    }
+  }
+  this.lastResponse = { commentsRlsConfigured: true }
+})
+
+When('我为 task_comments 模型追加以下 RLS v2 policy:', async function (
+  this: ModelCraftWorld,
+  table: DataTable,
+) {
+  const modelId = getDetCommentsModelId(this)
+  const row = table.hashes()[0]
+  const input: Record<string, string> = {
+    policyName: row.policyName,
+    action: row.action,
+    role: row.role ?? '*',
+  }
+  if (row.usingExpr) input.usingExpr = row.usingExpr
+  if (row.withCheckExpr) input.withCheckExpr = row.withCheckExpr
+
+  const res = await this.projectClient.mutate<{
+    upsertRlsPolicy: {
+      policy: { id: string } | null
+      error: { __typename: string; message?: string } | null
+    }
+  }>(UPSERT_RLS_POLICY, { modelId, input })
+
+  if (res.upsertRlsPolicy.error) {
+    throw new Error(`task_comments RLS policy "${row.policyName}" 追加失败: ${res.upsertRlsPolicy.error.__typename}`)
+  }
+  this.lastResponse = { commentsRlsAppended: true }
+})
+
+Then('task_comments 模型的 RLS v2 策略数量应为 {int}', async function (
+  this: ModelCraftWorld,
+  expectedCount: number,
+) {
+  const modelId = getDetCommentsModelId(this)
+  const res = await this.projectClient.query<{
+    rlsPolicies: Array<{ id: string; policyName: string }>
+  }>(GET_RLS_POLICIES, { modelId })
+  const relevant = res.rlsPolicies.filter(p => p.policyName.startsWith('comments_'))
+  expect(relevant.length).toBe(expectedCount)
+})
+
+When('以 EndUser {string} 对 task_comments 模型调用 Open Data API 执行 findMany', async function (
+  this: ModelCraftWorld,
+  _userLabel: string,
+) {
+  const result = await callPmModel(this, detCommentsModelName(), OPEN_FIND_MANY, 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以 EndUser {string} 对 task_comments 模型调用 Open Data API 创建一条 author_id 为当前用户的评论，content 为 {string}', async function (
+  this: ModelCraftWorld,
+  _userLabel: string,
+  content: string,
+) {
+  const userId = detEndUserId()
+  const result = await callPmModel(this, detCommentsModelName(), commentsCreate(content, userId), 'viewer', userId)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 EndUser {string} 对 task_comments 模型调用 Open Data API 创建一条 author_id 为 {string} 的评论，content 为 {string}', async function (
+  this: ModelCraftWorld,
+  _userLabel: string,
+  authorId: string,
+  content: string,
+) {
+  const result = await callPmModel(this, detCommentsModelName(), commentsCreate(content, authorId), 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以 EndUser {string} 对 task_comments 模型调用 Open Data API 创建一条 author_id 为当前用户且 task_id 为 {string} 的评论，content 为 {string}', async function (
+  this: ModelCraftWorld,
+  _userLabel: string,
+  taskId: string,
+  content: string,
+) {
+  const userId = detEndUserId()
+  const result = await callPmModel(this, detCommentsModelName(), commentsCreate(content, userId, taskId), 'viewer', userId)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 EndUser {string} 对 task_comments 模型调用 Open Data API 更新 id 为 {string} 的评论，设置 content 为 {string}', async function (
+  this: ModelCraftWorld,
+  _userLabel: string,
+  recordId: string,
+  content: string,
+) {
+  const result = await callPmModel(this, detCommentsModelName(), commentsUpdate(recordId, content), 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以 EndUser {string} 对 task_comments 模型调用 Open Data API 删除 id 为 {string} 的评论', async function (
+  this: ModelCraftWorld,
+  _userLabel: string,
+  recordId: string,
+) {
+  const result = await callPmModel(this, detCommentsModelName(), commentsDelete(recordId), 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+// ─── 跨步骤 ID 传递 ────────────────────────────────────────────
+
+Then('保存上次创建的记录 id', function (this: ModelCraftWorld) {
+  const result = getLastOpenDataResult(this)
+  const data = result.data as { create?: { id: string } | null } | undefined
+  const id = data?.create?.id
+  if (!id) throw new Error('上次创建操作未返回 id，无法保存')
+  this.modelMap['lastCreatedId'] = id
+})
+
+function getLastCreatedId(world: ModelCraftWorld): string {
+  const id = world.modelMap['lastCreatedId']
+  if (!id) throw new Error('lastCreatedId 未就绪（请确认"保存上次创建的记录 id"步骤已执行）')
+  return id
+}
+
+When('以 EndUser {string} 调用 Open Data API 更新上次保存的记录，设置 name 为 {string}', async function (
+  this: ModelCraftWorld,
+  _userLabel: string,
+  newName: string,
+) {
+  const id = getLastCreatedId(this)
+  const result = await callOpenDataApi(this, openUpdate(id, newName), 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以 EndUser {string} 调用 Open Data API 删除上次保存的记录', async function (
+  this: ModelCraftWorld,
+  _userLabel: string,
+) {
+  const id = getLastCreatedId(this)
+  const result = await callOpenDataApi(this, openDelete(id), 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以 assignee 用户身份对 tasks 模型调用 Open Data API 更新上次保存的 task，设置 title 为 {string}', async function (
+  this: ModelCraftWorld,
+  title: string,
+) {
+  const id = getLastCreatedId(this)
+  const result = await callPmModel(this, detTaskModelName(), tasksUpdate(id, title), 'viewer', detAssigneeUserId())
+  setLastOpenDataResult(this, result)
+})
+
+When('以 assignee 用户身份对 tasks 模型调用 Open Data API 删除上次保存的 task', async function (
+  this: ModelCraftWorld,
+) {
+  const id = getLastCreatedId(this)
+  const result = await callPmModel(this, detTaskModelName(), tasksDelete(id), 'viewer', detAssigneeUserId())
+  setLastOpenDataResult(this, result)
+})
+
+When('以 reporter 用户身份对 tasks 模型调用 Open Data API 删除上次保存的 task', async function (
+  this: ModelCraftWorld,
+) {
+  const id = getLastCreatedId(this)
+  const result = await callPmModel(this, detTaskModelName(), tasksDelete(id), 'viewer', detReporterUserId())
+  setLastOpenDataResult(this, result)
+})
+
+// ─── useAdmin 查询条件专项步骤 ─────────────────────────────────────
+// X-MC-Auth-Useadmin: true — 设计者以 admin 权限操作 runtime，跳过 RLS 用户过滤
+
+async function callOpenDataApiUseAdmin(
+  world: ModelCraftWorld,
+  query: string,
+): Promise<OpenDataApiResult> {
+  const endpoint = openDataEndpoint(world)
+  const pat = detPat()
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${pat}`,
+    'X-MC-Auth-Useadmin': 'true',
+  }
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ query }),
+  })
+
+  const body = await res.json()
+  return { status: res.status, data: body.data, errors: body.errors }
+}
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany', async function (this: ModelCraftWorld) {
+  const result = await callOpenDataApiUseAdmin(this, OPEN_FIND_MANY)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，take {int} skip {int}', async function (
+  this: ModelCraftWorld,
+  take: number,
+  skip: number,
+) {
+  const query = `query { findMany(take: ${take}, skip: ${skip}, orderBy: [{ id: asc }]) { items { id } totalCount timeCost reqId } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，orderBy id desc', async function (this: ModelCraftWorld) {
+  const query = `query { findMany(take: 20, skip: 0, orderBy: [{ id: desc }]) { items { id } totalCount timeCost reqId } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，orderBy total_amount asc', async function (this: ModelCraftWorld) {
+  const query = `query { findMany(take: 20, skip: 0, orderBy: [{ total_amount: asc }]) { items { id } totalCount timeCost reqId } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，where user_id eq {string}', async function (
+  this: ModelCraftWorld,
+  userId: string,
+) {
+  const query = `query { findMany(take: 20, skip: 0, orderBy: [{ id: asc }], where: { user_id: { equals: "${userId}" } }) { items { id } totalCount timeCost reqId } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，where user_id in {string}', async function (
+  this: ModelCraftWorld,
+  userIds: string,
+) {
+  const ids = userIds.split(',').map(s => `"${s.trim()}"`).join(', ')
+  const query = `query { findMany(take: 20, skip: 0, orderBy: [{ id: asc }], where: { user_id: { in: [${ids}] } }) { items { id } totalCount timeCost reqId } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，take {int} skip {int} orderBy id desc', async function (
+  this: ModelCraftWorld,
+  take: number,
+  skip: number,
+) {
+  const query = `query { findMany(take: ${take}, skip: ${skip}, orderBy: [{ id: desc }]) { items { id } totalCount timeCost reqId } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 count', async function (this: ModelCraftWorld) {
+  const result = await callOpenDataApiUseAdmin(this, OPEN_COUNT)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 count，where user_id eq {string}', async function (
+  this: ModelCraftWorld,
+  userId: string,
+) {
+  const query = `query { count(where: { user_id: { equals: "${userId}" } }) { count } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，where total_amount gt {int}', async function (
+  this: ModelCraftWorld,
+  value: number,
+) {
+  const query = `query { findMany(take: 20, skip: 0, orderBy: [{ id: asc }], where: { total_amount: { gt: ${value} } }) { items { id } totalCount timeCost reqId } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，where total_amount lte {int}', async function (
+  this: ModelCraftWorld,
+  value: number,
+) {
+  const query = `query { findMany(take: 20, skip: 0, orderBy: [{ id: asc }], where: { total_amount: { lte: ${value} } }) { items { id } totalCount timeCost reqId } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，where order_no startsWith {string}', async function (
+  this: ModelCraftWorld,
+  prefix: string,
+) {
+  const query = `query { findMany(take: 20, skip: 0, orderBy: [{ id: asc }], where: { order_no: { startsWith: "${prefix}" } }) { items { id } totalCount timeCost reqId } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，where address_id ne {string}', async function (
+  this: ModelCraftWorld,
+  value: string,
+) {
+  const query = `query { findMany(take: 20, skip: 0, orderBy: [{ id: asc }], where: { address_id: { not: "${value}" } }) { items { id } totalCount timeCost reqId } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，where remark isNull', async function (this: ModelCraftWorld) {
+  const query = `query { findMany(take: 20, skip: 0, orderBy: [{ id: asc }], where: { remark: { equals: null } }) { items { id } totalCount timeCost reqId } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，多字段排序 total_amount asc id desc', async function (this: ModelCraftWorld) {
+  const query = `query { findMany(take: 20, skip: 0, orderBy: [{ total_amount: asc }, { id: desc }]) { items { id } totalCount timeCost reqId } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，where paid_amount gte {int} lte {int}', async function (
+  this: ModelCraftWorld,
+  gte: number,
+  lte: number,
+) {
+  const query = `query { findMany(take: 20, skip: 0, orderBy: [{ id: asc }], where: { AND: [{ paid_amount: { gte: ${gte} } }, { paid_amount: { lte: ${lte} } }] }) { items { id } totalCount timeCost reqId } }`
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+

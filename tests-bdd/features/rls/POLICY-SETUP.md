@@ -57,25 +57,42 @@
 
 ### tasks
 
-字段：`id, title, description, reporter_id, assignee_id, project_id, story_points`
+字段：`id, title, description, reporter_id, assignee_id, project_id, milestone_id, story_points, due_date, created_at, updated_at, completed_at`
 
-测试覆盖：OR 表达式（reporter 或 assignee 可读/更新），reporter 独占删除权（T9、T10）。
+测试覆盖：
+- reporter 或 assignee 可读/更新（拆为两条独立策略代替 `||`）
+- `in` 操作：只有指定 milestone 下的任务可被普通用户访问（`row.milestone_id in [...]`）
+- reporter 独占删除权，assignee 无删除权
+- create 要求 `reporter_id == auth.userid`
+- `withCheckExpr` + `in`：create 时 `project_id` 必须在合法范围内（`input.project_id in ["allowed-proj-1", "allowed-proj-2"]`）
+- admin 角色读取全量
 
 | policyName | action | role | usingExpr | withCheckExpr |
 |------------|--------|------|-----------|---------------|
-| tasks_read | read | * | `row.reporter_id == auth.userid \|\| row.assignee_id == auth.userid` | |
+| tasks_reporter_read | read | * | `row.reporter_id == auth.userid` | |
+| tasks_assignee_read | read | * | `row.assignee_id == auth.userid` | |
 | tasks_create | create | * | | `input.reporter_id == auth.userid` |
-| tasks_update | update | * | `row.reporter_id == auth.userid \|\| row.assignee_id == auth.userid` | |
+| tasks_reporter_update | update | * | `row.reporter_id == auth.userid` | |
+| tasks_assignee_update | update | * | `row.assignee_id == auth.userid` | |
 | tasks_reporter_delete | delete | * | `row.reporter_id == auth.userid` | |
 | tasks_admin_read | read | admin | `true` | |
 
-> ⚠️ `||` 运算符需确认 RLS 引擎支持。若不支持，将 tasks_read 和 tasks_update 各拆为两条策略（分别以 reporter_id 和 assignee_id 为条件）。
+**`in` 专项策略**（单独场景通过 upsert 覆盖 `tasks_create`，验证完下一个 Scenario 由 Background 重置）：
+
+| policyName | action | role | usingExpr | withCheckExpr |
+|------------|--------|------|-----------|---------------|
+| tasks_create | create | * | | `input.project_id in ["proj-allowed-1", "proj-allowed-2"]` |
+| tasks_milestone_read | read | * | `row.milestone_id in ["ms-allowed-1", "ms-allowed-2"]` | |
 
 ### task_comments
 
 字段：`id, task_id, author_id, content, created_at`
 
-测试覆盖：全员可读，只有作者可写/改/删（T11）。
+测试覆盖：
+- 全员可读
+- `in` 操作：只有特定 task 下的评论可被普通用户访问（`row.task_id in [...]`）
+- 只有 author 可写/改/删
+- `withCheckExpr` + `in`：create 时限定 task 范围（`input.task_id in ["task-a", "task-b"]`）
 
 | policyName | action | role | usingExpr | withCheckExpr |
 |------------|--------|------|-----------|---------------|
@@ -83,6 +100,13 @@
 | comments_author_create | create | * | | `input.author_id == auth.userid` |
 | comments_author_update | update | * | `row.author_id == auth.userid` | |
 | comments_author_delete | delete | * | `row.author_id == auth.userid` | |
+
+**`in` 专项策略**（单独场景通过 upsert 覆盖 `comments_author_create`）：
+
+| policyName | action | role | usingExpr | withCheckExpr |
+|------------|--------|------|-----------|---------------|
+| comments_author_create | create | * | | `input.task_id in ["task-visible-1", "task-visible-2"]` |
+| comments_task_read | read | * | `row.task_id in ["task-visible-1", "task-visible-2"]` | |
 
 ### members
 
@@ -117,7 +141,7 @@ DET_END_USER_ID=rls-test-user-001
 DET_END_USER_NAME=rls-test-user
 ```
 
-扩展测试（`@extended`，待实现）使用 demo_pm：
+扩展测试（`@deterministic`，demo_pm 数据库）使用：
 
 ```bash
 DET_PM_DB_NAME=demo_pm
@@ -126,4 +150,8 @@ DET_COMMENTS_MODEL=task_comments
 DET_MEMBERS_MODEL=members
 DET_REPORTER_USER_ID=rls-reporter-001
 DET_ASSIGNEE_USER_ID=rls-assignee-002
+# in 测试中允许访问的 milestone / project / task ID
+DET_ALLOWED_MILESTONE_IDS=ms-allowed-1,ms-allowed-2
+DET_ALLOWED_PROJECT_IDS=proj-allowed-1,proj-allowed-2
+DET_ALLOWED_TASK_IDS=task-visible-1,task-visible-2
 ```

@@ -554,6 +554,15 @@ test-user-cleanup user_id="487101d6-92bb-459e-b4f1-426255126d27":
     echo "✅ Test user cleanup completed!"
 
 # ========================
+# 🧪 测试 - CLI BDD 环境
+# ========================
+
+# 初始化 CLI BDD 测试所需的 demo_ecommerce 数据库
+[doc("Set up demo_ecommerce database for CLI BDD tests")]
+setup-cli-test-env host="127.0.0.1" port="3307" user="root" password="modelcraft123":
+    ../tests-bdd/fixtures/sql/setup-cli-test-env.sh {{host}} {{port}} {{user}} {{password}}
+
+# ========================
 # 🐳 Docker 命令
 # ========================
 

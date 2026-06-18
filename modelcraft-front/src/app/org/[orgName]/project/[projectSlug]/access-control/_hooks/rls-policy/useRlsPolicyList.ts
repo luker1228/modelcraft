@@ -1,7 +1,12 @@
 import { useQuery } from '@apollo/client'
 import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 import { GET_RLS_POLICIES } from '@/api-client/rls-policy'
-import type { RlsPolicy, RlsPoliciesOrderBy } from '@/generated/graphql'
+import type {
+  GetRlsPoliciesQuery,
+  GetRlsPoliciesQueryVariables,
+  RlsPolicy,
+  RlsPoliciesOrderBy,
+} from '@/generated/graphql'
 
 interface UseRlsPolicyListProps {
   projectSlug: string
@@ -18,9 +23,9 @@ interface UseRlsPolicyListReturn {
 export function useRlsPolicyList({ projectSlug, modelId, orderBy }: UseRlsPolicyListProps): UseRlsPolicyListReturn {
   const client = useProjectScopedClient(projectSlug)
 
-  const { data, loading, error } = useQuery(GET_RLS_POLICIES, {
+  const { data, loading, error } = useQuery<GetRlsPoliciesQuery, GetRlsPoliciesQueryVariables>(GET_RLS_POLICIES, {
     client,
-    variables: { modelId, orderBy: orderBy ?? null },
+    variables: modelId ? { modelId, orderBy: orderBy ?? null } : undefined,
     skip: !modelId,
   })
 

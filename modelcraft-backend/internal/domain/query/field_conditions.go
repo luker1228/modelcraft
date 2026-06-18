@@ -423,17 +423,17 @@ func IsNotNull() Condition {
 
 // reservedKeywords 所有查询操作符关键字列表，这些关键字不能用作字段名
 // 保留这些关键字可以防止字段名与查询操作符冲突，确保查询解析的正确性
-var reservedKeywords = []string{
+var reservedKeywords = [...]string{
 	// 逻辑操作符 - Logical Operators
-	"AND", "OR", "NOT",
+	LogicalOperatorAND, LogicalOperatorOR, LogicalOperatorNOT,
 	// 通用比较操作符 - Common Comparison Operators
-	"equals", "not", "in",
+	FieldEquals, FieldNot, FieldIn,
 	// 数值比较操作符 - Numeric Comparison Operators
-	"lt", "lte", "gt", "gte",
+	FieldLt, FieldLte, FieldGt, FieldGte,
 	// 字符串操作符 - String Operators
-	"contains", "startsWith", "endsWith",
+	FieldContains, FieldStartsWith, FieldEndsWith,
 	// 查询模式 - Query Mode
-	"mode",
+	FieldMode,
 }
 
 // GetReservedKeywords 返回所有保留关键字列表
@@ -441,7 +441,7 @@ var reservedKeywords = []string{
 func GetReservedKeywords() []string {
 	// 返回副本以防止外部修改
 	keywords := make([]string, len(reservedKeywords))
-	copy(keywords, reservedKeywords)
+	copy(keywords, reservedKeywords[:])
 	return keywords
 }
 
