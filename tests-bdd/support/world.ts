@@ -64,11 +64,15 @@ export class ModelCraftWorld extends World {
   currentEndUserToken: string | null = null
   lastEndUserInfo: Record<string, unknown> | null = null
 
+  // 当前 Scenario 名称
+  scenarioName: string = ''
+
   constructor(options: IWorldOptions) {
     super(options)
 
     this.orgName = process.env.TEST_ORG_NAME ?? 'test-org'
     this.projectSlug = process.env.TEST_PROJECT_SLUG ?? 'test-project'
+    this.scenarioName = (options as unknown as { pickle?: { name?: string } }).pickle?.name ?? ''
 
     this.restClient = new RestClient()
     this.projectClient = new GraphQLClient(this.orgName, this.projectSlug)

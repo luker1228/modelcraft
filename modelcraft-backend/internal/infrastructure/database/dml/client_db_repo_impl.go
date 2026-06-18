@@ -550,9 +550,11 @@ func (c *ClientDBRepoImpl) UpdateOne(ctx context.Context, input *modelruntime.Up
 
 			if input.UpdatedObj {
 				// 查询并返回更新后的记录
+				// 必须带上 RawFilters（USING filter），若记录对当前用户不可见则返回 nil
 				findInput := &modelruntime.FindUniqueInput{
-					TableName: input.TableName,
-					Where:     input.Where,
+					TableName:  input.TableName,
+					Where:      input.Where,
+					RawFilters: input.RawFilters,
 				}
 				return c.FindUnique(ctx, findInput)
 			} else {
@@ -578,9 +580,11 @@ func (c *ClientDBRepoImpl) DeleteOne(ctx context.Context, input *modelruntime.De
 			var deletedRecord map[string]any
 			if input.DeletedObj {
 				// 先查询要删除的记录，以便返回
+				// 必须带上 RawFilters（USING filter），否则会绕过 RLS 返回不可见记录
 				findInput := &modelruntime.FindUniqueInput{
-					TableName: input.TableName,
-					Where:     input.Where,
+					TableName:  input.TableName,
+					Where:      input.Where,
+					RawFilters: input.RawFilters,
 				}
 				toDeleteOne, err := c.FindUnique(ctx, findInput)
 				if err != nil {

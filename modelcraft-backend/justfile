@@ -90,8 +90,6 @@ run *FLAGS:
     PID=$!
     echo "✅ Application started in background"
     echo "   PID: $PID"
-    echo "   Logs: tail -f logs/server.log"
-    echo "   Or use: just logs"
     sleep 2
     if ps -p $PID > /dev/null; then
         echo "✅ Process is running"
@@ -169,62 +167,11 @@ status:
             fi
             echo ""
             echo "💡 建议:"
-            echo "   - 查看日志: just logs"
             echo "   - 重启服务: just run --force"
         else
             echo "💡 启动服务: just run"
         fi
     fi
-
-# 查看日志
-[doc("View server logs")]
-logs:
-    tail -f logs/server.log
-
-# 按 reqId 查看日志
-[doc("Show logs for a specific request ID")]
-log-cat reqId:
-    #!/usr/bin/env bash
-    if [ -z "{{reqId}}" ]; then
-        echo "❌ 请指定 reqId，例如: just log-cat VM-32-8-tencentos/FjPXpJqnCU-000001"
-        exit 1
-    fi
-    # 提取 reqId 值（支持 "reqId=xxx" 格式）
-    reqIdRaw="{{reqId}}"
-    reqIdValue="${reqIdRaw#reqId=}"
-    echo "🔍 查找 request_id: $reqIdValue"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    grep "\"$reqIdValue\"" logs/server.log | jq '.' || echo "No logs found for this request ID"
-
-# 按 requestId 查三段链路日志（apisix + backend + agent，docker 模式）
-[doc("Grep requestId across apisix / backend / agent logs (docker mode)")]
-log-trace requestId:
-    #!/usr/bin/env bash
-    set -e
-    rid="{{requestId}}"
-    if [ -z "$rid" ]; then
-        echo "❌ 用法: just log-trace <requestId>"
-        exit 1
-    fi
-    echo "🔍 requestId: $rid"
-    echo ""
-
-    echo "━━━ [1/3] apisix ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    docker exec modelcraft-apisix sh -c \
-        "grep '$rid' /usr/local/apisix/logs/access.log /usr/local/apisix/logs/error.log 2>/dev/null" \
-        || echo "(no logs in apisix)"
-    echo ""
-
-    echo "━━━ [2/3] backend ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    docker exec modelcraft-backend sh -c \
-        "grep '$rid' /app/logs/server.log 2>/dev/null" | jq -rc '.' \
-        || echo "(no logs in backend)"
-    echo ""
-
-    echo "━━━ [3/3] agent ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    docker exec modelcraft-agent sh -c \
-        "grep '$rid' /app/logs/agent.log 2>/dev/null" \
-        || echo "(no logs in agent)"
 
 # 清理构建产物
 [doc("Clean build artifacts")]
@@ -586,11 +533,6 @@ docker-compose-up:
 docker-compose-down:
     docker-compose down
 
-# 查看 Docker Compose 日志
-[doc("View Docker Compose logs")]
-docker-compose-logs:
-    docker-compose logs -f
-
 # 构建 Docker Compose 服务
 [doc("Build Docker Compose services")]
 docker-compose-build:
@@ -624,16 +566,6 @@ docker-status:
 [doc("Access application container shell")]
 docker-shell:
     docker-compose exec modelcraft sh
-
-# 查看应用日志
-[doc("View application logs")]
-docker-app-logs:
-    docker-compose logs -f modelcraft
-
-# 查看数据库日志
-[doc("View database logs")]
-docker-db-logs:
-    docker-compose logs -f mysql
 
 # ========================
 # 🚀 部署管理

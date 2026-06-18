@@ -102,6 +102,16 @@ interface OpenDataApiResult {
   status: number
   data: unknown
   errors?: Array<{ message: string; extensions?: { code: string } }>
+  clientRequestId: string
+  requestId?: string
+}
+
+function genClientRequestId(): string {
+  return `bdd-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+}
+
+function logRequestIds(_label: string, _clientReqId: string, _requestId?: string) {
+  // 由 setLastOpenDataResult 统一打印，此处不再重复输出
 }
 
 /**
@@ -143,6 +153,7 @@ async function callOpenDataApi(
   const pat = detPat()
   const uid = userId ?? detEndUserId()
   const uname = userName ?? detEndUserName()
+  const clientRequestId = genClientRequestId()
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -150,6 +161,7 @@ async function callOpenDataApi(
     'X-MC-Auth-Userid-Str': uid,
     'X-MC-Auth-Username': uname,
     'X-MC-Auth-Roles': role,
+    'X-Client-Request-Id': clientRequestId,
   }
 
   const res = await fetch(endpoint, {
@@ -159,11 +171,15 @@ async function callOpenDataApi(
   })
 
   const body = await res.json()
+  const requestId = (body.extensions as { requestId?: string } | undefined)?.requestId
+  logRequestIds(`role=${role} uid=${uid}`, clientRequestId, requestId)
 
   return {
     status: res.status,
     data: body.data,
     errors: body.errors,
+    clientRequestId,
+    requestId,
   }
 }
 
@@ -179,6 +195,7 @@ async function callOpenDataApiForModel(
   const pat = detPat()
   const uid = userId ?? detEndUserId()
   const uname = userName ?? detEndUserName()
+  const clientRequestId = genClientRequestId()
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -186,6 +203,7 @@ async function callOpenDataApiForModel(
     'X-MC-Auth-Userid-Str': uid,
     'X-MC-Auth-Username': uname,
     'X-MC-Auth-Roles': role,
+    'X-Client-Request-Id': clientRequestId,
   }
 
   const res = await fetch(endpoint, {
@@ -195,11 +213,15 @@ async function callOpenDataApiForModel(
   })
 
   const body = await res.json()
+  const requestId = (body.extensions as { requestId?: string } | undefined)?.requestId
+  logRequestIds(`model=${modelName} role=${role} uid=${uid}`, clientRequestId, requestId)
 
   return {
     status: res.status,
     data: body.data,
     errors: body.errors,
+    clientRequestId,
+    requestId,
   }
 }
 
@@ -216,6 +238,7 @@ async function callOpenDataApiForModelInDb(
   const pat = detPat()
   const uid = userId ?? detEndUserId()
   const uname = userName ?? detEndUserName()
+  const clientRequestId = genClientRequestId()
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -223,6 +246,7 @@ async function callOpenDataApiForModelInDb(
     'X-MC-Auth-Userid-Str': uid,
     'X-MC-Auth-Username': uname,
     'X-MC-Auth-Roles': role,
+    'X-Client-Request-Id': clientRequestId,
   }
 
   const res = await fetch(endpoint, {
@@ -232,11 +256,15 @@ async function callOpenDataApiForModelInDb(
   })
 
   const body = await res.json()
+  const requestId = (body.extensions as { requestId?: string } | undefined)?.requestId
+  logRequestIds(`db=${dbName} model=${modelName} role=${role} uid=${uid}`, clientRequestId, requestId)
 
   return {
     status: res.status,
     data: body.data,
     errors: body.errors,
+    clientRequestId,
+    requestId,
   }
 }
 
@@ -286,11 +314,11 @@ function openCreateWithUserId(orderNo: string, userId?: string): string {
 }
 
 function openUpdate(id: string, remark: string): string {
-  return `mutation { update(where: { id: "${id}" }, data: { remark: "${remark}" }) { id } }`
+  return `mutation { update(where: { id: "${id}" }, data: { remark: "${remark}" }) { success updatedObj { id } } }`
 }
 
 function openDelete(id: string): string {
-  return `mutation { delete(where: { id: "${id}" }) { id } }`
+  return `mutation { delete(where: { id: "${id}" }) { success deletedObj { id } } }`
 }
 
 function productsCreate(name: string): string {
@@ -301,7 +329,7 @@ function productsCreate(name: string): string {
 }
 
 function productsUpdate(id: string, name: string): string {
-  return `mutation { update(where: { id: "${id}" }, data: { name: "${name}" }) { id } }`
+  return `mutation { update(where: { id: "${id}" }, data: { name: "${name}" }) { success updatedObj { id } } }`
 }
 
 // tasks mutation builders
@@ -314,11 +342,11 @@ function tasksCreate(title: string, reporterId: string, projectId?: string): str
 }
 
 function tasksUpdate(id: string, title: string): string {
-  return `mutation { update(where: { id: "${id}" }, data: { title: "${title}" }) { id } }`
+  return `mutation { update(where: { id: "${id}" }, data: { title: "${title}" }) { success updatedObj { id } } }`
 }
 
 function tasksDelete(id: string): string {
-  return `mutation { delete(where: { id: "${id}" }) { id } }`
+  return `mutation { delete(where: { id: "${id}" }) { success deletedObj { id } } }`
 }
 
 // task_comments mutation builders
@@ -330,17 +358,23 @@ function commentsCreate(content: string, authorId: string, taskId?: string): str
 }
 
 function commentsUpdate(id: string, content: string): string {
-  return `mutation { update(where: { id: "${id}" }, data: { content: "${content}" }) { id } }`
+  return `mutation { update(where: { id: "${id}" }, data: { content: "${content}" }) { success updatedObj { id } } }`
 }
 
 function commentsDelete(id: string): string {
-  return `mutation { delete(where: { id: "${id}" }) { id } }`
+  return `mutation { delete(where: { id: "${id}" }) { success deletedObj { id } } }`
 }
 
 // ─── State store ───────────────────────────────────────────────
 
 function setLastOpenDataResult(world: ModelCraftWorld, result: OpenDataApiResult) {
   world.lastResponse = { openDataApi: result }
+  const rid = result.requestId ?? '(none)'
+  console.log(`  [rls] ${world.scenarioName}`)
+  console.log(`        requestId=${rid}`)
+  if (result.requestId) {
+    console.log(`        └─ just log-cat ${result.requestId}`)
+  }
 }
 
 function getLastOpenDataResult(world: ModelCraftWorld): OpenDataApiResult {
@@ -675,33 +709,29 @@ Then('操作被拒绝且返回错误类型 {string}', function (
 Then('更新返回 0 行受影响且无错误', function (this: ModelCraftWorld) {
   const result = getLastOpenDataResult(this)
   expect(result.errors?.length ?? 0).toBe(0)
-
-  const data = result.data as { update?: { id: string } | null } | undefined
-  expect(data?.update).toBeNull()
+  const updatedObj = (result.data as any)?.update?.updatedObj
+  expect(updatedObj).toBeNull()
 })
 
 Then('更新操作未生效', function (this: ModelCraftWorld) {
   const result = getLastOpenDataResult(this)
-  const data = result.data as { update?: { id: string } | null } | undefined
   const hasErrors = (result.errors?.length ?? 0) > 0
-  const returnedNull = data?.update == null
-  expect(hasErrors || returnedNull).toBe(true)
+  const updatedObj = (result.data as any)?.update?.updatedObj
+  expect(hasErrors || updatedObj == null).toBe(true)
 })
 
 Then('删除返回 0 行受影响且无错误', function (this: ModelCraftWorld) {
   const result = getLastOpenDataResult(this)
   expect(result.errors?.length ?? 0).toBe(0)
-
-  const data = result.data as { delete?: { id: string } | null } | undefined
-  expect(data?.delete).toBeNull()
+  const deletedObj = (result.data as any)?.delete?.deletedObj
+  expect(deletedObj).toBeNull()
 })
 
 Then('删除操作未生效', function (this: ModelCraftWorld) {
   const result = getLastOpenDataResult(this)
-  const data = result.data as { delete?: { id: string } | null } | undefined
   const hasErrors = (result.errors?.length ?? 0) > 0
-  const returnedNull = data?.delete == null
-  expect(hasErrors || returnedNull).toBe(true)
+  const deletedObj = (result.data as any)?.delete?.deletedObj
+  expect(hasErrors || deletedObj == null).toBe(true)
 })
 
 Then('创建结果为合法的 GraphQL 响应且无 errors', function (this: ModelCraftWorld) {
@@ -1174,24 +1204,30 @@ When('以 reporter 用户身份对 tasks 模型调用 Open Data API 删除上次
 async function callOpenDataApiUseAdmin(
   world: ModelCraftWorld,
   query: string,
+  variables?: Record<string, unknown>,
 ): Promise<OpenDataApiResult> {
   const endpoint = openDataEndpoint(world)
   const pat = detPat()
+  const clientRequestId = genClientRequestId()
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${pat}`,
     'X-MC-Auth-Useadmin': 'true',
+    'X-Client-Request-Id': clientRequestId,
   }
 
   const res = await fetch(endpoint, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ query }),
+    body: JSON.stringify(variables ? { query, variables } : { query }),
   })
 
   const body = await res.json()
-  return { status: res.status, data: body.data, errors: body.errors }
+  const requestId = (body.extensions as { requestId?: string } | undefined)?.requestId
+  logRequestIds(`useAdmin`, clientRequestId, requestId)
+
+  return { status: res.status, data: body.data, errors: body.errors, clientRequestId, requestId }
 }
 
 When('以 useAdmin 方式调用 Open Data API 执行 findMany', async function (this: ModelCraftWorld) {
@@ -1300,8 +1336,11 @@ When('以 useAdmin 方式调用 Open Data API 执行 findMany，where address_id
   setLastOpenDataResult(this, result)
 })
 
-When('以 useAdmin 方式调用 Open Data API 执行 findMany，where remark isNull', async function (this: ModelCraftWorld) {
-  const query = `query { findMany(take: 20, skip: 0, orderBy: [{ id: asc }], where: { remark: { equals: null } }) { items { id } totalCount timeCost reqId } }`
+When('以 useAdmin 方式调用 Open Data API 执行 findMany，where remark not {string}', async function (
+  this: ModelCraftWorld,
+  value: string,
+) {
+  const query = `query { findMany(take: 20, skip: 0, orderBy: [{ id: asc }], where: { remark: { not: "${value}" } }) { items { id } totalCount timeCost reqId } }`
   const result = await callOpenDataApiUseAdmin(this, query)
   setLastOpenDataResult(this, result)
 })

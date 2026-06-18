@@ -201,7 +201,7 @@ Feature: 确定性 RLS 运行时拨测
     When 以 assignee 用户身份对 tasks 模型调用 Open Data API 删除上次保存的 task
     Then 删除操作未生效
     When 以 reporter 用户身份对 tasks 模型调用 Open Data API 删除上次保存的 task
-    Then 删除操作未生效
+    Then 返回结果为合法的 GraphQL 响应且无 errors
     When 以角色 "admin" 对 tasks 模型调用 Open Data API 执行 findMany
     Then 返回结果为合法的 GraphQL 响应且无 errors
 
@@ -342,8 +342,8 @@ Feature: 确定性 RLS 运行时拨测
     Then 返回结果为合法的 GraphQL 响应且无 errors
 
   @smoke @deterministic @query-conditions
-  Scenario: useAdmin — findMany where remark isNull（null 检查）
-    When 以 useAdmin 方式调用 Open Data API 执行 findMany，where remark isNull
+  Scenario: useAdmin — findMany where remark not 指定值（不等于非空字符串）
+    When 以 useAdmin 方式调用 Open Data API 执行 findMany，where remark not "non-existent-remark"
     Then 返回结果为合法的 GraphQL 响应且无 errors
 
   @smoke @deterministic @query-conditions

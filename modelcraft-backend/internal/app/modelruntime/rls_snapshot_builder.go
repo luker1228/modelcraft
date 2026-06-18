@@ -140,7 +140,7 @@ func (b *RLSSnapshotBuilder) mergeUSING(
 	}
 
 	return &modelruntime.RawSQLFilter{
-		SQL:    strings.Join(orClauses, " OR "),
+		SQL:    "(" + strings.Join(orClauses, " OR ") + ")",
 		Params: allParams,
 	}, true, nil
 }
