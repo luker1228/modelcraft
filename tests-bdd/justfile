@@ -1,0 +1,35 @@
+# tests-bdd justfile
+# 用法:
+#   just              # 显示所有命令
+#   just refresh-token  # 刷新 TEST_ACCESS_TOKEN 并写入 .env.test
+#   just rls-det        # 刷新 token 后运行 deterministic RLS 测试
+#   just test [tag]     # 刷新 token 后运行全量或指定 tag 测试
+
+set dotenv-load
+
+PHONE := `grep "^# Pre-signed" .env.test -A1 | grep -- "--phone" | grep -oP '(?<=--phone )\S+'`
+PASSWORD := `grep "^# Pre-signed" .env.test -A1 | grep -- "--password" | grep -oP '(?<=--password )\S+'`
+
+# 列出所有命令
+default:
+    @just --list
+
+# 刷新 TEST_ACCESS_TOKEN，写入 .env.test
+refresh-token:
+    npm run get-token -- --phone {{PHONE}} --password {{PASSWORD}} --write
+
+# 刷新 token 后运行 @deterministic RLS 拨测
+rls-det: refresh-token
+    npm run test:rls-det
+
+# 刷新 token 后运行全量 RLS 测试
+rls: refresh-token
+    npm run test:rls
+
+# 刷新 token 后运行指定测试（默认全量）
+# 用法: just test           → npm test
+#       just test rls       → npm run test:rls
+#       just test smoke     → npm run test:smoke
+test target="":
+    just refresh-token
+    @if [ -z "{{target}}" ]; then npm test; else npm run test:{{target}}; fi

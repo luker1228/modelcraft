@@ -50,7 +50,7 @@ const AUTH_FIELD_PRIORITY = [
 ]
 
 export const FIXED_RLS_AUTH_VARIABLES: RlsAuthVariable[] = [
-  { name: 'userid', source: 'X-MC-Auth-Userid', type: 'string' },
+  { name: 'userid', source: 'X-MC-Auth-Userid-Str / X-MC-Auth-Userid-Int', type: 'string' },
   { name: 'username', source: 'X-MC-Auth-Username', type: 'string' },
   { name: 'roles', source: 'X-MC-Auth-Roles', type: 'string[]' },
 ]

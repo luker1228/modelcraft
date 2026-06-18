@@ -92,7 +92,7 @@ async function callOpenDataApi(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${pat}`,
-    'X-MC-Auth-Userid': uid,
+    'X-MC-Auth-Userid-Str': uid,
     'X-MC-Auth-Username': uname,
     'X-MC-Auth-Roles': role,
   }
@@ -138,20 +138,27 @@ const GET_RLS_POLICIES = `
 
 // Open Data API 操作文档
 const OPEN_FIND_MANY = `
-  query { findMany(take: 20, skip: 0, orderBy: [{ id: asc }]) { items { id name owner } totalCount timeCost reqId } }
+  query { findMany(take: 20, skip: 0, orderBy: [{ id: asc }]) { items { id } totalCount timeCost reqId } }
 `
 
 const OPEN_COUNT = `
   query { count { count } }
 `
 
-function openCreate(name: string, owner?: string): string {
-  const ownerField = owner ? `, owner: "${owner}"` : ''
-  return `mutation { create(data: { name: "${name}"${ownerField} }) { id name owner } }`
+function openCreate(orderNo: string, userId?: string): string {
+  const ts = Date.now().toString(36)
+  const id = `bdd-${ts}`.slice(0, 36)
+  const uniqueOrderNo = `${orderNo.slice(0, 20)}-${ts}`.slice(0, 32)
+  const userIdField = userId ? `, user_id: "${userId}"` : ''
+  return `mutation { create(data: { id: "${id}", order_no: "${uniqueOrderNo}", address_id: "addr-bdd", total_amount: 0, paid_amount: 0${userIdField} }) { id } }`
 }
 
-function openUpdate(id: string, name: string): string {
-  return `mutation { update(where: { id: "${id}" }, data: { name: "${name}" }) { id name } }`
+function openCreateWithUserId(orderNo: string, userId?: string): string {
+  return openCreate(orderNo, userId)
+}
+
+function openUpdate(id: string, remark: string): string {
+  return `mutation { update(where: { id: "${id}" }, data: { remark: "${remark}" }) { id } }`
 }
 
 function openDelete(id: string): string {
@@ -178,10 +185,13 @@ const DET_POLICIES: Array<{
   usingExpr?: string
   withCheckExpr?: string
 }> = [
-  { policyName: 'det_select', action: 'read',   role: '*', usingExpr: 'row.owner == auth.userid' },
-  { policyName: 'det_insert', action: 'create', role: '*', withCheckExpr: 'input.owner == auth.userid' },
-  { policyName: 'det_update', action: 'update', role: '*', usingExpr: 'row.owner == auth.userid', withCheckExpr: 'input.owner == auth.userid' },
-  { policyName: 'det_delete', action: 'delete', role: '*', usingExpr: 'row.owner == auth.userid' },
+  // orders_* — user_id 字段
+  { policyName: 'orders_user_read',    action: 'read',   role: '*',     usingExpr: 'row.user_id == auth.userid' },
+  { policyName: 'orders_user_create',  action: 'create', role: '*',     withCheckExpr: 'input.user_id == auth.userid' },
+  { policyName: 'orders_user_update',  action: 'update', role: '*',     usingExpr: 'row.user_id == auth.userid', withCheckExpr: 'input.user_id == auth.userid' },
+  { policyName: 'orders_user_delete',  action: 'delete', role: '*',     usingExpr: 'row.user_id == auth.userid' },
+  { policyName: 'orders_admin_read',   action: 'read',   role: 'admin', usingExpr: 'true' },
+  { policyName: 'orders_admin_create', action: 'create', role: 'admin', withCheckExpr: 'true' },
 ]
 
 async function setupDetPolicies(
@@ -236,7 +246,7 @@ Given('确定性拨测环境已就绪', async function (this: ModelCraftWorld) {
   }>(GET_RLS_POLICIES, { modelId: foundModel.id })
 
   const staleIds = existingPolicies.rlsPolicies
-    .filter(p => p.policyName.startsWith('det_'))
+    .filter(p => p.policyName.startsWith('orders_'))
     .map(p => p.id)
 
   for (const id of staleIds) {
@@ -365,6 +375,46 @@ When('以角色 {string} 调用 Open Data API 创建一条 name 为 {string} 的
   setLastOpenDataResult(this, result)
 })
 
+When('以 EndUser {string} 调用 Open Data API 创建一条 user_id 为当前用户的记录，name 为 {string}', async function (
+  this: ModelCraftWorld,
+  _userLabel: string,
+  orderNoBase: string,
+) {
+  const userId = detEndUserId()
+  const result = await callOpenDataApi(this, openCreate(orderNoBase, userId), 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以 EndUser {string} 调用 Open Data API 创建一条 user_id 为 {string} 的记录，name 为 {string}', async function (
+  this: ModelCraftWorld,
+  _userLabel: string,
+  userId: string,
+  recordName: string,
+) {
+  const result = await callOpenDataApi(this, openCreateWithUserId(recordName, userId), 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以角色 {string} 调用 Open Data API 创建一条 user_id 为当前用户的记录，name 为 {string}', async function (
+  this: ModelCraftWorld,
+  role: string,
+  orderNoBase: string,
+) {
+  const userId = detEndUserId()
+  const result = await callOpenDataApi(this, openCreate(orderNoBase, userId), role)
+  setLastOpenDataResult(this, result)
+})
+
+When('以角色 {string} 调用 Open Data API 创建一条 user_id 为 {string} 的记录，name 为 {string}', async function (
+  this: ModelCraftWorld,
+  role: string,
+  userId: string,
+  orderNoBase: string,
+) {
+  const result = await callOpenDataApi(this, openCreate(orderNoBase, userId), role)
+  setLastOpenDataResult(this, result)
+})
+
 // ─── Then 步骤 ─────────────────────────────────────────────────
 
 Then('策略配置成功', function (this: ModelCraftWorld) {
@@ -380,8 +430,23 @@ Then('确定性拨测模型的 RLS v2 策略数量应为 {int}', async function 
     rlsPolicies: Array<{ id: string; policyName: string }>
   }>(GET_RLS_POLICIES, { modelId })
 
-  const detPolicies = res.rlsPolicies.filter(p => p.policyName.startsWith('det_'))
-  expect(detPolicies.length).toBe(expectedCount)
+  const relevantPolicies = res.rlsPolicies.filter(p => p.policyName.startsWith('orders_'))
+  expect(relevantPolicies.length).toBe(expectedCount)
+})
+
+Then('确定性拨测模型的 RLS v2 策略总数（det_ 和 orders_ 前缀）应为 {int}', async function (
+  this: ModelCraftWorld,
+  expectedCount: number,
+) {
+  const modelId = getDetModelId(this)
+  const res = await this.projectClient.query<{
+    rlsPolicies: Array<{ id: string; policyName: string }>
+  }>(GET_RLS_POLICIES, { modelId })
+
+  const relevantPolicies = res.rlsPolicies.filter(
+    p => p.policyName.startsWith('det_') || p.policyName.startsWith('orders_'),
+  )
+  expect(relevantPolicies.length).toBe(expectedCount)
 })
 
 Then('返回结果为合法的 GraphQL 响应且无 errors', function (this: ModelCraftWorld) {
@@ -410,12 +475,28 @@ Then('更新返回 0 行受影响且无错误', function (this: ModelCraftWorld)
   expect(data?.update).toBeNull()
 })
 
+Then('更新操作未生效', function (this: ModelCraftWorld) {
+  const result = getLastOpenDataResult(this)
+  const data = result.data as { update?: { id: string } | null } | undefined
+  const hasErrors = (result.errors?.length ?? 0) > 0
+  const returnedNull = data?.update == null
+  expect(hasErrors || returnedNull).toBe(true)
+})
+
 Then('删除返回 0 行受影响且无错误', function (this: ModelCraftWorld) {
   const result = getLastOpenDataResult(this)
   expect(result.errors?.length ?? 0).toBe(0)
 
   const data = result.data as { delete?: { id: string } | null } | undefined
   expect(data?.delete).toBeNull()
+})
+
+Then('删除操作未生效', function (this: ModelCraftWorld) {
+  const result = getLastOpenDataResult(this)
+  const data = result.data as { delete?: { id: string } | null } | undefined
+  const hasErrors = (result.errors?.length ?? 0) > 0
+  const returnedNull = data?.delete == null
+  expect(hasErrors || returnedNull).toBe(true)
 })
 
 Then('创建结果为合法的 GraphQL 响应且无 errors', function (this: ModelCraftWorld) {

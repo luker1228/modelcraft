@@ -39,7 +39,7 @@ run_request() {
     -H "Authorization: Bearer ${PAT}" \
     -H "Content-Type: application/json" \
     -H "Accept: application/json" \
-    -H "X-MC-Auth-Userid: ${TEST_USER_ID}" \
+    -H "X-MC-Auth-Userid-Str: ${TEST_USER_ID}" \
     -H "X-MC-Auth-Username: ${TEST_USER_NAME}" \
     -H "X-MC-Auth-Roles: ${role}" \
     --data-raw "$payload"

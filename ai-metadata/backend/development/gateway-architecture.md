@@ -52,11 +52,14 @@ modelcraft-gateway/
 | 路由前缀 | 认证方式 | 主要能力 |
 |---|---|---|
 | `/api/tenant/auth/*` | 无（公开） | Developer 登录/注册/刷新/登出代理 |
-| `/api/end-user/auth/*` | 无（公开） | EndUser 登录/注册/刷新/登出/me |
 | `/graphql/org/{orgName}` | Bearer ES256 | Org 级 GraphQL 代理（tenant + end-user 共用） |
 | `/graphql/org/{orgName}/project/{projectSlug}` | Bearer ES256 | Project 级 GraphQL 代理（tenant + end-user 共用） |
+| `/end-user/graphql/*`（Open Data API） | **Bearer PAT 仅此** | runtime SQL 查询，携带 `X-MC-Auth-*` 声明 end-user 角色 |
 | `/api/user/*` | Bearer ES256 | 受保护 REST 代理 |
 | `/healthz` | 无 | 健康检查 |
+
+> **Open Data API 认证说明**：`/end-user/graphql/*` 目前只支持 PAT（Personal Access Token）认证。
+> Access Token / 浏览器 session 不可用于此路径。调用方必须持有有效 PAT，并通过 `X-MC-Auth-*` headers 声明代表哪个终端用户。
 
 ---
 
@@ -94,11 +97,8 @@ GraphQL/REST 代理都会执行以下策略：
 
 实现位置：`modelcraft-gateway/internal/auth/service.go`
 
-- Developer Access Token：ES256（网关使用 `JWT_PUBLIC_KEY` 校验）
-- EndUser Access Token：HMAC-SHA256（网关使用 `JWT_SECRET` 校验）
-- Refresh Cookie：
-  - Developer：`mc_refresh_token`
-  - EndUser：`mc_enduser_refresh_token`
+- Access Token：ES256（网关使用 `JWT_PUBLIC_KEY` 校验）
+- Refresh Cookie：`mc_refresh_token`
 - Cookie 属性：`HttpOnly + SameSite=Strict`
 
 > 备注：代码中 `Secure=false`，仅适用于本地开发；生产需在 HTTPS 下开启 Secure。
@@ -115,7 +115,6 @@ GraphQL/REST 代理都会执行以下策略：
 | `BACKEND_URL` | 否 | `http://localhost:8080` | 后端地址 |
 | `INTERNAL_TOKEN` | **是** | - | 后端内部鉴权令牌（缺失会 panic） |
 | `JWT_PUBLIC_KEY` | 建议是 | 空 | ES256 公钥 |
-| `JWT_SECRET` | 建议是 | 空 | EndUser JWT HMAC 密钥 |
 | `FRONTEND_URL` | 否 | `http://localhost:3000` | CORS 白名单来源 |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | 否 | 空 | OTLP gRPC 上报端点（空则关闭导出） |
 | `LOG_OUTPUT_PATH` | 否 | 空 | 日志输出文件（空则 stderr） |
@@ -137,7 +136,7 @@ GraphQL/REST 代理都会执行以下策略：
 1. **前端（强制）**：所有浏览器侧与前端服务侧业务请求必须先到 Gateway，再由 Gateway 转发到 Backend；禁止任何直连 Backend 的 GraphQL/REST 调用。
 2. **后端**：通过 `X-User-ID` / `X-Internal-Token` 识别调用方，网关负责外层 token 校验。
    - **Developer 认证（design-time）**：Gateway 是唯一的 developer JWT 验签者。Gateway 验证 Bearer token 后删除 Authorization 头，并注入 `X-User-ID`；Backend 只信任该 header，不再直接校验 developer bearer token。
-   - **EndUser 认证（runtime）**：Gateway 验证 HMAC JWT，注入 `X-User-ID` + `X-Internal-Token`。
+   - **Open Data API 认证（runtime）**：仅支持 PAT。Gateway 验证 PAT，注入 `X-User-ID` + `X-Internal-Token`。`X-MC-Auth-Userid-Str/Int`（RLS 上下文中的业务 end-user ID）由调用方在请求头中自行传入，Gateway 透传不修改。
 3. **CLI**：CLI 必须走 `cli -> gateway -> backend` 路径，不得直接访问 Backend design-time 端点。
 4. **可观测性**：后端日志应保留 `X-Request-Id` 与 `traceparent`，保证跨服务串联排障。
 
@@ -152,4 +151,4 @@ GraphQL/REST 代理都会执行以下策略：
 - 认证与代理职责边界清晰（网关校验 token，后端信任注入头）
 - 请求级 tracing / request-id / client-request-id 已形成统一链路
 - Gateway 的 CI 路径为 Jenkins CI-only（PR/main/tag 触发）
-- Developer / EndUser 双体系定义见：`./developer-enduser-system.md`
+- Developer / EndUser 身份体系全览：`./user-vs-end-user.md`

@@ -160,7 +160,7 @@ describe('buildRlsCompletionItems', () => {
         rootLabel: 'row',
         fields: [],
         authVariables: [
-          { name: 'userid', type: 'string', source: 'X-MC-Auth-Userid' },
+          { name: 'userid', type: 'string', source: 'X-MC-Auth-Userid-Str / X-MC-Auth-Userid-Int' },
           { name: 'username', type: 'string', source: 'X-MC-Auth-Username' },
         ],
       }),
@@ -169,7 +169,7 @@ describe('buildRlsCompletionItems', () => {
         key: 'auth.userid',
         value: 'auth.userid',
         label: 'auth.userid',
-        description: 'string · X-MC-Auth-Userid',
+        description: 'string · X-MC-Auth-Userid-Str / X-MC-Auth-Userid-Int',
       },
       {
         key: 'auth.username',
