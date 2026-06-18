@@ -10,6 +10,7 @@ import (
 	appRLS "modelcraft/internal/app/rls"
 	domainRLS "modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/graphql/project/generated"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -103,7 +104,7 @@ func (r *mutationResolver) DeleteRlsPoliciesByModel(ctx context.Context, modelID
 }
 
 // RlsPolicies is the resolver for the rlsPolicies field.
-func (r *queryResolver) RlsPolicies(ctx context.Context, modelID string) ([]*generated.RlsPolicy, error) {
+func (r *queryResolver) RlsPolicies(ctx context.Context, modelID string, orderBy *generated.RlsPoliciesOrderBy) ([]*generated.RlsPolicy, error) {
 	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -112,6 +113,23 @@ func (r *queryResolver) RlsPolicies(ctx context.Context, modelID string) ([]*gen
 	policies, err := r.PolicyCRUDService.ListByModel(ctx, orgName, projectSlug, modelID)
 	if err != nil {
 		return nil, err
+	}
+
+	if orderBy != nil {
+		sort.SliceStable(policies, func(i, j int) bool {
+			switch *orderBy {
+			case generated.RlsPoliciesOrderByActionAsc:
+				return policies[i].Action < policies[j].Action
+			case generated.RlsPoliciesOrderByActionDesc:
+				return policies[i].Action > policies[j].Action
+			case generated.RlsPoliciesOrderByRoleAsc:
+				return policies[i].Role < policies[j].Role
+			case generated.RlsPoliciesOrderByRoleDesc:
+				return policies[i].Role > policies[j].Role
+			default:
+				return false
+			}
+		})
 	}
 
 	result := make([]*generated.RlsPolicy, 0, len(policies))

@@ -20,6 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@web/components/ui/select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@web/components/ui/tooltip'
 import type { RlsAction, RlsExprType } from '@/generated/graphql'
 import { RlsExpressionEditor } from './RlsExpressionEditor'
 import {
@@ -67,6 +73,9 @@ export function PolicyEditorDialog({
   const [role, setRole] = React.useState('')
   const [usingExpr, setUsingExpr] = React.useState('')
   const [withCheckExpr, setWithCheckExpr] = React.useState('')
+  // null = not yet validated, true = passed, false = failed
+  const [usingExprValid, setUsingExprValid] = React.useState<boolean | null>(null)
+  const [checkExprValid, setCheckExprValid] = React.useState<boolean | null>(null)
   const showUsingExpr = shouldShowRlsUsingExpression(action)
   const showCheckExpr = shouldShowRlsCheckExpression(action)
   const usingHelp = React.useMemo(() => buildRlsExpressionHelp('using', modelFields), [modelFields])
@@ -79,8 +88,21 @@ export function PolicyEditorDialog({
       setRole('')
       setUsingExpr('')
       setWithCheckExpr('')
+      setUsingExprValid(null)
+      setCheckExprValid(null)
     }
   }, [open])
+
+  const usingExprBlocked = showUsingExpr && usingExpr.trim().length > 0 && usingExprValid === false
+  const checkExprBlocked = showCheckExpr && withCheckExpr.trim().length > 0 && checkExprValid === false
+  const saveDisabled = saving || usingExprBlocked || checkExprBlocked
+
+  const saveTooltip = (() => {
+    if (usingExprBlocked && checkExprBlocked) return 'Using Filter 和 Input Check 校验未通过，请修改后重试'
+    if (usingExprBlocked) return 'Using Filter 校验未通过，请修改后重试'
+    if (checkExprBlocked) return 'Input Check 校验未通过，请修改后重试'
+    return null
+  })()
 
   const handleSave = async () => {
     if (!policyName.trim()) { toast.error('请输入策略名称'); return }
@@ -160,9 +182,10 @@ export function PolicyEditorDialog({
               rootLabel={usingHelp.rootLabel}
               docsHref={docsHref}
               value={usingExpr}
-              onChange={setUsingExpr}
+              onChange={(v) => { setUsingExpr(v); setUsingExprValid(null) }}
               exprType={getRlsExpressionType(action, 'using')}
               onDryRun={onDryRun}
+              onValidationChange={setUsingExprValid}
             />
           )}
 
@@ -177,17 +200,35 @@ export function PolicyEditorDialog({
               rootLabel={checkHelp.rootLabel}
               docsHref={docsHref}
               value={withCheckExpr}
-              onChange={setWithCheckExpr}
+              onChange={(v) => { setWithCheckExpr(v); setCheckExprValid(null) }}
               exprType={getRlsExpressionType(action, 'check')}
               onDryRun={onDryRun}
+              onValidationChange={setCheckExprValid}
             />
           )}
         </div>
         <SheetFooter className="border-t border-border px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-primary text-primary-foreground hover:bg-primary/90">
-            {saving ? <><Loader2 className="mr-2 size-4 animate-spin" />保存中...</> : '保存'}
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={saveDisabled ? 0 : undefined}>
+                  <Button
+                    onClick={handleSave}
+                    disabled={saveDisabled}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    {saving ? <><Loader2 className="mr-2 size-4 animate-spin" />保存中...</> : '保存'}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {saveTooltip && (
+                <TooltipContent side="top">
+                  <p>{saveTooltip}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </SheetFooter>
       </SheetContent>
     </Sheet>

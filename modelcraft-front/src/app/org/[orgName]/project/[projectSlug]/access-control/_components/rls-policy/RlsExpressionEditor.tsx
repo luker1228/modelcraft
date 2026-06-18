@@ -35,6 +35,7 @@ interface RlsExpressionEditorProps {
   onChange: (value: string) => void
   exprType: RlsExprType
   onDryRun?: (input: { expression: string; exprType: RlsExprType; sampleInput?: string }) => Promise<DryRunResult>
+  onValidationChange?: (valid: boolean | null) => void
 }
 
 export function RlsExpressionEditor({
@@ -50,6 +51,7 @@ export function RlsExpressionEditor({
   onChange,
   exprType,
   onDryRun,
+  onValidationChange,
 }: RlsExpressionEditorProps) {
   const syntax = React.useMemo(() => validateRlsExpressionSyntax(value), [value])
   const [dryRunResult, setDryRunResult] = React.useState<DryRunResult | null>(null)
@@ -80,8 +82,12 @@ export function RlsExpressionEditor({
     setCursorPosition(value.length)
   }, [value])
 
+  const onValidationChangeRef = React.useRef(onValidationChange)
+  onValidationChangeRef.current = onValidationChange
+
   React.useEffect(() => {
     setDryRunResult(null)
+    onValidationChangeRef.current?.(null)
   }, [value, exprType])
 
   React.useEffect(() => {
@@ -93,7 +99,9 @@ export function RlsExpressionEditor({
 
     setDryRunning(true)
     try {
-      setDryRunResult(await onDryRun({ expression: value.trim(), exprType }))
+      const result = await onDryRun({ expression: value.trim(), exprType })
+      setDryRunResult(result)
+      onValidationChange?.(result.success)
     } finally {
       setDryRunning(false)
     }

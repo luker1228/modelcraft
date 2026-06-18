@@ -1,8 +1,8 @@
 import { gql } from '@apollo/client'
 
 export const GET_RLS_POLICIES = gql`
-  query GetRlsPolicies($modelId: ID!) {
-    rlsPolicies(modelId: $modelId) {
+  query GetRlsPolicies($modelId: ID!, $orderBy: RlsPoliciesOrderBy) {
+    rlsPolicies(modelId: $modelId, orderBy: $orderBy) {
       id
       policyName
       action

@@ -2233,6 +2233,65 @@ func (e RlsAction) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+type RlsPoliciesOrderBy string
+
+const (
+	RlsPoliciesOrderByActionAsc  RlsPoliciesOrderBy = "ACTION_ASC"
+	RlsPoliciesOrderByActionDesc RlsPoliciesOrderBy = "ACTION_DESC"
+	RlsPoliciesOrderByRoleAsc    RlsPoliciesOrderBy = "ROLE_ASC"
+	RlsPoliciesOrderByRoleDesc   RlsPoliciesOrderBy = "ROLE_DESC"
+)
+
+var AllRlsPoliciesOrderBy = []RlsPoliciesOrderBy{
+	RlsPoliciesOrderByActionAsc,
+	RlsPoliciesOrderByActionDesc,
+	RlsPoliciesOrderByRoleAsc,
+	RlsPoliciesOrderByRoleDesc,
+}
+
+func (e RlsPoliciesOrderBy) IsValid() bool {
+	switch e {
+	case RlsPoliciesOrderByActionAsc, RlsPoliciesOrderByActionDesc, RlsPoliciesOrderByRoleAsc, RlsPoliciesOrderByRoleDesc:
+		return true
+	}
+	return false
+}
+
+func (e RlsPoliciesOrderBy) String() string {
+	return string(e)
+}
+
+func (e *RlsPoliciesOrderBy) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RlsPoliciesOrderBy(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RlsPoliciesOrderBy", str)
+	}
+	return nil
+}
+
+func (e RlsPoliciesOrderBy) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *RlsPoliciesOrderBy) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e RlsPoliciesOrderBy) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
 type SchemaIssueType string
 
 const (

@@ -575,7 +575,7 @@ type ComplexityRoot struct {
 		Node                 func(childComplexity int, id string) int
 		Ping                 func(childComplexity int) int
 		RegisteredDatabases  func(childComplexity int, input *RegisteredDatabasesInput) int
-		RlsPolicies          func(childComplexity int, modelID string) int
+		RlsPolicies          func(childComplexity int, modelID string, orderBy *RlsPoliciesOrderBy) int
 	}
 
 	RLSCheckViolation struct {
@@ -811,7 +811,7 @@ type QueryResolver interface {
 	ModelSyncJobs(ctx context.Context, jobIds []string, batchID *string) ([]*ModelSyncJob, error)
 	ModelSyncJob(ctx context.Context, jobID string) (*ModelSyncJob, error)
 	ModelRLSPolicy(ctx context.Context, modelID string) (*ModelRLSPolicy, error)
-	RlsPolicies(ctx context.Context, modelID string) ([]*RlsPolicy, error)
+	RlsPolicies(ctx context.Context, modelID string, orderBy *RlsPoliciesOrderBy) ([]*RlsPolicy, error)
 }
 
 type executableSchema struct {
@@ -3058,7 +3058,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.RlsPolicies(childComplexity, args["modelId"].(string)), true
+		return e.complexity.Query.RlsPolicies(childComplexity, args["modelId"].(string), args["orderBy"].(*RlsPoliciesOrderBy)), true
 
 	case "RLSCheckViolation.message":
 		if e.complexity.RLSCheckViolation.Message == nil {
@@ -5233,6 +5233,13 @@ enum RlsAction {
   delete
 }
 
+enum RlsPoliciesOrderBy {
+  ACTION_ASC
+  ACTION_DESC
+  ROLE_ASC
+  ROLE_DESC
+}
+
 # ----------------------------------------
 # Types
 # ----------------------------------------
@@ -5291,7 +5298,7 @@ type DeleteRlsPolicyPayload {
 
 extend type Query {
   """List all RLS policies for a model"""
-  rlsPolicies(modelId: ID!): [RlsPolicy!]! @hasPermission(action: "model:read")
+  rlsPolicies(modelId: ID!, orderBy: RlsPoliciesOrderBy): [RlsPolicy!]! @hasPermission(action: "model:read")
 }
 
 extend type Mutation {
@@ -5994,6 +6001,11 @@ func (ec *executionContext) field_Query_rlsPolicies_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["modelId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy", ec.unmarshalORlsPoliciesOrderBy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPoliciesOrderBy)
+	if err != nil {
+		return nil, err
+	}
+	args["orderBy"] = arg1
 	return args, nil
 }
 
@@ -18037,7 +18049,7 @@ func (ec *executionContext) _Query_rlsPolicies(ctx context.Context, field graphq
 		ec.fieldContext_Query_rlsPolicies,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().RlsPolicies(ctx, fc.Args["modelId"].(string))
+			return ec.resolvers.Query().RlsPolicies(ctx, fc.Args["modelId"].(string), fc.Args["orderBy"].(*RlsPoliciesOrderBy))
 		},
 		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
 			directive0 := next
@@ -33637,6 +33649,22 @@ func (ec *executionContext) marshalOReorderGroupError2modelcraftᚋinternalᚋin
 		return graphql.Null
 	}
 	return ec._ReorderGroupError(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalORlsPoliciesOrderBy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPoliciesOrderBy(ctx context.Context, v any) (*RlsPoliciesOrderBy, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(RlsPoliciesOrderBy)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalORlsPoliciesOrderBy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPoliciesOrderBy(ctx context.Context, sel ast.SelectionSet, v *RlsPoliciesOrderBy) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) marshalORlsPolicy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPolicy(ctx context.Context, sel ast.SelectionSet, v *RlsPolicy) graphql.Marshaler {

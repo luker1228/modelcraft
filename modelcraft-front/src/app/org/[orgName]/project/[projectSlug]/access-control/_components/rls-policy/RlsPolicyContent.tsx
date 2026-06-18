@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
 
 import * as React from 'react'
-import { Loader2, Plus, ShieldOff, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, Plus, ShieldOff, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -33,7 +33,7 @@ import { useQuery } from '@apollo/client'
 import { useRlsPolicyList } from '../../_hooks/rls-policy/useRlsPolicyList'
 import { useRlsPolicyManage } from '../../_hooks/rls-policy/useRlsPolicyManage'
 import { PolicyEditorDialog } from './PolicyEditorDialog'
-import type { RlsAction } from '@/generated/graphql'
+import type { RlsAction, RlsPoliciesOrderBy } from '@/generated/graphql'
 import { FIXED_RLS_AUTH_VARIABLES } from './rls-expression-utils'
 
 interface RlsPolicyContentProps {
@@ -97,10 +97,12 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
   )
   const [editorOpen, setEditorOpen] = React.useState(false)
   const [deleteTargetId, setDeleteTargetId] = React.useState<string | null>(null)
+  const [orderBy, setOrderBy] = React.useState<RlsPoliciesOrderBy | null>(null)
 
   const { policies, loading } = useRlsPolicyList({
     projectSlug,
     modelId: selectedModelId,
+    orderBy,
   })
   const { upsertPolicy, deletePolicy, validateRlsExpression, upserting, deleting } = useRlsPolicyManage({
     projectSlug,
@@ -286,8 +288,42 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
           <Table>
             <TableHeader>
               <TableRow className="border-b-2 border-border bg-card hover:bg-card">
-                <TableHead className="h-10 w-[100px] text-[11px] font-medium uppercase tracking-wider text-foreground">Action</TableHead>
-                <TableHead className="h-10 w-[140px] text-[11px] font-medium uppercase tracking-wider text-foreground">Role</TableHead>
+                <TableHead className="h-10 w-[100px]">
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-foreground hover:text-foreground/70"
+                    onClick={() => setOrderBy((prev) =>
+                      prev === 'ACTION_ASC' ? 'ACTION_DESC' : 'ACTION_ASC'
+                    )}
+                  >
+                    Action
+                    {orderBy === 'ACTION_ASC' ? (
+                      <ArrowUp className="size-3" />
+                    ) : orderBy === 'ACTION_DESC' ? (
+                      <ArrowDown className="size-3" />
+                    ) : (
+                      <ArrowUpDown className="size-3 opacity-40" />
+                    )}
+                  </button>
+                </TableHead>
+                <TableHead className="h-10 w-[140px]">
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-foreground hover:text-foreground/70"
+                    onClick={() => setOrderBy((prev) =>
+                      prev === 'ROLE_ASC' ? 'ROLE_DESC' : 'ROLE_ASC'
+                    )}
+                  >
+                    Role
+                    {orderBy === 'ROLE_ASC' ? (
+                      <ArrowUp className="size-3" />
+                    ) : orderBy === 'ROLE_DESC' ? (
+                      <ArrowDown className="size-3" />
+                    ) : (
+                      <ArrowUpDown className="size-3 opacity-40" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wider text-foreground">Using Expr</TableHead>
                 <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wider text-foreground">Check Expr</TableHead>
                 <TableHead className="h-10 w-[80px] text-right text-[11px] font-medium uppercase tracking-wider text-foreground">操作</TableHead>

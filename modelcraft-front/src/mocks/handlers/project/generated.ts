@@ -91,31 +91,6 @@ export type AssignRolePayload = {
   userRole?: Maybe<UserRoleAssignment>;
 };
 
-export type AuthVariable = {
-  __typename?: 'AuthVariable';
-  /** 变量名（如 "tenant_id"） */
-  name: Scalars['String']['output'];
-  /** JWT 来源路径（如 "jwt.tenant_id"） */
-  source: Scalars['String']['output'];
-  /** 变量类型 */
-  type: AuthVariableType;
-};
-
-export type AuthVariableInput = {
-  /** 变量名 */
-  name: Scalars['String']['input'];
-  /** JWT 来源路径 */
-  source: Scalars['String']['input'];
-  /** 变量类型 */
-  type: AuthVariableType;
-};
-
-export enum AuthVariableType {
-  Integer = 'INTEGER',
-  String = 'STRING',
-  Uuid = 'UUID'
-}
-
 export type BatchRegisterError = {
   __typename?: 'BatchRegisterError';
   message: Scalars['String']['output'];
@@ -183,7 +158,7 @@ export type CreateApiTokenPayload = {
   __typename?: 'CreateAPITokenPayload';
   error?: Maybe<CreateApiTokenError>;
   plaintext?: Maybe<Scalars['String']['output']>;
-  token?: Maybe<EndUserApiToken>;
+  token?: Maybe<UserApiToken>;
 };
 
 export type CreateCustomRoleError = InvalidInput | PermissionRoleAlreadyExists;
@@ -474,15 +449,6 @@ export type DeleteRolePayload = {
   __typename?: 'DeleteRolePayload';
   error?: Maybe<DeleteRoleError>;
   success: Scalars['Boolean']['output'];
-};
-
-export type EndUserApiToken = {
-  __typename?: 'EndUserAPIToken';
-  createdAt: Scalars['Time']['output'];
-  expiresAt?: Maybe<Scalars['Time']['output']>;
-  id: Scalars['ID']['output'];
-  lastUsedAt?: Maybe<Scalars['Time']['output']>;
-  name: Scalars['String']['output'];
 };
 
 export type EndUserRefAlreadyExists = Error & {
@@ -807,6 +773,7 @@ export type ModelDatabase = {
   createdAt: Scalars['Time']['output'];
   description: Scalars['String']['output'];
   id: Scalars['ID']['output'];
+  latestSyncJobId?: Maybe<Scalars['ID']['output']>;
   mode: DatabaseMode;
   name: Scalars['String']['output'];
   title: Scalars['String']['output'];
@@ -971,7 +938,6 @@ export type Mutation = {
   assignRoleToUser: AssignRolePayload;
   batchRegisterModelDatabases: BatchRegisterModelDatabaseResult;
   createCustomRole: CreateCustomRolePayload;
-  createEndUserAPIToken: CreateApiTokenPayload;
   createEnum: CreateEnumPayload;
   createGroup: CreateGroupPayload;
   createLogicalForeignKey: CreateLogicalForeignKeyPayload;
@@ -979,6 +945,7 @@ export type Mutation = {
   createModelFromSchema: CreateModelFromSchemaPayload;
   createProject: CreateProjectPayload;
   createRole: CreateRolePayload;
+  createUserAPIToken: CreateApiTokenPayload;
   deleteEnum: DeleteEnumPayload;
   deleteGroup: DeleteGroupPayload;
   deleteLogicalForeignKey: DeleteLogicalForeignKeyPayload;
@@ -1006,15 +973,13 @@ export type Mutation = {
   renameGroup: RenameGroupPayload;
   reorderGroup: ReorderGroupPayload;
   repairModel: RepairModelPayload;
-  revokeEndUserAPIToken: RevokeApiTokenPayload;
   revokeRoleFromUser: RevokeRolePayload;
+  revokeUserAPIToken: RevokeApiTokenPayload;
   /**
    * 设置 Model RLS 策略
    * 支持完整的五件套 JSON 表达式，不限于 Preset
    */
   setModelRLSPolicy: SetModelRlsPolicyPayload;
-  /** 设置当前项目 auth_schema */
-  setProjectAuthSchema: SetProjectAuthSchemaPayload;
   /** @deprecated Use startModelSync */
   startModelDatabaseSync: StartModelDatabaseSyncPayload;
   startModelSync: StartModelSyncPayload;
@@ -1078,12 +1043,6 @@ export type MutationCreateCustomRoleArgs = {
 };
 
 
-export type MutationCreateEndUserApiTokenArgs = {
-  expiresAt?: InputMaybe<Scalars['Time']['input']>;
-  name: Scalars['String']['input'];
-};
-
-
 export type MutationCreateEnumArgs = {
   input: CreateEnumInput;
 };
@@ -1116,6 +1075,12 @@ export type MutationCreateProjectArgs = {
 
 export type MutationCreateRoleArgs = {
   input: CreateRoleInput;
+};
+
+
+export type MutationCreateUserApiTokenArgs = {
+  expiresAt?: InputMaybe<Scalars['Time']['input']>;
+  name: Scalars['String']['input'];
 };
 
 
@@ -1214,11 +1179,6 @@ export type MutationRepairModelArgs = {
 };
 
 
-export type MutationRevokeEndUserApiTokenArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
 export type MutationRevokeRoleFromUserArgs = {
   orgName: Scalars['String']['input'];
   roleId: Scalars['Int']['input'];
@@ -1226,13 +1186,13 @@ export type MutationRevokeRoleFromUserArgs = {
 };
 
 
-export type MutationSetModelRlsPolicyArgs = {
-  input: SetModelRlsPolicyInput;
+export type MutationRevokeUserApiTokenArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
-export type MutationSetProjectAuthSchemaArgs = {
-  input: SetProjectAuthSchemaInput;
+export type MutationSetModelRlsPolicyArgs = {
+  input: SetModelRlsPolicyInput;
 };
 
 
@@ -1422,8 +1382,6 @@ export type Profile = Node & {
 
 export type Project = Node & {
   __typename?: 'Project';
-  /** 认证变量配置（用于 RLS 表达式中的 _auth 引用） */
-  authSchema: ProjectAuthSchema;
   createdAt: Scalars['String']['output'];
   description: Scalars['String']['output'];
   id: Scalars['ID']['output'];
@@ -1438,12 +1396,6 @@ export type ProjectAlreadyExists = Error & {
   __typename?: 'ProjectAlreadyExists';
   message: Scalars['String']['output'];
   suggestion?: Maybe<Scalars['String']['output']>;
-};
-
-export type ProjectAuthSchema = {
-  __typename?: 'ProjectAuthSchema';
-  /** 认证变量列表（不含内置 uid） */
-  variables: Array<AuthVariable>;
 };
 
 export type ProjectConnection = {
@@ -1468,7 +1420,6 @@ export type Query = {
   __typename?: 'Query';
   clusterRawDatabases: Array<RawDatabase>;
   databaseCluster: GetClusterPayload;
-  endUserAPITokens: Array<EndUserApiToken>;
   enum: GetEnumPayload;
   enumReferences: Array<Scalars['String']['output']>;
   enums: Array<EnumDefinition>;
@@ -1499,14 +1450,13 @@ export type Query = {
   permissionRoles: Array<PermissionRole>;
   ping: Scalars['String']['output'];
   project: GetProjectPayload;
-  /** 获取当前项目 auth_schema */
-  projectAuthSchema: ProjectAuthSchema;
   projects: Array<Project>;
   registeredDatabases: GetRegisteredDatabasesPayload;
   /** List all RLS policies for a model */
   rlsPolicies: Array<RlsPolicy>;
   rolePermissionsList: Array<PermissionDef>;
   roles: Array<Role>;
+  userAPITokens: Array<UserApiToken>;
   userRoleAssignments: Array<UserRoleAssignment>;
 };
 
@@ -1622,6 +1572,7 @@ export type QueryRegisteredDatabasesArgs = {
 
 export type QueryRlsPoliciesArgs = {
   modelId: Scalars['ID']['input'];
+  orderBy?: InputMaybe<RlsPoliciesOrderBy>;
 };
 
 
@@ -1829,6 +1780,13 @@ export enum RlsAction {
   Update = 'update'
 }
 
+export enum RlsPoliciesOrderBy {
+  ActionAsc = 'ACTION_ASC',
+  ActionDesc = 'ACTION_DESC',
+  RoleAsc = 'ROLE_ASC',
+  RoleDesc = 'ROLE_DESC'
+}
+
 export type RlsPolicy = {
   __typename?: 'RlsPolicy';
   action: RlsAction;
@@ -1920,21 +1878,6 @@ export type SetModelRlsPolicyPayload = {
   __typename?: 'SetModelRLSPolicyPayload';
   error?: Maybe<SetModelRlsPolicyError>;
   policy?: Maybe<ModelRlsPolicy>;
-};
-
-export type SetProjectAuthSchemaError = InvalidInput | ResourceNotFound;
-
-export type SetProjectAuthSchemaInput = {
-  /** 项目 slug */
-  projectSlug: Scalars['String']['input'];
-  /** 认证变量列表（uid 内置，无需声明） */
-  variables: Array<AuthVariableInput>;
-};
-
-export type SetProjectAuthSchemaPayload = {
-  __typename?: 'SetProjectAuthSchemaPayload';
-  authSchema?: Maybe<ProjectAuthSchema>;
-  error?: Maybe<SetProjectAuthSchemaError>;
 };
 
 export type StartModelDatabaseSyncPayload = {
@@ -2132,6 +2075,15 @@ export type User = Node & {
   status: UserStatus;
   updatedAt: Scalars['String']['output'];
   userName: Scalars['String']['output'];
+};
+
+export type UserApiToken = {
+  __typename?: 'UserAPIToken';
+  createdAt: Scalars['Time']['output'];
+  expiresAt?: Maybe<Scalars['Time']['output']>;
+  id: Scalars['ID']['output'];
+  lastUsedAt?: Maybe<Scalars['Time']['output']>;
+  name: Scalars['String']['output'];
 };
 
 export type UserRoleAssignment = {
@@ -2648,14 +2600,14 @@ export type TestDatabaseConnectionMutation = { __typename?: 'Mutation', testData
       | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
      | null } };
 
-export type ModelDatabaseFieldsFragment = { __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, createdAt: any, updatedAt: any };
+export type ModelDatabaseFieldsFragment = { __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, latestSyncJobId?: string | null, createdAt: any, updatedAt: any };
 
 export type ModelDatabaseSyncJobFieldsFragment = { __typename?: 'ModelDatabaseSyncJob', id: string, databaseId: string, status: ModelDatabaseSyncJobStatus, totalTables: number, processedTables: number, createdModels: number, syncedModels: number, failedCount: number, startedAt?: any | null, finishedAt?: any | null, createdAt: any, updatedAt: any, failedTables: Array<{ __typename?: 'ModelDatabaseSyncFailedTable', tableName: string, message: string }> };
 
 export type ListModelDatabasesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type ListModelDatabasesQuery = { __typename?: 'Query', modelDatabases: Array<{ __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, createdAt: any, updatedAt: any }> };
+export type ListModelDatabasesQuery = { __typename?: 'Query', modelDatabases: Array<{ __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, latestSyncJobId?: string | null, createdAt: any, updatedAt: any }> };
 
 export type ListClusterRawDatabasesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -2676,7 +2628,7 @@ export type RegisterModelDatabaseMutationVariables = Exact<{
 
 export type RegisterModelDatabaseMutation = { __typename?: 'Mutation', registerModelDatabase:
     | { __typename?: 'InvalidInput', message: string }
-    | { __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, createdAt: any, updatedAt: any }
+    | { __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, latestSyncJobId?: string | null, createdAt: any, updatedAt: any }
     | { __typename?: 'ResourceNotFound', message: string, resourceType: ResourceType }
    };
 
@@ -2685,7 +2637,7 @@ export type BatchRegisterModelDatabasesMutationVariables = Exact<{
 }>;
 
 
-export type BatchRegisterModelDatabasesMutation = { __typename?: 'Mutation', batchRegisterModelDatabases: { __typename?: 'BatchRegisterModelDatabaseResult', succeeded: Array<{ __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, createdAt: any, updatedAt: any }>, failed: Array<{ __typename?: 'BatchRegisterError', name: string, message: string }> } };
+export type BatchRegisterModelDatabasesMutation = { __typename?: 'Mutation', batchRegisterModelDatabases: { __typename?: 'BatchRegisterModelDatabaseResult', succeeded: Array<{ __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, latestSyncJobId?: string | null, createdAt: any, updatedAt: any }>, failed: Array<{ __typename?: 'BatchRegisterError', name: string, message: string }> } };
 
 export type UpdateModelDatabaseMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2693,7 +2645,7 @@ export type UpdateModelDatabaseMutationVariables = Exact<{
 }>;
 
 
-export type UpdateModelDatabaseMutation = { __typename?: 'Mutation', updateModelDatabase: { __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, createdAt: any, updatedAt: any } };
+export type UpdateModelDatabaseMutation = { __typename?: 'Mutation', updateModelDatabase: { __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, latestSyncJobId?: string | null, createdAt: any, updatedAt: any } };
 
 export type UnregisterModelDatabaseMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2711,6 +2663,7 @@ export type StartModelDatabaseSyncMutation = { __typename?: 'Mutation', startMod
 
 export type GetRlsPoliciesQueryVariables = Exact<{
   modelId: Scalars['ID']['input'];
+  orderBy?: InputMaybe<RlsPoliciesOrderBy>;
 }>;
 
 
@@ -2783,7 +2736,7 @@ export type GetRolePermissionsListQuery = { __typename?: 'Query', rolePermission
 export type GetApiTokensQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetApiTokensQuery = { __typename?: 'Query', endUserAPITokens: Array<{ __typename?: 'EndUserAPIToken', id: string, name: string, createdAt: any, expiresAt?: any | null, lastUsedAt?: any | null }> };
+export type GetApiTokensQuery = { __typename?: 'Query', userAPITokens: Array<{ __typename?: 'UserAPIToken', id: string, name: string, createdAt: any, expiresAt?: any | null, lastUsedAt?: any | null }> };
 
 export type UpdateOrganizationMutationVariables = Exact<{
   input: UpdateOrganizationInput;
@@ -2844,7 +2797,7 @@ export type CreateApiTokenMutationVariables = Exact<{
 }>;
 
 
-export type CreateApiTokenMutation = { __typename?: 'Mutation', createEndUserAPIToken: { __typename?: 'CreateAPITokenPayload', plaintext?: string | null, token?: { __typename?: 'EndUserAPIToken', id: string, name: string, createdAt: any, expiresAt?: any | null, lastUsedAt?: any | null } | null, error?:
+export type CreateApiTokenMutation = { __typename?: 'Mutation', createUserAPIToken: { __typename?: 'CreateAPITokenPayload', plaintext?: string | null, token?: { __typename?: 'UserAPIToken', id: string, name: string, createdAt: any, expiresAt?: any | null, lastUsedAt?: any | null } | null, error?:
       | { __typename: 'APITokenLimitReached', message: string, limit: number }
       | { __typename: 'APITokenNameConflict', message: string }
       | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
@@ -2855,7 +2808,7 @@ export type RevokeApiTokenMutationVariables = Exact<{
 }>;
 
 
-export type RevokeApiTokenMutation = { __typename?: 'Mutation', revokeEndUserAPIToken: { __typename?: 'RevokeAPITokenPayload', success?: boolean | null, error?:
+export type RevokeApiTokenMutation = { __typename?: 'Mutation', revokeUserAPIToken: { __typename?: 'RevokeAPITokenPayload', success?: boolean | null, error?:
       | { __typename: 'APITokenNotFound', message: string }
       | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
      | null } };
@@ -4182,7 +4135,7 @@ export const mockStartModelDatabaseSyncMutation = (resolver: GraphQLResponseReso
  * @example
  * mockGetRlsPoliciesQuery(
  *   ({ query, variables }) => {
- *     const { modelId } = variables;
+ *     const { modelId, orderBy } = variables;
  *     return HttpResponse.json({
  *       data: { rlsPolicies }
  *     })
@@ -4399,7 +4352,7 @@ export const mockGetRolePermissionsListQuery = (resolver: GraphQLResponseResolve
  * mockGetApiTokensQuery(
  *   ({ query, variables }) => {
  *     return HttpResponse.json({
- *       data: { endUserAPITokens }
+ *       data: { userAPITokens }
  *     })
  *   },
  *   requestOptions
@@ -4531,7 +4484,7 @@ export const mockRemovePermissionFromRoleMutation = (resolver: GraphQLResponseRe
  *   ({ query, variables }) => {
  *     const { name, expiresAt } = variables;
  *     return HttpResponse.json({
- *       data: { createEndUserAPIToken }
+ *       data: { createUserAPIToken }
  *     })
  *   },
  *   requestOptions
@@ -4553,7 +4506,7 @@ export const mockCreateApiTokenMutation = (resolver: GraphQLResponseResolver<Cre
  *   ({ query, variables }) => {
  *     const { id } = variables;
  *     return HttpResponse.json({
- *       data: { revokeEndUserAPIToken }
+ *       data: { revokeUserAPIToken }
  *     })
  *   },
  *   requestOptions

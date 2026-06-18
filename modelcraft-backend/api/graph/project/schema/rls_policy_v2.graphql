@@ -14,6 +14,13 @@ enum RlsAction {
   delete
 }
 
+enum RlsPoliciesOrderBy {
+  ACTION_ASC
+  ACTION_DESC
+  ROLE_ASC
+  ROLE_DESC
+}
+
 # ----------------------------------------
 # Types
 # ----------------------------------------
@@ -72,7 +79,7 @@ type DeleteRlsPolicyPayload {
 
 extend type Query {
   """List all RLS policies for a model"""
-  rlsPolicies(modelId: ID!): [RlsPolicy!]! @hasPermission(action: "model:read")
+  rlsPolicies(modelId: ID!, orderBy: RlsPoliciesOrderBy): [RlsPolicy!]! @hasPermission(action: "model:read")
 }
 
 extend type Mutation {
