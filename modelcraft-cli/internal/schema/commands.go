@@ -1,7 +1,8 @@
 package schema
 
 type CommandSchema struct {
-	Commands map[string]CommandDoc `json:"commands"`
+	Commands   map[string]CommandDoc `json:"commands"`
+	GlobalFlags map[string]FlagDoc    `json:"globalFlags,omitempty"`
 }
 
 type CommandDoc struct {
@@ -18,6 +19,11 @@ type FlagDoc struct {
 
 func BuildCommandSchema() CommandSchema {
 	return CommandSchema{
+		GlobalFlags: map[string]FlagDoc{
+			"as-userid":   {Type: "string", Required: false, Description: "Impersonate this user ID (sets X-MC-Auth-Userid header)."},
+			"as-username": {Type: "string", Required: false, Description: "Impersonate this username (sets X-MC-Auth-Username header)."},
+			"as-role":     {Type: "string", Required: false, Description: "Impersonate this role (sets X-MC-Auth-Roles header)."},
+		},
 		Commands: map[string]CommandDoc{
 			"auth login": {
 				Description: "Login with end-user credentials or a PAT token.",

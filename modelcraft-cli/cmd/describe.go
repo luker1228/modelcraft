@@ -2,10 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
-	"modelcraft-cli/internal/client"
 	"modelcraft-cli/internal/output"
 
 	"github.com/spf13/cobra"
@@ -34,14 +32,14 @@ func newDescribeCommand() *cobra.Command {
 					Types []map[string]any `json:"types"`
 				} `json:"__schema"`
 			}
-			err = (client.GraphQLClient{HTTPClient: http.DefaultClient}).Execute(
-				cmd.Context(),
-				endpoint,
-				creds.AccessToken,
-				query,
-				nil,
-				&raw,
-			)
+		err = newGraphQLClient(cmd).Execute(
+			cmd.Context(),
+			endpoint,
+			creds.AccessToken,
+			query,
+			nil,
+			&raw,
+		)
 			if err != nil {
 				return err
 			}

@@ -125,7 +125,7 @@ func writeValidCreds(t *testing.T, path, serverURL, project string) {
 }
 
 // newAuthServer returns an httptest.Server whose handler:
-//   - GET  /api/auth/whoami  → whoamiResp with projects
+//   - GET  /api/tenant/auth/whoami  → whoamiResp with projects
 //   - all other paths        → graphqlHandler (if non-nil)
 func newAuthServer(t *testing.T, projects []map[string]any, graphqlHandler http.HandlerFunc) *httptest.Server {
 	t.Helper()
@@ -138,7 +138,7 @@ func newAuthServer(t *testing.T, projects []map[string]any, graphqlHandler http.
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/api/auth/whoami":
+		case r.Method == http.MethodGet && r.URL.Path == "/api/tenant/auth/whoami":
 			_ = json.NewEncoder(w).Encode(whoami)
 		default:
 			if graphqlHandler != nil {

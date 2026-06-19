@@ -147,13 +147,13 @@ func newAuthSwitchProjectCommand() *cobra.Command {
 				return err
 			}
 
-			// Validate by fetching accessible projects from backend in real-time.
-			projects, err := (client.GraphQLClient{HTTPClient: http.DefaultClient}).CatalogProjects(
-				cmd.Context(),
-				creds.Server,
-				creds.OrgName,
-				creds.AccessToken,
-			)
+		// Validate by fetching accessible projects from backend in real-time.
+		projects, err := newGraphQLClient(cmd).CatalogProjects(
+			cmd.Context(),
+			creds.Server,
+			creds.OrgName,
+			creds.AccessToken,
+		)
 			if err != nil {
 				return err
 			}
