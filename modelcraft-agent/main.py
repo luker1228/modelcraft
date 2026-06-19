@@ -1,13 +1,11 @@
 """
 FastAPI entry point for modelcraft-agent.
 
-Two agents on one service, each with its own endpoint:
+Single agent on one service:
   POST /copilotkit/admin   → modelcraft_admin_agent  (tenant admins)
-  POST /copilotkit/enduser → modelcraft_enduser_agent (end users)
 
 CopilotKit runtime (route.ts) maps agent name → URL; routing is done
-there, not here. Each endpoint simply injects Authorization and runs
-the appropriate graph.
+there, not here. The endpoint injects Authorization and runs the graph.
 """
 import json
 import uvicorn
@@ -20,7 +18,6 @@ from structlog.contextvars import bind_contextvars
 
 import config
 from agents.admin_agent import admin_graph
-from agents.enduser_agent import enduser_graph
 from logging_setup import get_logger, setup_logging
 from middleware import ObservabilityMiddleware
 
@@ -63,12 +60,6 @@ _admin_agent = ObservableAgent(
     name="modelcraft_admin_agent",
     description="ModelCraft AI 助手（管理员版）：项目管理、建模、数据查询",
     graph=admin_graph,
-)
-
-_enduser_agent = ObservableAgent(
-    name="modelcraft_enduser_agent",
-    description="ModelCraft AI 助手（用户版）：数据查询与自然语言筛选",
-    graph=enduser_graph,
 )
 
 
@@ -237,7 +228,6 @@ def _make_handler(agent: LangGraphAGUIAgent):
 
 
 app.post("/copilotkit/admin")(_make_handler(_admin_agent))
-app.post("/copilotkit/enduser")(_make_handler(_enduser_agent))
 
 
 @app.get("/copilotkit/health")
@@ -246,7 +236,6 @@ def copilotkit_health():
         "status": "ok",
         "agents": [
             {"name": _admin_agent.name, "endpoint": "/copilotkit/admin"},
-            {"name": _enduser_agent.name, "endpoint": "/copilotkit/enduser"},
         ],
     }
 
