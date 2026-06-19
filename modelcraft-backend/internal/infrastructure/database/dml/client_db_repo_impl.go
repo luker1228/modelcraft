@@ -534,32 +534,31 @@ func (c *ClientDBRepoImpl) UpdateOne(ctx context.Context, input *modelruntime.Up
 			}
 			logger.Infof(ctx, "sql=%v args=%v", sql, args)
 
-			// 执行更新操作
 			result, err := c.stdDB.Exec(sql, args...)
 			if err != nil {
 				logger.Error(ctx, "updateOne fail", logfacade.Err(err))
 				return nil, err
 			}
 
-			// 检查是否更新了记录
-			_, err = result.RowsAffected()
+			rowsAffected, err := result.RowsAffected()
 			if err != nil {
 				logger.Error(ctx, "get rows affected fail", logfacade.Err(err))
 				return nil, err
 			}
 
+			if rowsAffected == 0 {
+				return nil, sqldb.ErrNoRows
+			}
+
 			if input.UpdatedObj {
-				// 查询并返回更新后的记录
-				// 必须带上 RawFilters（USING filter），若记录对当前用户不可见则返回 nil
 				findInput := &modelruntime.FindUniqueInput{
 					TableName:  input.TableName,
 					Where:      input.Where,
 					RawFilters: input.RawFilters,
 				}
 				return c.FindUnique(ctx, findInput)
-			} else {
-				return nil, nil
 			}
+			return nil, nil
 		},
 	)
 }
@@ -577,19 +576,18 @@ func (c *ClientDBRepoImpl) DeleteOne(ctx context.Context, input *modelruntime.De
 	return execute[*modelruntime.DeleteOneInput, map[string]any](
 		ctx, logger, input,
 		func() (map[string]any, error) {
+			findInput := &modelruntime.FindUniqueInput{
+				TableName:  input.TableName,
+				Where:      input.Where,
+				RawFilters: input.RawFilters,
+			}
+			toDeleteOne, err := c.FindUnique(ctx, findInput)
+			if err != nil {
+				return nil, err
+			}
+
 			var deletedRecord map[string]any
 			if input.DeletedObj {
-				// 先查询要删除的记录，以便返回
-				// 必须带上 RawFilters（USING filter），否则会绕过 RLS 返回不可见记录
-				findInput := &modelruntime.FindUniqueInput{
-					TableName:  input.TableName,
-					Where:      input.Where,
-					RawFilters: input.RawFilters,
-				}
-				toDeleteOne, err := c.FindUnique(ctx, findInput)
-				if err != nil {
-					return nil, err
-				}
 				deletedRecord = toDeleteOne
 			}
 
@@ -599,23 +597,18 @@ func (c *ClientDBRepoImpl) DeleteOne(ctx context.Context, input *modelruntime.De
 			}
 			logger.Infof(ctx, "sql=%v args=%v", sql, args)
 
-			// 执行删除操作
 			result, err := c.stdDB.Exec(sql, args...)
 			if err != nil {
 				logger.Error(ctx, "deleteOne fail", logfacade.Err(err))
 				return nil, err
 			}
 
-			// 检查是否删除了记录
 			rowsAffected, err := result.RowsAffected()
 			if err != nil {
 				logger.Error(ctx, "get rows affected fail", logfacade.Err(err))
 				return nil, err
 			}
-
-			if rowsAffected == 0 {
-				return deletedRecord, nil
-			}
+			_ = rowsAffected
 
 			return deletedRecord, nil
 		},

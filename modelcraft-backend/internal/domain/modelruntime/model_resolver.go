@@ -132,7 +132,7 @@ func (m *graphqlModelResolver) createFindUniqueField(modelType graphql.Type) (*g
 			logger := logfacade.GetLogger(p.Context)
 			result, err2 := m.executeFindUnique(p)
 			if err2 != nil {
-				logger.Error(p.Context, "find_unique_fail", logfacade.Err(err2))
+				err2 = handleErr(p.Context, err2)
 			} else {
 				logger.Infof(p.Context, "find_unqiue_result=%+v", result)
 			}
@@ -235,7 +235,7 @@ func (m *graphqlModelResolver) createFindFirstField(modelType graphql.Type) (*gr
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeFindFirst(p)
 			if err != nil {
-				logfacade.GetLogger(p.Context).Error(p.Context, "executeFindFirst fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 			}
 			return result, err
 		},
@@ -307,7 +307,7 @@ func (m *graphqlModelResolver) createFindManyField(modelType graphql.Type) (*gra
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeFindMany(p)
 			if err != nil {
-				logfacade.GetLogger(p.Context).Error(p.Context, "executeFindMany fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 				return nil, err
 			}
 			return result, err
@@ -343,7 +343,7 @@ func (m *graphqlModelResolver) createAggregateField(ctx context.Context) (*graph
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeAggregate(p)
 			if err != nil {
-				logfacade.GetLogger(p.Context).Error(p.Context, "executeAggregate fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 				return nil, err
 			}
 			return result, nil
@@ -505,7 +505,7 @@ func (m *graphqlModelResolver) createCountField(ctx context.Context) (*graphql.F
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeCount(p)
 			if err != nil {
-				logfacade.GetLogger(p.Context).Error(p.Context, "executeCount fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 				return nil, err
 			}
 			return result, nil
@@ -1515,7 +1515,7 @@ func (m *graphqlModelResolver) createListByCursorField(modelType graphql.Type) (
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeListByCursor(p)
 			if err != nil {
-				logfacade.GetLogger(p.Context).Error(p.Context, "executeListByCursor fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 				return nil, err
 			}
 			return result, err
@@ -1536,7 +1536,7 @@ func (m *graphqlModelResolver) createListByPageField(modelType graphql.Type) (*g
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeListByPage(p)
 			if err != nil {
-				logfacade.GetLogger(p.Context).Error(p.Context, "executeListByPage fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 				return nil, err
 			}
 			return result, err
@@ -1664,7 +1664,7 @@ func (m *graphqlModelResolver) createCreateOneField(modelType graphql.Type) (*gr
 			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeCreateOne(p)
 			if err != nil {
-				logger.Error(p.Context, "createOne_fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 			} else {
 				logger.Infof(p.Context, "createOne_result=%+v", result)
 			}
@@ -1756,11 +1756,6 @@ func (m *graphqlModelResolver) executeDeleteOne(p graphql.ResolveParams) (interf
 		return nil, err
 	}
 
-	if deleteResult == nil && input.DeletedObj {
-		result[FieldSuccess] = false
-		return result, nil
-	}
-
 	if input.DeletedObj {
 		result[FieldDeletedObj] = deleteResult
 	}
@@ -1792,7 +1787,7 @@ func (m *graphqlModelResolver) createDeleteOneField(modelType graphql.Type) (*gr
 			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeDeleteOne(p)
 			if err != nil {
-				logger.Error(p.Context, "deleteOne_fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 			} else {
 				logger.Infof(p.Context, "deleteOne_result=%+v", result)
 			}
@@ -1861,7 +1856,7 @@ func (m *graphqlModelResolver) createCreateManyField(modelType graphql.Type) (*g
 			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeCreateMany(p)
 			if err != nil {
-				logger.Error(p.Context, "createMany_fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 			} else {
 				logger.Infof(p.Context, "createMany_success")
 			}
@@ -1912,7 +1907,7 @@ func (m *graphqlModelResolver) createUpdateManyField(modelType graphql.Type) (*g
 			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeUpdateMany(p)
 			if err != nil {
-				logger.Error(p.Context, "updateMany_fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 			} else {
 				logger.Infof(p.Context, "updateMany_success")
 			}
@@ -1961,7 +1956,7 @@ func (m *graphqlModelResolver) createDeleteManyField(modelType graphql.Type) (*g
 			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeDeleteMany(p)
 			if err != nil {
-				logger.Error(p.Context, "deleteMany_fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 			} else {
 				logger.Infof(p.Context, "deleteMany_success")
 			}
@@ -1996,12 +1991,14 @@ func handleRepoErr(ctx context.Context, err error) error {
 		case shared.ErrTypeTimeout:
 			return bizerrors.NewErrorFromContext(ctx, bizerrors.TimeOut)
 		case shared.ErrTypeConstraint:
-			return bizerrors.NewErrorFromContext(ctx, bizerrors.DuplicateKey)
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.DuplicateKey, repoErr.Message)
 		case shared.ErrTypePermission:
 			return bizerrors.NewErrorFromContext(ctx, bizerrors.DatabaseAccessDenied)
+		case shared.ErrTypeNotFound:
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.RecordNotFound)
 
 		}
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError)
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, repoErr.Message)
 	}
 	return err
 }
