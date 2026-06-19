@@ -197,6 +197,69 @@ useAdmin（`X-MC-Auth-Useadmin: true`）绕过 RLS，直接生成裸 SQL。
 
 ---
 
+### 结构化错误专项（#60–68）
+
+> 这些场景验证 Open Data API 返回结构化错误（通过 payload `error` 字段）而非 GraphQL 异常。
+
+| # | 场景 | 预期行为 | 实际错误类型 | 符合预期 |
+|---|------|---------|-------------|---------|
+| 60 | 创建重复 id 记录返回 DuplicateKey 错误 | 第二次创建相同 id 时返回 DuplicateKey | `DuplicateKey` | ✅ |
+| 61 | 批量创建包含重复 id 的记录返回 DuplicateKey 错误 | createMany 包含已存在的 id，返回 DuplicateKey | `DuplicateKey` | ✅ |
+| 62 | 更新不存在的记录返回 RecordNotFound 错误 | useAdmin 更新不存在的 id，返回 RecordNotFound | `RecordNotFound` | ✅ |
+| 63 | 删除不存在的记录返回 RecordNotFound 错误 | useAdmin 删除不存在的 id，返回 RecordNotFound | `RecordNotFound` | ✅ |
+| 64 | 批量更新不存在的记录返回 count 为 0 | updateMany 匹配 0 行，返回 count: 0，无错误 | 无错误 | ✅ |
+| 65 | 批量删除不存在的记录返回 count 为 0 | deleteMany 匹配 0 行，返回 count: 0，无错误 | 无错误 | ✅ |
+| 66 | 批量创建尝试修改 user_id 返回 PermissionDenied 错误 | createMany CHECK 失败，返回 PermissionDenied | `PermissionDenied` | ✅ |
+| 67 | 批量更新尝试修改 user_id 返回 PermissionDenied 错误 | updateMany CHECK 失败，返回 PermissionDenied | `PermissionDenied` | ✅ |
+| 68 | 批量删除尝试绕过权限返回 PermissionDenied 错误 | products 模型 viewer 无 delete policy，返回 PermissionDenied | `PermissionDenied` | ✅ |
+
+---
+
+### 批量操作上限专项（#69–72）
+
+> Open Data API 对批量操作（createMany / updateMany / deleteMany）和 findMany 查询强制执行 **1000 条上限**，超过则直接报错，不执行任何 SQL。
+
+**设计要点**：
+
+| 操作 | 限制参数 | 上限 | 超限错误 | 校验位置 |
+|------|---------|------|---------|---------|
+| `createMany` | `data` 数组长度 | 1000（`MaxCreateManyBatchSize`） | `createMany batch size exceeds limit: %d > %d` | 输入解析层 + 仓储层（双重防御） |
+| `updateMany` | `take`（必需） | 1–1000 | `take must be between 1 and %d, got %d` | 输入解析层 |
+| `deleteMany` | `take`（必需） | 1–1000 | `take must be between 1 and %d, got %d` | 输入解析层 |
+| `findMany` | `take`（可选，默认 10） | 0–1000（`MaxFindManyLimit`，`take=0` 显式返回空集） | `take must be between 0 and %d, got %d` | 输入解析层 |
+
+**常量定义**：`graphql_constants.go` → `MaxCreateManyBatchSize = 1000`、`MaxFindManyLimit = 1000`
+
+> **`take=0`（LIMIT 0）的设计意义**
+>
+> `LIMIT 0` 不是"查数据"，而是"问结构 / 验查询 / 测接口 / 省资源"——这是数据库和工程系统里一个非常成熟、非常有用的设计：
+> - **问结构**：数据库只返回字段元信息，不搬运任何行数据；
+> - **验查询**：验证 `where` / `orderBy` 语法是否合法、RLS 策略是否生效；
+> - **测接口**：前端联调时探测接口可用性与返回 shape；
+> - **省资源**：对大表做"零成本"探测，避免全表扫描风险。
+>
+> 因此 `findMany` 的 `take=0`（显式空集）被允许，而 `take > 1000` 才拒绝。`updateMany` / `deleteMany` 的 `take` 是"影响行数上限"，`take=0` 无意义，故范围是 1–1000。
+
+| # | 场景 | 预期行为 | 实际错误 | 符合预期 |
+|---|------|---------|---------|---------|
+| 69 | createMany 超过 1000 条 | 输入解析阶段拒绝，无 SQL 执行 | `createMany batch size exceeds limit: 1001 > 1000` | ✅ |
+| 70 | updateMany take 超过 1000 | 输入解析阶段拒绝，无 SQL 执行 | `take must be between 1 and 1000, got 1001` | ✅ |
+| 71 | deleteMany take 超过 1000 | 输入解析阶段拒绝，无 SQL 执行 | `take must be between 1 and 1000, got 1001` | ✅ |
+| 72 | updateMany / deleteMany take 为 0 或缺失 | 输入解析阶段拒绝，无 SQL 执行 | `take must be between 1 and 1000, got 0` / `take is required` | ✅ |
+| 73 | findMany take 超过 1000 | 输入解析阶段拒绝，无 SQL 执行 | `take must be between 0 and 1000, got 1001` | ✅ |
+| 74 | findMany take=0（显式空集） / take=1000（边界） | 正常执行，生成 `LIMIT 0` / `LIMIT 1000` | 无错误 | ✅ |
+
+**校验逻辑位置**：
+
+- `createMany`：`graphql_input.go:286`（输入解析）+ `client_db_repo_impl.go:649`（仓储层防御性检查）
+- `updateMany`：`graphql_input.go:341`（`take < 1 || take > MaxCreateManyBatchSize`）
+- `deleteMany`：`graphql_input.go:386`（`take < 1 || take > MaxCreateManyBatchSize`）
+- `findMany`：`graphql_input.go:111`（`take > MaxFindManyLimit`，take=0 显式空集允许）
+
+**审计结论**：✅ 上限校验在输入解析阶段（SQL 生成之前）完成，超限请求不会到达数据库，避免大事务风险。错误消息明确指出实际值与上限值的差异，便于调用方定位问题。
+
+---
+
 ### 被拦截场景错误响应审计
 
 每个「被拒绝」场景的实际 GraphQL 错误响应，以及后端 RLS 快照，用于确认错误消息设计是否合理。
@@ -434,6 +497,20 @@ create=true（有 create policy，进入 CHECK 求值）
 | 无 create policy（insert 被禁） | `[OPERATION_FAILED.PERMISSION] Permission denied: insert` | 无对应 action 的 policy |
 | pre-SELECT 0 行（delete） | `[NOT_FOUND.RECORD] Record Resource not found` | 先 SELECT 后 DELETE，SELECT 返回 0 行则不执行 DELETE |
 | UPDATE rowsAffected=0 | `[NOT_FOUND.RECORD] Record Resource not found` | UPDATE 执行后 0 行受影响，返回记录不存在 |
+| createMany 超过 1000 条上限 | `createMany batch size exceeds limit: %d > %d` | 输入解析阶段拦截，无 SQL 执行 |
+| updateMany / deleteMany take 超范围 | `take must be between 1 and %d, got %d` | take < 1 或 take > 1000，输入解析阶段拦截 |
+| findMany take 超过 1000 上限 | `take must be between 0 and %d, got %d` | take > 1000，输入解析阶段拦截；take=0 显式空集允许 |
+
+### 结构化错误类型汇总
+
+| GraphQL 错误类型 | 触发场景 | 返回位置 |
+|-----------------|---------|---------|
+| `PermissionDenied` | RLS 权限检查失败（CheckAction、evalCHECKs、errNoPolicy） | payload `error` 字段 |
+| `RecordNotFound` | 记录不存在（UPDATE/DELETE 0 行、findUnique 0 行） | payload `error` 字段 |
+| `DuplicateKey` | 唯一键冲突（CREATE 重复 id） | payload `error` 字段 |
+| `MultipleRecordsFound` | findUnique 找到多条记录 | payload `error` 字段 |
+
+> 注：未识别的错误仍通过 GraphQL `errors[]` 异常兜底返回。
 
 ---
 
@@ -452,6 +529,7 @@ create=true（有 create policy，进入 CHECK 求值）
 | INSERT 无对应 action 的 policy | 无 SQL 执行，直接拒绝 |
 | UPDATE/DELETE 被 USING 过滤 | SQL 执行但 affected rows=0，或 SELECT 0 行后不执行 |
 | DELETE（reporter 有 delete policy） | SELECT 确认行可见，然后 DELETE LIMIT 1 |
+| 批量操作超上限（createMany > 1000 / updateMany·deleteMany take > 1000 / findMany take > 1000） | 无 SQL 执行，输入解析阶段直接拒绝 |
 
 ---
 

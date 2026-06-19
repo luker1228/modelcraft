@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
 
 import * as React from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, Plus, ShieldOff, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, Pencil, Plus, ShieldOff, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -96,6 +96,13 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
     [catalogData?.registeredDatabases?.data?.databases],
   )
   const [editorOpen, setEditorOpen] = React.useState(false)
+  const [editingPolicy, setEditingPolicy] = React.useState<{
+    policyName: string
+    action: RlsAction
+    role: string
+    usingExpr?: string | null
+    withCheckExpr?: string | null
+  } | null>(null)
   const [deleteTargetId, setDeleteTargetId] = React.useState<string | null>(null)
   const [orderBy, setOrderBy] = React.useState<RlsPoliciesOrderBy | null>(null)
 
@@ -186,6 +193,7 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
     if (result.success) {
       toast.success('策略已保存')
       setEditorOpen(false)
+      setEditingPolicy(null)
     } else {
       toast.error(result.errorMessage ?? '保存失败')
     }
@@ -245,7 +253,7 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
           </Select>
         </div>
         <Button
-          onClick={() => setEditorOpen(true)}
+          onClick={() => { setEditingPolicy(null); setEditorOpen(true) }}
           size="sm"
           disabled={!selectedModelId}
           className="bg-primary text-primary-foreground hover:bg-primary/90"
@@ -326,7 +334,7 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
                 </TableHead>
                 <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wider text-foreground">Using Expr</TableHead>
                 <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wider text-foreground">Check Expr</TableHead>
-                <TableHead className="h-10 w-[80px] text-right text-[11px] font-medium uppercase tracking-wider text-foreground">操作</TableHead>
+                <TableHead className="h-10 w-[140px] text-right text-[11px] font-medium uppercase tracking-wider text-foreground">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -351,7 +359,25 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
                     </code>
                   </TableCell>
                   <TableCell className="h-12 text-right">
-                    <div className="flex items-center justify-end opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          setEditingPolicy({
+                            policyName: policy.policyName,
+                            action: policy.action,
+                            role: policy.role,
+                            usingExpr: policy.usingExpr,
+                            withCheckExpr: policy.withCheckExpr,
+                          })
+                          setEditorOpen(true)
+                        }}
+                      >
+                        <Pencil className="size-3.5" strokeWidth={1.5} />
+                        编辑
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -385,13 +411,17 @@ export function RlsPolicyContent({ orgName, projectSlug }: RlsPolicyContentProps
 
       <PolicyEditorDialog
         open={editorOpen}
-        onOpenChange={setEditorOpen}
+        onOpenChange={(open) => {
+          setEditorOpen(open)
+          if (!open) setEditingPolicy(null)
+        }}
         onSave={handleUpsert}
         onDryRun={validateRlsExpression}
         saving={upserting}
         modelFields={selectedModel?.fields ?? []}
         authVariables={FIXED_RLS_AUTH_VARIABLES}
         docsHref={docsHref}
+        editingPolicy={editingPolicy}
       />
 
       <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => { if (!open) setDeleteTargetId(null) }}>

@@ -117,6 +117,7 @@ func (g *inputTypeGenerator) GenerateFindManyArgs(model *RuntimeModel) graphql.F
 	args["take"] = &graphql.ArgumentConfig{
 		Type:         graphql.Int,
 		DefaultValue: 10,
+		Description:  "获取的记录数，范围0-1000，默认10。take=0 返回空集（LIMIT 0），用于问结构/验查询/测接口/省资源",
 	}
 	args["skip"] = &graphql.ArgumentConfig{
 		Type:         graphql.Int,

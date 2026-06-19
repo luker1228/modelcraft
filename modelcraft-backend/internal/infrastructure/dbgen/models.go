@@ -605,7 +605,7 @@ type ModelRlsPolicy struct {
 	PolicyName string
 	// 操作类型
 	Action ModelRlsPoliciesAction
-	// 匹配角色（空=默认策略）
+	// 匹配角色（*=通配，匹配所有 EndUser）
 	Role string
 	// USING 表达式（read/update/delete）
 	UsingExpr sql.NullString

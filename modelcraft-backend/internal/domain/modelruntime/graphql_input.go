@@ -61,6 +61,13 @@ type FindManyInput struct {
 	// ExplicitLimit indicates the caller explicitly passed a take value (including 0).
 	// When false and Limit==0, the query uses the default limit.
 	// When true and Limit==0, LIMIT 0 is applied (returns empty result set).
+	//
+	// take=0 的工程意义——LIMIT 0 不是"查数据"，而是"问结构 / 验查询 / 测接口 / 省资源"：
+	//   - 问结构：数据库只返回字段元信息，不搬运任何行数据；
+	//   - 验查询：验证 where / orderBy 语法是否合法、RLS 策略是否生效；
+	//   - 测接口：前端联调时探测接口可用性与返回 shape；
+	//   - 省资源：对大表做"零成本"探测，避免全表扫描风险。
+	// 这是数据库和工程系统里一个非常成熟、非常有用的设计，因此显式 take=0 被保留。
 	ExplicitLimit bool
 	Offset        uint
 }
@@ -106,6 +113,12 @@ func newFindManyInput(tableName string, param graphql.ResolveParams) (*FindManyI
 	take, err := cast.ToUintE(takeRaw)
 	if err != nil {
 		return nil, bizerrors.Errorf("take must be an integer, val = %v type = %T", takeRaw, takeRaw)
+	}
+	// 验证 take 上限。
+	// take=0 显式返回空集（LIMIT 0），用于"问结构 / 验查询 / 测接口 / 省资源"，允许；
+	// take > MaxFindManyLimit 拒绝，避免大表全量扫描。
+	if take > MaxFindManyLimit {
+		return nil, bizerrors.Errorf("take must be between 0 and %d, got %d", MaxFindManyLimit, take)
 	}
 	skipRaw, ok := param.Args[FieldSkip]
 	if !ok {

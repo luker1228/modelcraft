@@ -3,7 +3,9 @@ package modelruntime
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"modelcraft/internal/domain/modeldesign"
@@ -20,6 +22,140 @@ import (
 
 type graphqlEnumConfig struct {
 	enumType *graphql.Enum
+}
+
+// Open Data API 错误类型（全局共享）
+var (
+	// openDataErrorInterface Open Data API 错误接口
+	openDataErrorInterface *graphql.Interface
+	// openDataErrorUnion Open Data API 错误联合类型
+	openDataErrorUnion *graphql.Union
+	// openDataErrorTypeMap 错误类型名称到 GraphQL 对象的映射
+	openDataErrorTypeMap map[string]*graphql.Object
+)
+
+// initOpenDataErrorTypes 初始化 Open Data API 错误类型（只调用一次）
+func initOpenDataErrorTypes() {
+	if openDataErrorInterface != nil {
+		return // 已初始化
+	}
+
+	// Error interface
+	openDataErrorInterface = graphql.NewInterface(graphql.InterfaceConfig{
+		Name:        "OpenDataError",
+		Description: "Open Data API 错误接口",
+		Fields: graphql.Fields{
+			"message": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+		ResolveType: func(p graphql.ResolveTypeParams) *graphql.Object {
+			if val, ok := p.Value.(map[string]interface{}); ok {
+				if typeName, ok := val["__typename"].(string); ok {
+					return openDataErrorTypeMap[typeName]
+				}
+			}
+			return nil
+		},
+	})
+
+	// RecordNotFound 错误类型
+	recordNotFoundType := graphql.NewObject(graphql.ObjectConfig{
+		Name:        "RecordNotFound",
+		Description: "记录不存在",
+		Interfaces:  []*graphql.Interface{openDataErrorInterface},
+		Fields: graphql.Fields{
+			"message": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
+
+	// PermissionDenied 错误类型
+	permissionDeniedType := graphql.NewObject(graphql.ObjectConfig{
+		Name:        "PermissionDenied",
+		Description: "权限不足",
+		Interfaces:  []*graphql.Interface{openDataErrorInterface},
+		Fields: graphql.Fields{
+			"message": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
+
+	// DuplicateKey 错误类型
+	duplicateKeyType := graphql.NewObject(graphql.ObjectConfig{
+		Name:        "DuplicateKey",
+		Description: "唯一键冲突",
+		Interfaces:  []*graphql.Interface{openDataErrorInterface},
+		Fields: graphql.Fields{
+			"message": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
+
+	// MultipleRecordsFound 错误类型
+	multipleRecordsFoundType := graphql.NewObject(graphql.ObjectConfig{
+		Name:        "MultipleRecordsFound",
+		Description: "期望一条记录但找到多条",
+		Interfaces:  []*graphql.Interface{openDataErrorInterface},
+		Fields: graphql.Fields{
+			"message": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
+
+	// 类型映射
+	openDataErrorTypeMap = map[string]*graphql.Object{
+		"RecordNotFound":       recordNotFoundType,
+		"PermissionDenied":     permissionDeniedType,
+		"DuplicateKey":         duplicateKeyType,
+		"MultipleRecordsFound": multipleRecordsFoundType,
+	}
+
+	// Union 类型
+	openDataErrorUnion = graphql.NewUnion(graphql.UnionConfig{
+		Name:        "OpenDataErrorUnion",
+		Description: "Open Data API 错误联合类型",
+		Types:       []*graphql.Object{recordNotFoundType, permissionDeniedType, duplicateKeyType, multipleRecordsFoundType},
+		ResolveType: func(p graphql.ResolveTypeParams) *graphql.Object {
+			if val, ok := p.Value.(map[string]interface{}); ok {
+				if typeName, ok := val["__typename"].(string); ok {
+					return openDataErrorTypeMap[typeName]
+				}
+			}
+			return nil
+		},
+	})
+}
+
+// 错误判断函数
+func isPermissionDeniedError(err error) bool {
+	var bizErr *bizerrors.BusinessError
+	if errors.As(err, &bizErr) {
+		return bizErr.Info().GetCode() == bizerrors.PermissionDenied.GetCode()
+	}
+	return false
+}
+
+func isRecordNotFoundError(err error) bool {
+	var bizErr *bizerrors.BusinessError
+	if errors.As(err, &bizErr) {
+		return bizErr.Info().GetCode() == bizerrors.RecordNotFound.GetCode()
+	}
+	return false
+}
+
+func isDuplicateKeyError(err error) bool {
+	var bizErr *bizerrors.BusinessError
+	if errors.As(err, &bizErr) {
+		return bizErr.Info().GetCode() == bizerrors.DuplicateKey.GetCode()
+	}
+	return false
+}
+
+func isMultipleRecordsError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "multiple records found")
+}
+
+// 创建结构化错误响应
+func createStructuredError(typename, message string) map[string]interface{} {
+	return map[string]interface{}{
+		"__typename": typename,
+		"message":    message,
+	}
 }
 
 // graphqlModelResolver GraphQL模型解析器实现，用于生成GraphQL Schema并处理查询和变更。
@@ -49,6 +185,9 @@ func newGraphqlModelResolver(ctx context.Context, model *RuntimeModel,
 func (m *graphqlModelResolver) newGraphqlSchema(ctx context.Context) (*graphql.Schema, error) {
 	logger := logfacade.GetLogger(ctx)
 
+	// 初始化 Open Data API 错误类型
+	initOpenDataErrorTypes()
+
 	modelType, err := m.createModelType(ctx)
 	if err != nil {
 		logger.Error(ctx, "createModelType_fail", logfacade.Err(err))
@@ -73,6 +212,12 @@ func (m *graphqlModelResolver) newGraphqlSchema(ctx context.Context) (*graphql.S
 	schema, err := graphql.NewSchema(graphql.SchemaConfig{
 		Query:    rootQuery,
 		Mutation: rootMutation,
+		Types: []graphql.Type{
+			openDataErrorTypeMap["RecordNotFound"],
+			openDataErrorTypeMap["PermissionDenied"],
+			openDataErrorTypeMap["DuplicateKey"],
+			openDataErrorTypeMap["MultipleRecordsFound"],
+		},
 	})
 
 	return &schema, err
@@ -81,6 +226,11 @@ func (m *graphqlModelResolver) newGraphqlSchema(ctx context.Context) (*graphql.S
 func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
 	if err := rctx.RLS.Permissions.CheckAction(ActionSelect); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	startTime := time.Now()
@@ -91,11 +241,17 @@ func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (inter
 	}
 	result, err := rctx.ClientRepo.FindUnique(p.Context, input)
 	if err != nil {
-		if bizerrors.Is(err, sql.ErrNoRows) {
-			result = nil
-		} else {
-			return nil, err
+		if isMultipleRecordsError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("MultipleRecordsFound", err.Error()),
+			}, nil
 		}
+		if isRecordNotFoundError(err) || bizerrors.Is(err, sql.ErrNoRows) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("RecordNotFound", "Record not found"),
+			}, nil
+		}
+		return nil, err
 	}
 
 	// Get metadata from context
@@ -1204,6 +1360,10 @@ func (r *graphqlModelResolver) createFindUniqueResultType(modelType graphql.Type
 				Type:        graphql.NewNonNull(graphql.String),
 				Description: "Unique request tracking ID (UUID v7)",
 			},
+			FieldError: &graphql.Field{
+				Type:        openDataErrorUnion,
+				Description: "Error information if the operation failed",
+			},
 		},
 		Description: "Result wrapper for findUnique query with metadata",
 	})
@@ -1587,6 +1747,11 @@ func (m *graphqlModelResolver) createRootMutation(modelType graphql.Type) (*grap
 func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
 	if err := rctx.RLS.Permissions.CheckAction(ActionInsert); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	input, err := newCreateOneInput(m.model.Name, p)
@@ -1612,6 +1777,11 @@ func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interf
 
 	id, err := rctx.ClientRepo.CreateOne(p.Context, input)
 	if err != nil {
+		if isDuplicateKeyError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("DuplicateKey", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 
@@ -1649,10 +1819,13 @@ func (m *graphqlModelResolver) createCreateOneField(modelType graphql.Type) (*gr
 		Name: gqlTypeName(m.model.Name) + "Create" + ResultTypeSuffix,
 		Fields: graphql.Fields{
 			FieldID: &graphql.Field{
-				Type: graphql.NewNonNull(graphql.ID),
+				Type: graphql.ID,
 			},
 			FieldCreatedObj: &graphql.Field{
 				Type: modelType,
+			},
+			FieldError: &graphql.Field{
+				Type: openDataErrorUnion,
 			},
 		},
 	})
@@ -1676,6 +1849,12 @@ func (m *graphqlModelResolver) createCreateOneField(modelType graphql.Type) (*gr
 func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
 	if err := rctx.RLS.Permissions.CheckAction(ActionUpdate); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldSuccess: false,
+				FieldError:   createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	input, err := newUpdateOneInput(m.model.Name, p)
@@ -1690,6 +1869,18 @@ func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interf
 	}
 	updatedObj, err := rctx.ClientRepo.UpdateOne(p.Context, input)
 	if err != nil {
+		if isRecordNotFoundError(err) {
+			return map[string]interface{}{
+				FieldSuccess: false,
+				FieldError:   createStructuredError("RecordNotFound", "Record not found"),
+			}, nil
+		}
+		if isDuplicateKeyError(err) {
+			return map[string]interface{}{
+				FieldSuccess: false,
+				FieldError:   createStructuredError("DuplicateKey", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 
@@ -1719,6 +1910,9 @@ func (m *graphqlModelResolver) createUpdateOneField(modelType graphql.Type) (*gr
 			FieldUpdatedObj: &graphql.Field{
 				Type: modelType,
 			},
+			FieldError: &graphql.Field{
+				Type: openDataErrorUnion,
+			},
 		},
 	})
 
@@ -1741,6 +1935,12 @@ func (m *graphqlModelResolver) createUpdateOneField(modelType graphql.Type) (*gr
 func (m *graphqlModelResolver) executeDeleteOne(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
 	if err := rctx.RLS.Permissions.CheckAction(ActionDelete); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldSuccess: false,
+				FieldError:   createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	input, err := newDeleteOneInput(m.model.Name, p)
@@ -1753,6 +1953,12 @@ func (m *graphqlModelResolver) executeDeleteOne(p graphql.ResolveParams) (interf
 	}
 	deleteResult, err := rctx.ClientRepo.DeleteOne(p.Context, input)
 	if err != nil {
+		if isRecordNotFoundError(err) {
+			return map[string]interface{}{
+				FieldSuccess: false,
+				FieldError:   createStructuredError("RecordNotFound", "Record not found"),
+			}, nil
+		}
 		return nil, err
 	}
 
@@ -1777,6 +1983,9 @@ func (m *graphqlModelResolver) createDeleteOneField(modelType graphql.Type) (*gr
 			FieldDeletedObj: &graphql.Field{
 				Type: modelType,
 			},
+			FieldError: &graphql.Field{
+				Type: openDataErrorUnion,
+			},
 		},
 	})
 
@@ -1799,6 +2008,11 @@ func (m *graphqlModelResolver) createDeleteOneField(modelType graphql.Type) (*gr
 func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
 	if err := rctx.RLS.Permissions.CheckAction(ActionInsert); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	logger := logfacade.GetLogger(p.Context)
@@ -1823,6 +2037,11 @@ func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (inter
 	}
 	result, err := rctx.ClientRepo.CreateMany(p.Context, input)
 	if err != nil {
+		if isDuplicateKeyError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("DuplicateKey", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	return result, nil
@@ -1839,12 +2058,15 @@ func (m *graphqlModelResolver) createCreateManyField(modelType graphql.Type) (*g
 		Name: gqlTypeName(m.model.Name) + "CreateMany" + ResultTypeSuffix,
 		Fields: graphql.Fields{
 			FieldCount: &graphql.Field{
-				Type:        graphql.NewNonNull(graphql.Int),
+				Type:        graphql.Int,
 				Description: "成功创建的记录数",
 			},
 			FieldIdList: &graphql.Field{
 				Type:        graphql.NewList(graphql.ID),
 				Description: "创建的记录ID列表（仅在查询中选择时返回）",
+			},
+			FieldError: &graphql.Field{
+				Type: openDataErrorUnion,
 			},
 		},
 	})
@@ -1868,6 +2090,11 @@ func (m *graphqlModelResolver) createCreateManyField(modelType graphql.Type) (*g
 func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
 	if err := rctx.RLS.Permissions.CheckAction(ActionUpdate); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	input, err := newUpdateManyInput(m.model.Name, p)
@@ -1878,6 +2105,11 @@ func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (inter
 
 	result, err := rctx.ClientRepo.UpdateMany(p.Context, input)
 	if err != nil {
+		if isDuplicateKeyError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("DuplicateKey", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	return result, nil
@@ -1894,8 +2126,11 @@ func (m *graphqlModelResolver) createUpdateManyField(modelType graphql.Type) (*g
 		Name: gqlTypeName(m.model.Name) + "UpdateMany" + ResultTypeSuffix,
 		Fields: graphql.Fields{
 			FieldCount: &graphql.Field{
-				Type:        graphql.NewNonNull(graphql.Int),
+				Type:        graphql.Int,
 				Description: "成功更新的记录数",
+			},
+			FieldError: &graphql.Field{
+				Type: openDataErrorUnion,
 			},
 		},
 	})
@@ -1919,6 +2154,11 @@ func (m *graphqlModelResolver) createUpdateManyField(modelType graphql.Type) (*g
 func (m *graphqlModelResolver) executeDeleteMany(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
 	if err := rctx.RLS.Permissions.CheckAction(ActionDelete); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	input, err := newDeleteManyInput(m.model.Name, p)
@@ -1943,8 +2183,11 @@ func (m *graphqlModelResolver) createDeleteManyField(modelType graphql.Type) (*g
 		Name: gqlTypeName(m.model.Name) + "DeleteMany" + ResultTypeSuffix,
 		Fields: graphql.Fields{
 			FieldCount: &graphql.Field{
-				Type:        graphql.NewNonNull(graphql.Int),
+				Type:        graphql.Int,
 				Description: "成功删除的记录数",
+			},
+			FieldError: &graphql.Field{
+				Type: openDataErrorUnion,
 			},
 		},
 	})

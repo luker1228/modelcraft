@@ -325,7 +325,7 @@ function productsCreate(name: string): string {
   const ts = Date.now().toString(36)
   const id = `prod-bdd-${ts}`.slice(0, 36)
   const uniqueName = `${name.slice(0, 24)}-${ts}`.slice(0, 64)
-  return `mutation { create(data: { id: "${id}", name: "${uniqueName}", price: 0, stock: 0, category_id: 1 }) { id } }`
+  return `mutation { create(data: { id: "${id}", name: "${uniqueName}", price: 0, stock: 0, category_id: 1 }) { id error { __typename ... on PermissionDenied { message } ... on DuplicateKey { message } } } }`
 }
 
 function productsUpdate(id: string, name: string): string {
@@ -700,10 +700,36 @@ Then('操作被拒绝且返回错误类型 {string}', function (
   errorType: string,
 ) {
   const result = getLastOpenDataResult(this)
-  expect(result.errors?.length ?? 0).toBeGreaterThan(0)
-  const error = result.errors?.[0]
-  const errStr = error?.extensions?.code || error?.message || ''
-  expect(errStr).toContain(errorType)
+  
+  // Map old error codes to new type names
+  const errorTypeMap: Record<string, string> = {
+    'OPERATION_FAILED.PERMISSION': 'PermissionDenied',
+    'NOT_FOUND.RECORD': 'RecordNotFound',
+    'CONFLICT.RECORD': 'DuplicateKey',
+  }
+  const expectedType = errorTypeMap[errorType] || errorType
+  
+  // Check GraphQL errors first
+  if (result.errors && result.errors.length > 0) {
+    const error = result.errors[0]
+    const errStr = error?.extensions?.code || error?.message || ''
+    expect(errStr).toContain(errorType)
+    return
+  }
+  
+  // Check structured errors in data payload
+  const data = result.data as any
+  const operations = ['create', 'createMany', 'update', 'updateMany', 'delete', 'deleteMany', 'findUnique']
+  for (const op of operations) {
+    if (data?.[op]?.error) {
+      const error = data[op].error
+      const errStr = error?.__typename || error?.message || ''
+      expect(errStr).toContain(expectedType)
+      return
+    }
+  }
+  
+  throw new Error(`Expected error type ${errorType} but found no errors in response`)
 })
 
 Then('更新返回 0 行受影响且无错误', function (this: ModelCraftWorld) {
@@ -1358,6 +1384,151 @@ When('以 useAdmin 方式调用 Open Data API 执行 findMany，where paid_amoun
 ) {
   const query = `query { findMany(take: 20, skip: 0, orderBy: [{ id: asc }], where: { AND: [{ paid_amount: { gte: ${gte} } }, { paid_amount: { lte: ${lte} } }] }) { items { id } totalCount timeCost reqId } }`
   const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+// ─── 结构化错误测试步骤 ─────────────────────────────────────────
+
+function openCreateWithFixedId(id: string, orderNo: string, userId: string): string {
+  return `mutation { create(data: { id: "${id}", order_no: "${orderNo}", address_id: "addr-bdd", total_amount: 0, paid_amount: 0, user_id: "${userId}" }) { id error { __typename ... on DuplicateKey { message } } } }`
+}
+
+function openUpdateNonExistent(id: string): string {
+  return `mutation { update(where: { id: "${id}" }, data: { remark: "test" }) { success error { __typename ... on RecordNotFound { message } } } }`
+}
+
+function openDeleteNonExistent(id: string): string {
+  return `mutation { delete(where: { id: "${id}" }) { success error { __typename ... on RecordNotFound { message } } } }`
+}
+
+function openCreateManyWithDuplicateIds(id1: string, id2: string, userId: string): string {
+  const ts = Date.now().toString(36)
+  return `mutation { createMany(data: [
+    { id: "${id1}", order_no: "batch-${ts}-1", address_id: "addr-bdd", total_amount: 0, paid_amount: 0, user_id: "${userId}" },
+    { id: "${id2}", order_no: "batch-${ts}-2", address_id: "addr-bdd", total_amount: 0, paid_amount: 0, user_id: "${userId}" }
+  ]) { count error { __typename ... on DuplicateKey { message } } } }`
+}
+
+function openUpdateManyNonExistent(): string {
+  return `mutation { updateMany(where: { AND: [{ order_no: { equals: "non-existent-batch-id" } }] }, data: { remark: "batch-update" }, take: 10) { count error { __typename ... on RecordNotFound { message } } } }`
+}
+
+function openDeleteManyNonExistent(): string {
+  return `mutation { deleteMany(where: { AND: [{ order_no: { equals: "non-existent-batch-id" } }] }, take: 10) { count error { __typename ... on RecordNotFound { message } } } }`
+}
+
+function openCreateManyPermissionDenied(): string {
+  const ts = Date.now().toString(36)
+  return `mutation { createMany(data: [
+    { id: "perm-denied-${ts}-1", order_no: "perm-test-${ts}-1", address_id: "addr-bdd", total_amount: 0, paid_amount: 0, user_id: "other-user-id" }
+  ]) { count error { __typename ... on PermissionDenied { message } } } }`
+}
+
+function openUpdateManyPermissionDenied(): string {
+  return `mutation { updateMany(where: { AND: [{ order_no: { equals: "some-order" } }] }, data: { user_id: "other-user-id" }, take: 10) { count error { __typename ... on PermissionDenied { message } } } }`
+}
+
+function openDeleteManyPermissionDenied(): string {
+  return `mutation { deleteMany(where: { AND: [{ name: { equals: "some-product" } }] }, take: 10) { count error { __typename ... on PermissionDenied { message } } } }`
+}
+
+When('以 EndUser {string} 对 orders 模型创建一条固定 id 的记录', async function (
+  this: ModelCraftWorld,
+  userId: string,
+) {
+  const ts = Date.now().toString(36)
+  const fixedId = `dup-key-${ts}`.slice(0, 36)
+  const orderNo = `dup-test-${ts}`
+  const query = openCreateWithFixedId(fixedId, orderNo, userId)
+  const result = await callOpenDataApi(this, query, 'viewer')
+  setLastOpenDataResult(this, result)
+  // 保存 fixedId 供后续步骤使用
+  if (!this.lastResponse) this.lastResponse = {}
+  this.lastResponse.fixedId = fixedId
+})
+
+When('以 EndUser {string} 再次对 orders 模型创建相同 id 的记录', async function (
+  this: ModelCraftWorld,
+  userId: string,
+) {
+  const fixedId = this.lastResponse?.fixedId
+  if (!fixedId) throw new Error('需要先创建一条记录以获取 fixedId')
+  const orderNo = `dup-test-${Date.now().toString(36)}`
+  const query = openCreateWithFixedId(fixedId, orderNo, userId)
+  const result = await callOpenDataApi(this, query, 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以 EndUser {string} 对 orders 模型批量创建包含重复 id 的记录', async function (
+  this: ModelCraftWorld,
+  userId: string,
+) {
+  const fixedId = this.lastResponse?.fixedId
+  if (!fixedId) throw new Error('需要先创建一条记录以获取 fixedId')
+  const newId = `batch-dup-${Date.now().toString(36)}`.slice(0, 36)
+  const query = openCreateManyWithDuplicateIds(fixedId, newId, userId)
+  const result = await callOpenDataApi(this, query, 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式对 orders 模型更新一条不存在的记录 id 为 {string}', async function (
+  this: ModelCraftWorld,
+  nonExistentId: string,
+) {
+  const query = openUpdateNonExistent(nonExistentId)
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式对 orders 模型删除一条不存在的记录 id 为 {string}', async function (
+  this: ModelCraftWorld,
+  nonExistentId: string,
+) {
+  const query = openDeleteNonExistent(nonExistentId)
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式对 orders 模型批量更新不存在的记录', async function (
+  this: ModelCraftWorld,
+) {
+  const query = openUpdateManyNonExistent()
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 useAdmin 方式对 orders 模型批量删除不存在的记录', async function (
+  this: ModelCraftWorld,
+) {
+  const query = openDeleteManyNonExistent()
+  const result = await callOpenDataApiUseAdmin(this, query)
+  setLastOpenDataResult(this, result)
+})
+
+When('以 EndUser {string} 对 orders 模型批量创建尝试修改 user_id', async function (
+  this: ModelCraftWorld,
+  userId: string,
+) {
+  const query = openCreateManyPermissionDenied()
+  const result = await callOpenDataApi(this, query, 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以 EndUser {string} 对 orders 模型批量更新尝试修改 user_id', async function (
+  this: ModelCraftWorld,
+  userId: string,
+) {
+  const query = openUpdateManyPermissionDenied()
+  const result = await callOpenDataApi(this, query, 'viewer')
+  setLastOpenDataResult(this, result)
+})
+
+When('以 EndUser {string} 对 products 模型批量删除尝试绕过权限', async function (
+  this: ModelCraftWorld,
+  userId: string,
+) {
+  const query = openDeleteManyPermissionDenied()
+  const result = await callOpenDataApiForModel(this, detProductsModelName(), query, 'viewer')
   setLastOpenDataResult(this, result)
 })
 

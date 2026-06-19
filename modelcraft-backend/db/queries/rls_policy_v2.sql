@@ -17,6 +17,8 @@ INSERT INTO model_rls_policies (
     org_name, project_slug, model_id, policy_name, action, role, using_expr, with_check_expr
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
+    action = VALUES(action),
+    role = VALUES(role),
     using_expr = VALUES(using_expr),
     with_check_expr = VALUES(with_check_expr);
 

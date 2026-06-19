@@ -360,3 +360,54 @@ Feature: 确定性 RLS 运行时拨测
   Scenario: useAdmin — findMany where paid_amount gte 0 lte 1000（数值区间）
     When 以 useAdmin 方式调用 Open Data API 执行 findMany，where paid_amount gte 0 lte 1000
     Then 返回结果为合法的 GraphQL 响应且无 errors
+
+  # ─── 结构化错误专项 ───
+
+  @smoke @deterministic @structured-errors
+  Scenario: 创建重复 id 记录返回 DuplicateKey 错误
+    When 以 EndUser "rls-test-user-001" 对 orders 模型创建一条固定 id 的记录
+    Then 返回结果为合法的 GraphQL 响应且无 errors
+    When 以 EndUser "rls-test-user-001" 再次对 orders 模型创建相同 id 的记录
+    Then 操作被拒绝且返回错误类型 "CONFLICT.RECORD"
+
+  @smoke @deterministic @structured-errors
+  Scenario: 批量创建包含重复 id 的记录返回 DuplicateKey 错误
+    When 以 EndUser "rls-test-user-001" 对 orders 模型创建一条固定 id 的记录
+    Then 返回结果为合法的 GraphQL 响应且无 errors
+    When 以 EndUser "rls-test-user-001" 对 orders 模型批量创建包含重复 id 的记录
+    Then 操作被拒绝且返回错误类型 "CONFLICT.RECORD"
+
+  @smoke @deterministic @structured-errors
+  Scenario: 更新不存在的记录返回 RecordNotFound 错误
+    When 以 useAdmin 方式对 orders 模型更新一条不存在的记录 id 为 "non-existent-record-id-xyz"
+    Then 操作被拒绝且返回错误类型 "NOT_FOUND.RECORD"
+
+  @smoke @deterministic @structured-errors
+  Scenario: 删除不存在的记录返回 RecordNotFound 错误
+    When 以 useAdmin 方式对 orders 模型删除一条不存在的记录 id 为 "non-existent-record-id-abc"
+    Then 操作被拒绝且返回错误类型 "NOT_FOUND.RECORD"
+
+  @smoke @deterministic @structured-errors
+  Scenario: 批量更新不存在的记录返回 count 为 0
+    When 以 useAdmin 方式对 orders 模型批量更新不存在的记录
+    Then 返回结果为合法的 GraphQL 响应且无 errors
+
+  @smoke @deterministic @structured-errors
+  Scenario: 批量删除不存在的记录返回 count 为 0
+    When 以 useAdmin 方式对 orders 模型批量删除不存在的记录
+    Then 返回结果为合法的 GraphQL 响应且无 errors
+
+  @smoke @deterministic @structured-errors
+  Scenario: 批量创建尝试修改 user_id 返回 PermissionDenied 错误
+    When 以 EndUser "rls-test-user-001" 对 orders 模型批量创建尝试修改 user_id
+    Then 操作被拒绝且返回错误类型 "OPERATION_FAILED.PERMISSION"
+
+  @smoke @deterministic @structured-errors
+  Scenario: 批量更新尝试修改 user_id 返回 PermissionDenied 错误
+    When 以 EndUser "rls-test-user-001" 对 orders 模型批量更新尝试修改 user_id
+    Then 操作被拒绝且返回错误类型 "OPERATION_FAILED.PERMISSION"
+
+  @smoke @deterministic @structured-errors
+  Scenario: 批量删除尝试绕过权限返回 PermissionDenied 错误
+    When 以 EndUser "rls-test-user-001" 对 products 模型批量删除尝试绕过权限
+    Then 操作被拒绝且返回错误类型 "OPERATION_FAILED.PERMISSION"

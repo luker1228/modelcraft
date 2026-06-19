@@ -38,6 +38,14 @@ import {
 
 const ACTIONS: RlsAction[] = ['read', 'create', 'update', 'delete']
 
+interface EditingPolicy {
+  policyName: string
+  action: RlsAction
+  role: string
+  usingExpr?: string | null
+  withCheckExpr?: string | null
+}
+
 interface PolicyEditorDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -56,6 +64,7 @@ interface PolicyEditorDialogProps {
   modelFields?: Array<{ name: string; title?: string | null }>
   authVariables?: Array<{ name: string; source?: string | null; type?: string | null }>
   docsHref?: string
+  editingPolicy?: EditingPolicy | null
 }
 
 export function PolicyEditorDialog({
@@ -67,7 +76,9 @@ export function PolicyEditorDialog({
   modelFields = [],
   authVariables = [],
   docsHref,
+  editingPolicy = null,
 }: PolicyEditorDialogProps) {
+  const isEditing = !!editingPolicy
   const [policyName, setPolicyName] = React.useState('')
   const [action, setAction] = React.useState<RlsAction>('read')
   const [role, setRole] = React.useState('')
@@ -83,15 +94,23 @@ export function PolicyEditorDialog({
 
   React.useEffect(() => {
     if (open) {
-      setPolicyName('')
-      setAction('read')
-      setRole('')
-      setUsingExpr('')
-      setWithCheckExpr('')
+      if (editingPolicy) {
+        setPolicyName(editingPolicy.policyName)
+        setAction(editingPolicy.action)
+        setRole(editingPolicy.role)
+        setUsingExpr(editingPolicy.usingExpr ?? '')
+        setWithCheckExpr(editingPolicy.withCheckExpr ?? '')
+      } else {
+        setPolicyName('')
+        setAction('read')
+        setRole('')
+        setUsingExpr('')
+        setWithCheckExpr('')
+      }
       setUsingExprValid(null)
       setCheckExprValid(null)
     }
-  }, [open])
+  }, [open, editingPolicy])
 
   const usingExprBlocked = showUsingExpr && usingExpr.trim().length > 0 && usingExprValid === false
   const checkExprBlocked = showCheckExpr && withCheckExpr.trim().length > 0 && checkExprValid === false
@@ -129,7 +148,7 @@ export function PolicyEditorDialog({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex size-full flex-col overflow-hidden p-0 sm:w-[760px] sm:max-w-[760px]">
         <SheetHeader className="border-b border-border px-6 py-4">
-          <SheetTitle className="text-base">添加策略</SheetTitle>
+          <SheetTitle className="text-base">{isEditing ? '编辑策略' : '添加策略'}</SheetTitle>
         </SheetHeader>
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
           <div className="space-y-1.5">
@@ -140,7 +159,12 @@ export function PolicyEditorDialog({
               value={policyName}
               onChange={(e) => setPolicyName(e.target.value)}
               placeholder="例如：admin_full_access"
+              disabled={isEditing}
+              readOnly={isEditing}
             />
+            {isEditing && (
+              <p className="text-xs text-muted-foreground">策略名称为唯一键，编辑时不可修改</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

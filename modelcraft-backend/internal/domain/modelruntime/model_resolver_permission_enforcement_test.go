@@ -122,10 +122,34 @@ func selectAllPerm() *ResolvedModelPermissions {
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 // hasPermissionError returns true when any error message contains "permission" (case-insensitive).
+// It checks both GraphQL errors and structured errors in the data payload.
 func hasPermissionError(result *graphql.Result) bool {
+	// Check GraphQL errors
 	for _, e := range result.Errors {
 		if strings.Contains(strings.ToLower(e.Error()), "permission") {
 			return true
+		}
+	}
+	// Check structured errors in data payload
+	if result.Data != nil {
+		if dataMap, ok := result.Data.(map[string]interface{}); ok {
+			// Iterate through all operations (findUnique, create, update, delete, etc.)
+			for _, v := range dataMap {
+				if fieldMap, ok := v.(map[string]interface{}); ok {
+					if errField, ok := fieldMap["error"].(map[string]interface{}); ok {
+						if typename, ok := errField["__typename"].(string); ok {
+							if typename == "PermissionDenied" {
+								return true
+							}
+						}
+						if msg, ok := errField["message"].(string); ok {
+							if strings.Contains(strings.ToLower(msg), "permission") {
+								return true
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 	return false
@@ -160,7 +184,7 @@ func TestPermissionEnforcement_ActionGate_ZeroPerms(t *testing.T) {
 		},
 		{
 			name:  "findUnique",
-			query: `{ findUnique(where: { id: "x" }) { item { id } } }`,
+			query: `{ findUnique(where: { id: "x" }) { item { id } error { __typename ... on PermissionDenied { message } } } }`,
 		},
 		{
 			name:  "findFirst",
@@ -176,27 +200,27 @@ func TestPermissionEnforcement_ActionGate_ZeroPerms(t *testing.T) {
 		},
 		{
 			name:  "create",
-			query: `mutation { create(data: { title: "t" }) { id } }`,
+			query: `mutation { create(data: { title: "t" }) { id error { __typename ... on PermissionDenied { message } } } }`,
 		},
 		{
 			name:  "update",
-			query: `mutation { update(where: { id: "x" }, data: { title: "t" }) { success } }`,
+			query: `mutation { update(where: { id: "x" }, data: { title: "t" }) { success error { __typename ... on PermissionDenied { message } } } }`,
 		},
 		{
 			name:  "delete",
-			query: `mutation { delete(where: { id: "x" }) { success } }`,
+			query: `mutation { delete(where: { id: "x" }) { success error { __typename ... on PermissionDenied { message } } } }`,
 		},
 		{
 			name:  "createMany",
-			query: `mutation { createMany(data: [{ title: "t" }]) { count } }`,
+			query: `mutation { createMany(data: [{ title: "t" }]) { count error { __typename ... on PermissionDenied { message } } } }`,
 		},
 		{
 			name:  "updateMany",
-			query: `mutation { updateMany(where: {}, data: { title: "t" }, take: 1) { count } }`,
+			query: `mutation { updateMany(where: {}, data: { title: "t" }, take: 1) { count error { __typename ... on PermissionDenied { message } } } }`,
 		},
 		{
 			name:  "deleteMany",
-			query: `mutation { deleteMany(where: {}, take: 1) { count } }`,
+			query: `mutation { deleteMany(where: {}, take: 1) { count error { __typename ... on PermissionDenied { message } } } }`,
 		},
 	}
 
@@ -209,9 +233,11 @@ func TestPermissionEnforcement_ActionGate_ZeroPerms(t *testing.T) {
 			)
 
 			result := doQuery(schema, ctx, op.query)
+			// Check for either GraphQL errors or structured errors in data payload
+			hasErrors := len(result.Errors) > 0 || hasPermissionError(result)
 			assert.True(
 				t,
-				len(result.Errors) > 0,
+				hasErrors,
 				"expected permission error for %s, got no errors", op.name,
 			)
 			assert.True(

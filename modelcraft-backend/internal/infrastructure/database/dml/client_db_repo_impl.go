@@ -69,19 +69,36 @@ func (c *ClientDBRepoImpl) FindUnique(
 	return execute(ctx,
 		logger, input,
 		func() (map[string]any, error) {
-			result := make(map[string]any)
 			sql, args, err := convertFindUniqueInputToSQL(ctx, input)
 			if err != nil {
 				return nil, err
 			}
+			// 添加 LIMIT 2 以检查是否有多条记录
+			sql = sql + " LIMIT 2"
 			logger.Infof(ctx, "sql=%v args=%v", sql, args)
-			row := c.stdDB.QueryRowx(sql, args...)
-			err = row.MapScan(result)
+
+			rows, err := c.stdDB.Queryx(sql, args...)
 			if err != nil {
 				return nil, err
 			}
-			result = convertBytesToString(result)
-			return result, nil
+			defer rows.Close()
+
+			var results []map[string]any
+			for rows.Next() {
+				result := make(map[string]any)
+				if err := rows.MapScan(result); err != nil {
+					return nil, err
+				}
+				results = append(results, convertBytesToString(result))
+			}
+
+			if len(results) == 0 {
+				return nil, sqldb.ErrNoRows
+			}
+			if len(results) > 1 {
+				return nil, fmt.Errorf("multiple records found: expected 1, got %d", len(results))
+			}
+			return results[0], nil
 		},
 	)
 }
