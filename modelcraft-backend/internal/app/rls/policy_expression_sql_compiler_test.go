@@ -43,6 +43,28 @@ func TestPolicyExpressionSQLCompiler_RejectsInputRoot(t *testing.T) {
 	require.ErrorContains(t, err, "input is not allowed")
 }
 
+// 右值不能用 row.* — 必须是标量/auth 值，否则报 "right side must be a scalar value"
+func TestPolicyExpressionSQLCompiler_RejectsRowOnRightSide(t *testing.T) {
+	compiler := NewPolicyExpressionSQLCompiler()
+	_, err := compiler.CompileUsing(
+		context.Background(),
+		`row.status == row.category`,
+		&domainrls.UserContext{UserIDStr: "u_123"},
+	)
+	require.ErrorContains(t, err, "right side must be a scalar value")
+}
+
+// 左值必须是 row.* — 不能是标量/auth 值
+func TestPolicyExpressionSQLCompiler_RejectsScalarOnLeftSide(t *testing.T) {
+	compiler := NewPolicyExpressionSQLCompiler()
+	_, err := compiler.CompileUsing(
+		context.Background(),
+		`auth.userid == row.owner_id`,
+		&domainrls.UserContext{UserIDStr: "u_123"},
+	)
+	require.ErrorContains(t, err, "left side must be a row field")
+}
+
 // 大小比较：> / >= / < / <= 映射到对应 SQL 运算符，参数类型保持原始数值类型。
 // 注意：CEL 数字字面量无小数点时解析为 int64，带小数点时解析为 float64。
 func TestPolicyExpressionSQLCompiler_ComparisonOperators(t *testing.T) {

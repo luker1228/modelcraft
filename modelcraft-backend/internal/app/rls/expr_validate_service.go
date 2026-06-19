@@ -71,10 +71,23 @@ func (s *RLSExprValidateService) ValidateAndDryRun(
 	checkResult := err == nil
 	result.Result = &checkResult
 	if err != nil {
+		// "evaluated to false" is a valid dry-run result, not an error.
+		// Only non-evaluation failures (compile errors, type errors) set Valid=false.
+		if isCheckFalseError(err) {
+			return result
+		}
+		result.Valid = false
 		result.Errors = []PolicyExpressionError{{
 			Message: fmt.Sprintf("%v", err),
 			Code:    "DRY_RUN_FAILED",
 		}}
 	}
 	return result
+}
+
+// isCheckFalseError returns true if the error is a CHECK expression evaluating
+// to false (a legitimate dry-run outcome) rather than a compile/eval failure.
+func isCheckFalseError(err error) bool {
+	msg := err.Error()
+	return msg == "RLS CHECK violation: expression evaluated to false"
 }
