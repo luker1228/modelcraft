@@ -100,10 +100,6 @@ type ReorderGroupError interface {
 	IsReorderGroupError()
 }
 
-type SetModelRLSPolicyError interface {
-	IsSetModelRLSPolicyError()
-}
-
 type TestConnectionError interface {
 	IsTestConnectionError()
 }
@@ -277,14 +273,6 @@ type CreateModelPayload struct {
 	Error CreateModelError `json:"error,omitempty"`
 }
 
-type DangerousPolicyNotConfirmed struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (DangerousPolicyNotConfirmed) IsError()                {}
-func (this DangerousPolicyNotConfirmed) GetMessage() string { return this.Message }
-
 type Database struct {
 	Name string `json:"name"`
 }
@@ -394,14 +382,6 @@ type DeleteRlsPolicyPayload struct {
 	Success bool                 `json:"success"`
 	Error   DeleteRlsPolicyError `json:"error,omitempty"`
 }
-
-type EndUserRefAlreadyExists struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (EndUserRefAlreadyExists) IsError()                {}
-func (this EndUserRefAlreadyExists) GetMessage() string { return this.Message }
 
 type EnumAlreadyExists struct {
 	Message    string  `json:"message"`
@@ -574,8 +554,6 @@ type InvalidAuthVariable struct {
 func (InvalidAuthVariable) IsError()                {}
 func (this InvalidAuthVariable) GetMessage() string { return this.Message }
 
-func (InvalidAuthVariable) IsSetModelRLSPolicyError() {}
-
 func (InvalidAuthVariable) IsValidateRLSExprError() {}
 
 type InvalidGroupName struct {
@@ -631,8 +609,6 @@ type InvalidRLSExpression struct {
 func (InvalidRLSExpression) IsError()                {}
 func (this InvalidRLSExpression) GetMessage() string { return this.Message }
 
-func (InvalidRLSExpression) IsSetModelRLSPolicyError() {}
-
 func (InvalidRLSExpression) IsValidateRLSExprError() {}
 
 type ListDatabasesInput struct {
@@ -681,8 +657,6 @@ type Model struct {
 	JSONSchema          *string        `json:"jsonSchema,omitempty"`
 	CreatedAt           string         `json:"createdAt"`
 	UpdatedAt           string         `json:"updatedAt"`
-	// RLS 策略配置（无 owner 字段时返回 null）
-	RlsPolicy *ModelRLSPolicy `json:"rlsPolicy,omitempty"`
 }
 
 func (Model) IsNode()            {}
@@ -740,16 +714,6 @@ type ModelGroup struct {
 	Models       []*Model `json:"models"`
 }
 
-type ModelHasNoOwnerField struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (ModelHasNoOwnerField) IsError()                {}
-func (this ModelHasNoOwnerField) GetMessage() string { return this.Message }
-
-func (ModelHasNoOwnerField) IsSetModelRLSPolicyError() {}
-
 type ModelJSONSchema struct {
 	ModelID   string `json:"modelId"`
 	ModelName string `json:"modelName"`
@@ -766,27 +730,6 @@ type ModelQueryInput struct {
 	PageIndex    *int32  `json:"pageIndex,omitempty"`
 	PageSize     *int32  `json:"pageSize,omitempty"`
 	Search       *string `json:"search,omitempty"`
-}
-
-type ModelRLSPolicy struct {
-	// 所属模型 ID
-	ModelID string `json:"modelId"`
-	// SELECT USING 谓词（JSON 字符串）
-	SelectPredicate string `json:"selectPredicate"`
-	// INSERT WITH CHECK 谓词（JSON 字符串）
-	InsertCheck string `json:"insertCheck"`
-	// UPDATE USING 谓词（JSON 字符串）
-	UpdatePredicate string `json:"updatePredicate"`
-	// UPDATE WITH CHECK 谓词（JSON 字符串）
-	UpdateCheck string `json:"updateCheck"`
-	// DELETE USING 谓词（JSON 字符串）
-	DeletePredicate string `json:"deletePredicate"`
-	// 当前策略匹配的 Preset，自定义组合时返回 null
-	Preset *RLSPreset `json:"preset,omitempty"`
-	// 创建时间
-	CreatedAt string `json:"createdAt"`
-	// 更新时间
-	UpdatedAt string `json:"updatedAt"`
 }
 
 type ModelSyncFailedTable struct {
@@ -855,14 +798,6 @@ type PageInfo struct {
 
 type Query struct {
 }
-
-type RLSCheckViolation struct {
-	Message   string  `json:"message"`
-	Operation *string `json:"operation,omitempty"`
-}
-
-func (RLSCheckViolation) IsError()                {}
-func (this RLSCheckViolation) GetMessage() string { return this.Message }
 
 type RLSExprDryRun struct {
 	SQL    *string  `json:"sql,omitempty"`
@@ -981,8 +916,6 @@ func (ResourceNotFound) IsReorderGroupError() {}
 
 func (ResourceNotFound) IsMoveModelToGroupError() {}
 
-func (ResourceNotFound) IsSetModelRLSPolicyError() {}
-
 func (ResourceNotFound) IsValidateRLSExprError() {}
 
 func (ResourceNotFound) IsUpsertRlsPolicyError() {}
@@ -1021,26 +954,6 @@ type SchemaIssue struct {
 	TableName   string          `json:"tableName"`
 	FieldName   *string         `json:"fieldName,omitempty"`
 	Details     *string         `json:"details,omitempty"`
-}
-
-type SetModelRLSPolicyInput struct {
-	// 模型 ID
-	ModelID string `json:"modelId"`
-	// SELECT USING 谓词（JSON 字符串）
-	SelectPredicate string `json:"selectPredicate"`
-	// INSERT WITH CHECK 谓词（JSON 字符串）
-	InsertCheck string `json:"insertCheck"`
-	// UPDATE USING 谓词（JSON 字符串）
-	UpdatePredicate string `json:"updatePredicate"`
-	// UPDATE WITH CHECK 谓词（JSON 字符串）
-	UpdateCheck string `json:"updateCheck"`
-	// DELETE USING 谓词（JSON 字符串）
-	DeletePredicate string `json:"deletePredicate"`
-}
-
-type SetModelRLSPolicyPayload struct {
-	Policy *ModelRLSPolicy        `json:"policy,omitempty"`
-	Error  SetModelRLSPolicyError `json:"error,omitempty"`
 }
 
 type StartModelDatabaseSyncPayload struct {
@@ -1158,7 +1071,7 @@ type ValidateRLSExprInput struct {
 	ModelID string `json:"modelId"`
 	// 要校验的谓词类型
 	ExprType RLSExprType `json:"exprType"`
-	// 表达式 JSON 字符串
+	// 表达式 CEL 字符串
 	Expression string `json:"expression"`
 	// check 表达式 dry run 时使用的示例输入 JSON
 	SampleInput *string `json:"sampleInput,omitempty"`
@@ -1954,77 +1867,6 @@ func (e *RLSExprType) UnmarshalJSON(b []byte) error {
 }
 
 func (e RLSExprType) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	e.MarshalGQL(&buf)
-	return buf.Bytes(), nil
-}
-
-type RLSPreset string
-
-const (
-	// 默认策略：读写自己
-	// 五件套均为 {"owner":{"_eq":{"_auth":"uid"}}}
-	RLSPresetReadWriteOwner RLSPreset = "READ_WRITE_OWNER"
-	// 读取全部，写自己
-	// selectPredicate=true，其余为 OWNER_EQUALS_USER
-	RLSPresetReadAllWriteOwner RLSPreset = "READ_ALL_WRITE_OWNER"
-	// 只读全部
-	// selectPredicate=true，其余为 false
-	RLSPresetReadAll RLSPreset = "READ_ALL"
-	// 读写全部（⚠️ 高危策略）
-	// 五件套均为 true
-	RLSPresetReadWriteAll RLSPreset = "READ_WRITE_ALL"
-	// 无访问权限
-	// 五件套均为 false
-	RLSPresetNoAccess RLSPreset = "NO_ACCESS"
-)
-
-var AllRLSPreset = []RLSPreset{
-	RLSPresetReadWriteOwner,
-	RLSPresetReadAllWriteOwner,
-	RLSPresetReadAll,
-	RLSPresetReadWriteAll,
-	RLSPresetNoAccess,
-}
-
-func (e RLSPreset) IsValid() bool {
-	switch e {
-	case RLSPresetReadWriteOwner, RLSPresetReadAllWriteOwner, RLSPresetReadAll, RLSPresetReadWriteAll, RLSPresetNoAccess:
-		return true
-	}
-	return false
-}
-
-func (e RLSPreset) String() string {
-	return string(e)
-}
-
-func (e *RLSPreset) UnmarshalGQL(v any) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = RLSPreset(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid RLSPreset", str)
-	}
-	return nil
-}
-
-func (e RLSPreset) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-func (e *RLSPreset) UnmarshalJSON(b []byte) error {
-	s, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	return e.UnmarshalGQL(s)
-}
-
-func (e RLSPreset) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

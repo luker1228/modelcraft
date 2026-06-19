@@ -2,10 +2,10 @@ package graphql
 
 import (
 	"html/template"
+	"modelcraft/pkg/httpheader"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"modelcraft/pkg/httpheader"
 )
 
 // PlaygroundConfig 配置 GraphQL Playground

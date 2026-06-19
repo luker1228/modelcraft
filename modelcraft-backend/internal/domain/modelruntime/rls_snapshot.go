@@ -20,7 +20,7 @@ func NewCheckProgram(program cel.Program) *CheckProgram {
 
 // Eval evaluates the CHECK expression against the given input and auth context.
 // Returns nil if the expression evaluates to true, error otherwise.
-func (c *CheckProgram) Eval(input map[string]any, auth map[string]any) error {
+func (c *CheckProgram) Eval(input, auth map[string]any) error {
 	if c == nil || c.program == nil {
 		return nil
 	}

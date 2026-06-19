@@ -282,12 +282,6 @@ export type CurrentUser = {
   role?: Maybe<Role>;
 };
 
-export type DangerousPolicyNotConfirmed = Error & {
-  __typename?: 'DangerousPolicyNotConfirmed';
-  message: Scalars['String']['output'];
-  suggestion?: Maybe<Scalars['String']['output']>;
-};
-
 export type Database = {
   __typename?: 'Database';
   name: Scalars['String']['output'];
@@ -444,12 +438,6 @@ export type DeleteRolePayload = {
   __typename?: 'DeleteRolePayload';
   error?: Maybe<DeleteRoleError>;
   success: Scalars['Boolean']['output'];
-};
-
-export type EndUserRefAlreadyExists = Error & {
-  __typename?: 'EndUserRefAlreadyExists';
-  message: Scalars['String']['output'];
-  suggestion?: Maybe<Scalars['String']['output']>;
 };
 
 export type EnumAlreadyExists = Error & {
@@ -744,8 +732,6 @@ export type Model = Node & {
   jsonSchema?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
   projectSlug: Scalars['String']['output'];
-  /** RLS 策略配置（无 owner 字段时返回 null） */
-  rlsPolicy?: Maybe<ModelRlsPolicy>;
   storageType: Scalars['String']['output'];
   title: Scalars['String']['output'];
   updatedAt: Scalars['String']['output'];
@@ -808,12 +794,6 @@ export type ModelGroup = {
   name: Scalars['String']['output'];
 };
 
-export type ModelHasNoOwnerField = Error & {
-  __typename?: 'ModelHasNoOwnerField';
-  message: Scalars['String']['output'];
-  suggestion?: Maybe<Scalars['String']['output']>;
-};
-
 export type ModelJsonSchema = {
   __typename?: 'ModelJsonSchema';
   modelId: Scalars['ID']['output'];
@@ -832,28 +812,6 @@ export type ModelQueryInput = {
   pageIndex?: InputMaybe<Scalars['Int']['input']>;
   pageSize?: InputMaybe<Scalars['Int']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ModelRlsPolicy = {
-  __typename?: 'ModelRLSPolicy';
-  /** 创建时间 */
-  createdAt: Scalars['String']['output'];
-  /** DELETE USING 谓词（JSON 字符串） */
-  deletePredicate: Scalars['String']['output'];
-  /** INSERT WITH CHECK 谓词（JSON 字符串） */
-  insertCheck: Scalars['String']['output'];
-  /** 所属模型 ID */
-  modelId: Scalars['ID']['output'];
-  /** 当前策略匹配的 Preset，自定义组合时返回 null */
-  preset?: Maybe<RlsPreset>;
-  /** SELECT USING 谓词（JSON 字符串） */
-  selectPredicate: Scalars['String']['output'];
-  /** UPDATE WITH CHECK 谓词（JSON 字符串） */
-  updateCheck: Scalars['String']['output'];
-  /** UPDATE USING 谓词（JSON 字符串） */
-  updatePredicate: Scalars['String']['output'];
-  /** 更新时间 */
-  updatedAt: Scalars['String']['output'];
 };
 
 export type ModelSyncFailedTable = {
@@ -962,11 +920,6 @@ export type Mutation = {
   repairModel: RepairModelPayload;
   revokeRoleFromUser: RevokeRolePayload;
   revokeUserAPIToken: RevokeApiTokenPayload;
-  /**
-   * 设置 Model RLS 策略
-   * 支持完整的五件套 JSON 表达式，不限于 Preset
-   */
-  setModelRLSPolicy: SetModelRlsPolicyPayload;
   /** @deprecated Use startModelSync */
   startModelDatabaseSync: StartModelDatabaseSyncPayload;
   startModelSync: StartModelSyncPayload;
@@ -993,7 +946,7 @@ export type Mutation = {
   /** Create or update an RLS policy */
   upsertRlsPolicy: UpsertRlsPolicyPayload;
   /**
-   * 校验 RLS 表达式合法性
+   * 校验 RLS 表达式合法性 + dry-run
    * 用于 Policy 配置页面的实时校验
    */
   validateRLSExpr: ValidateRlsExprPayload;
@@ -1175,11 +1128,6 @@ export type MutationRevokeRoleFromUserArgs = {
 
 export type MutationRevokeUserApiTokenArgs = {
   id: Scalars['ID']['input'];
-};
-
-
-export type MutationSetModelRlsPolicyArgs = {
-  input: SetModelRlsPolicyInput;
 };
 
 
@@ -1421,8 +1369,6 @@ export type Query = {
   modelDatabases: Array<ModelDatabase>;
   modelGroups: Array<ModelGroup>;
   modelJsonSchema?: Maybe<ModelJsonSchema>;
-  /** 获取 Model RLS 策略配置 */
-  modelRLSPolicy?: Maybe<ModelRlsPolicy>;
   /** @deprecated Use modelSyncJobs */
   modelSyncJob?: Maybe<ModelSyncJob>;
   modelSyncJobs: Array<ModelSyncJob>;
@@ -1503,11 +1449,6 @@ export type QueryModelJsonSchemaArgs = {
 };
 
 
-export type QueryModelRlsPolicyArgs = {
-  modelId: Scalars['ID']['input'];
-};
-
-
 export type QueryModelSyncJobArgs = {
   jobId: Scalars['ID']['input'];
 };
@@ -1571,12 +1512,6 @@ export type QueryUserRoleAssignmentsArgs = {
   userId: Scalars['String']['input'];
 };
 
-export type RlsCheckViolation = Error & {
-  __typename?: 'RLSCheckViolation';
-  message: Scalars['String']['output'];
-  operation?: Maybe<Scalars['String']['output']>;
-};
-
 export type RlsExprDryRun = {
   __typename?: 'RLSExprDryRun';
   params?: Maybe<Array<Scalars['String']['output']>>;
@@ -1590,33 +1525,6 @@ export type RlsExprType =
   | 'SELECT_PREDICATE'
   | 'UPDATE_CHECK'
   | 'UPDATE_PREDICATE';
-
-export type RlsPreset =
-  /**
-   * 无访问权限
-   * 五件套均为 false
-   */
-  | 'NO_ACCESS'
-  /**
-   * 只读全部
-   * selectPredicate=true，其余为 false
-   */
-  | 'READ_ALL'
-  /**
-   * 读取全部，写自己
-   * selectPredicate=true，其余为 OWNER_EQUALS_USER
-   */
-  | 'READ_ALL_WRITE_OWNER'
-  /**
-   * 读写全部（⚠️ 高危策略）
-   * 五件套均为 true
-   */
-  | 'READ_WRITE_ALL'
-  /**
-   * 默认策略：读写自己
-   * 五件套均为 {"owner":{"_eq":{"_auth":"uid"}}}
-   */
-  | 'READ_WRITE_OWNER';
 
 export type RawDatabase = {
   __typename?: 'RawDatabase';
@@ -1833,29 +1741,6 @@ export type SchemaType =
   | 'NUMBER'
   | 'OBJECT'
   | 'STRING';
-
-export type SetModelRlsPolicyError = InvalidAuthVariable | InvalidRlsExpression | ModelHasNoOwnerField | ResourceNotFound;
-
-export type SetModelRlsPolicyInput = {
-  /** DELETE USING 谓词（JSON 字符串） */
-  deletePredicate: Scalars['String']['input'];
-  /** INSERT WITH CHECK 谓词（JSON 字符串） */
-  insertCheck: Scalars['String']['input'];
-  /** 模型 ID */
-  modelId: Scalars['ID']['input'];
-  /** SELECT USING 谓词（JSON 字符串） */
-  selectPredicate: Scalars['String']['input'];
-  /** UPDATE WITH CHECK 谓词（JSON 字符串） */
-  updateCheck: Scalars['String']['input'];
-  /** UPDATE USING 谓词（JSON 字符串） */
-  updatePredicate: Scalars['String']['input'];
-};
-
-export type SetModelRlsPolicyPayload = {
-  __typename?: 'SetModelRLSPolicyPayload';
-  error?: Maybe<SetModelRlsPolicyError>;
-  policy?: Maybe<ModelRlsPolicy>;
-};
 
 export type StartModelDatabaseSyncPayload = {
   __typename?: 'StartModelDatabaseSyncPayload';
@@ -2082,7 +1967,7 @@ export type ValidateRlsExprError = InvalidAuthVariable | InvalidRlsExpression | 
 export type ValidateRlsExprInput = {
   /** 要校验的谓词类型 */
   exprType: RlsExprType;
-  /** 表达式 JSON 字符串 */
+  /** 表达式 CEL 字符串 */
   expression: Scalars['String']['input'];
   /** 所属模型 ID（用于字段名白名单校验） */
   modelId: Scalars['ID']['input'];

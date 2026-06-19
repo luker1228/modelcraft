@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"modelcraft/internal/app/apitoken"
 	"modelcraft/internal/app/auth"
 	"modelcraft/internal/app/cluster"
 	"modelcraft/internal/app/modeldesign"
@@ -41,7 +42,7 @@ import (
 	appProfile "modelcraft/internal/app/profile"
 
 	appRole "modelcraft/internal/app/role"
-	"modelcraft/internal/app/apitoken"
+
 	domainAuth "modelcraft/internal/domain/auth"
 	domainEndUser "modelcraft/internal/domain/enduser"
 	domainModelDesign "modelcraft/internal/domain/modeldesign"
@@ -75,7 +76,6 @@ type DesignHandlers struct {
 	RoleAppService            *appRole.RoleAppService
 	GroupAppService           *modeldesign.ModelGroupAppService
 	LogicalFKAppService       *modeldesign.LogicalFKAppService
-	RLSPolicyAppService       *rls.ModelRLSPolicyAppService
 
 	// Casbin Permission Services
 	PermRoleService       *appPermission.RoleService
@@ -324,8 +324,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		SystemDB:                    repoFactory.SqlDB,
 		GroupAppService:             groupAppService,
 		LogicalFKAppService:         logicalFKAppService,
-		RLSPolicyAppService:         nil, // TODO: replace with V2 policy CRUD in task 9
-		UserAPITokenService:      apiTokenService,
+		UserAPITokenService:         apiTokenService,
 		CreateOrgService:            createOrgService,
 		ModelDatabaseAppService:     modelDatabaseAppService,
 		ModelDatabaseSyncAppService: modelDatabaseSyncAppService,
@@ -407,8 +406,8 @@ func SetupProjectGraphQLRoutesOnChi(
 
 	// Create RLS policy CRUD service
 	safeQuerier := dbgen.New(handlers.SystemDB)
-		policyRepo := rlsRepo.NewSqlPolicyRepository(safeQuerier)
-		policyCRUDService := rls.NewDataPolicyService(policyRepo)
+	policyRepo := rlsRepo.NewSqlPolicyRepository(safeQuerier)
+	policyCRUDService := rls.NewDataPolicyService(policyRepo)
 
 	// Create project resolver
 	projectResolver := &projectgraphql.Resolver{
@@ -422,7 +421,7 @@ func SetupProjectGraphQLRoutesOnChi(
 		EnumAppService:              handlers.EnumAppService,
 		UserRoleService:             handlers.PermUserRoleService,
 		FieldSelectionChecker:       projectgraphql.NewFieldSelectionChecker(),
-		RLSPolicyAppService:         handlers.RLSPolicyAppService,
+		RLSExprValidateService:      rls.NewRLSExprValidateService(handlers.ModelRepository),
 		ModelDatabaseAppService:     handlers.ModelDatabaseAppService,
 		ModelDatabaseSyncAppService: handlers.ModelDatabaseSyncAppService,
 		SyncModelsAppService:        handlers.SyncModelsAppService,

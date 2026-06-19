@@ -3,14 +3,14 @@ package modeldatabase
 import (
 	"context"
 	"errors"
+	"modelcraft/internal/domain/shared"
+	"modelcraft/pkg/ctxutils"
 	"testing"
 	"time"
 
 	appmodeldesign "modelcraft/internal/app/modeldesign"
 	domaindb "modelcraft/internal/domain/modeldatabase"
 	domainmodel "modelcraft/internal/domain/modeldesign"
-	"modelcraft/internal/domain/shared"
-	"modelcraft/pkg/ctxutils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -412,6 +412,7 @@ func TestSyncModels_SingleTableFailureContinues(t *testing.T) {
 	require.Len(t, saved.FailedTables, 1)
 	assert.Equal(t, "broken_table", saved.FailedTables[0].TableName)
 }
+
 func TestStartModelSync_BatchCreatesMultipleJobs(t *testing.T) {
 	jobRepo := newFakeSyncModelsJobRepo()
 	dbRepo := &fakeModelDatabaseRepo{byID: map[string]*domaindb.ModelDatabase{
@@ -474,4 +475,3 @@ func TestStartModelSync_RejectsActiveJob(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "already running")
 }
-

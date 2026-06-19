@@ -8,46 +8,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	appRLS "modelcraft/internal/app/rls"
 	domainRLS "modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/internal/interfaces/http/middleware"
 )
-
-// SetModelRLSPolicy is the resolver for the setModelRLSPolicy field.
-func (r *mutationResolver) SetModelRLSPolicy(ctx context.Context, input generated.SetModelRLSPolicyInput) (*generated.SetModelRLSPolicyPayload, error) {
-	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert GraphQL input to AppService DTO
-	appInput := appRLS.SetModelRLSPolicyInput{
-		ModelID:         input.ModelID,
-		SelectPredicate: domainRLS.JsonExpr(input.SelectPredicate),
-		InsertCheck:     domainRLS.JsonExpr(input.InsertCheck),
-		UpdatePredicate: domainRLS.JsonExpr(input.UpdatePredicate),
-		UpdateCheck:     domainRLS.JsonExpr(input.UpdateCheck),
-		DeletePredicate: domainRLS.JsonExpr(input.DeletePredicate),
-	}
-
-	// Call AppService
-	policy, err := r.RLSPolicyAppService.SetPolicy(ctx, orgName, projectSlug, appInput)
-	if err != nil {
-		return &generated.SetModelRLSPolicyPayload{
-			Policy: nil,
-			Error:  convertRLSErrorToGraphQLType(ctx, err),
-		}, nil
-	}
-
-	// Convert domain model to GraphQL type
-	graphqlPolicy := convertPolicyToGraphQL(policy)
-
-	return &generated.SetModelRLSPolicyPayload{
-		Policy: graphqlPolicy,
-		Error:  nil,
-	}, nil
-}
 
 // ValidateRLSExpr is the resolver for the validateRLSExpr field.
 func (r *mutationResolver) ValidateRLSExpr(ctx context.Context, input generated.ValidateRLSExprInput) (*generated.ValidateRLSExprPayload, error) {
@@ -56,37 +20,25 @@ func (r *mutationResolver) ValidateRLSExpr(ctx context.Context, input generated.
 		return nil, err
 	}
 
-	// Convert exprType
 	exprType := convertGraphQLExprTypeToDomain(input.ExprType)
-
-	// Call AppService
-	validationErrors := r.RLSPolicyAppService.ValidateExpr(
-		ctx, orgName, projectSlug, input.ModelID,
-		domainRLS.ExprType(exprType), domainRLS.JsonExpr(input.Expression),
-	)
-
-	// Convert validation errors
-	graphqlErrors := make([]*generated.ValidationError, 0, len(validationErrors))
-	for _, e := range validationErrors {
-		graphqlErrors = append(graphqlErrors, &generated.ValidationError{
-			Path:    e.Path,
-			Message: e.Message,
-			Code:    e.Code,
-		})
-	}
 
 	var sampleInput map[string]any
 	if input.SampleInput != nil && *input.SampleInput != "" {
 		if err := json.Unmarshal([]byte(*input.SampleInput), &sampleInput); err != nil {
-			graphqlErrors = append(graphqlErrors, &generated.ValidationError{
-				Path:    "sampleInput",
-				Message: err.Error(),
-				Code:    "INVALID_SAMPLE_INPUT",
-			})
+			return &generated.ValidateRLSExprPayload{
+				Result: &generated.ValidationResult{
+					Valid: false,
+					Errors: []*generated.ValidationError{{
+						Path:    "sampleInput",
+						Message: err.Error(),
+						Code:    "INVALID_SAMPLE_INPUT",
+					}},
+				},
+			}, nil
 		}
 	}
 
-	dryRunResult := r.RLSPolicyAppService.DryRunExpr(
+	dryRunResult := r.RLSExprValidateService.ValidateAndDryRun(
 		ctx,
 		orgName,
 		projectSlug,
@@ -96,6 +48,16 @@ func (r *mutationResolver) ValidateRLSExpr(ctx context.Context, input generated.
 		sampleInput,
 		middleware.GetUserContext(ctx),
 	)
+
+	// Convert errors
+	graphqlErrors := make([]*generated.ValidationError, 0, len(dryRunResult.Errors))
+	for _, e := range dryRunResult.Errors {
+		graphqlErrors = append(graphqlErrors, &generated.ValidationError{
+			Path:    e.Path,
+			Message: e.Message,
+			Code:    e.Code,
+		})
+	}
 
 	var dryRun *generated.RLSExprDryRun
 	if dryRunResult.Valid {
@@ -119,24 +81,4 @@ func (r *mutationResolver) ValidateRLSExpr(ctx context.Context, input generated.
 		},
 		DryRun: dryRun,
 	}, nil
-}
-
-// ModelRLSPolicy is the resolver for the modelRLSPolicy field.
-func (r *queryResolver) ModelRLSPolicy(ctx context.Context, modelID string) (*generated.ModelRLSPolicy, error) {
-	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Call AppService
-	policy, err := r.RLSPolicyAppService.GetPolicy(ctx, orgName, projectSlug, modelID)
-	if err != nil {
-		return nil, err
-	}
-
-	if policy == nil {
-		return nil, nil //nolint:nilnil // nil policy with nil error means no policy exists
-	}
-
-	return convertPolicyToGraphQL(policy), nil
 }

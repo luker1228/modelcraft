@@ -78,9 +78,9 @@ type CookieConfig struct {
 
 // AuthConfig 认证配置
 type AuthConfig struct {
-	Cookie        CookieConfig      `mapstructure:"cookie"`         // 刷新令牌 Cookie 配置
-	Design        DesignAuthConfig  `mapstructure:"design"`         // 设计时API认证配置
-	Runtime       RuntimeAuthConfig `mapstructure:"runtime"`        // 运行时API认证配置
+	Cookie  CookieConfig      `mapstructure:"cookie"`  // 刷新令牌 Cookie 配置
+	Design  DesignAuthConfig  `mapstructure:"design"`  // 设计时API认证配置
+	Runtime RuntimeAuthConfig `mapstructure:"runtime"` // 运行时API认证配置
 }
 
 // DesignAuthConfig 设计时API认证配置

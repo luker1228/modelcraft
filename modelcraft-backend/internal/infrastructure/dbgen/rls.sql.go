@@ -28,7 +28,6 @@ func (q *Queries) DeleteProjectAuthSchema(ctx context.Context, arg DeleteProject
 const getProjectAuthSchema = `-- name: GetProjectAuthSchema :one
 
 
-
 SELECT id, org_name, project_slug, variables, created_at, updated_at FROM project_auth_schemas
 WHERE org_name = ? AND project_slug = ?
 `
@@ -39,13 +38,10 @@ type GetProjectAuthSchemaParams struct {
 }
 
 // ============================================
-// RLS (Row Level Security) Queries
-// ============================================
-// NOTE: model_rls_policies queries moved to rls_policy_v2.sql
-// Old single-policy queries (GetModelRLSPolicy, UpsertModelRLSPolicy,
-// DeleteModelRLSPolicy, ExistsModelRLSPolicy) removed.
-// ----------------------------------------
 // Project Auth Schema Queries
+// ============================================
+// ----------------------------------------
+// Project Auth Schema
 // ----------------------------------------
 func (q *Queries) GetProjectAuthSchema(ctx context.Context, arg GetProjectAuthSchemaParams) (ProjectAuthSchema, error) {
 	row := q.db.QueryRowContext(ctx, getProjectAuthSchema, arg.OrgName, arg.ProjectSlug)

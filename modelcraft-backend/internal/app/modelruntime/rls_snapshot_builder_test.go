@@ -3,12 +3,12 @@ package modelruntime_test
 import (
 	"context"
 	"errors"
+	"modelcraft/internal/domain/modelruntime"
+	"modelcraft/internal/domain/rls"
 	"strings"
 	"testing"
 
 	appruntime "modelcraft/internal/app/modelruntime"
-	"modelcraft/internal/domain/modelruntime"
-	"modelcraft/internal/domain/rls"
 )
 
 // stubPolicyResolver implements appruntime.PolicyResolver.

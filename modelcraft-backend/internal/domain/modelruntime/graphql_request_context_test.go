@@ -9,7 +9,7 @@ import (
 func TestWithGraphqlRequestContext_EndUserPerms(t *testing.T) {
 	perms := &modelruntime.ResolvedModelPermissions{
 		Policies: []modelruntime.ResolvedPolicy{
-			{Action: modelruntime.ActionSelect, },
+			{Action: modelruntime.ActionSelect},
 		},
 	}
 	ctx := modelruntime.WithGraphqlRequestContext(

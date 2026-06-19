@@ -2,11 +2,10 @@ package middleware
 
 import (
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strings"
-
-	"modelcraft/pkg/httpheader"
 )
 
 // issuerPlatform 是统一 token 体系的 issuer 标识（与 domain/auth.IssuerPlatform 一致）。

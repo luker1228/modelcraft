@@ -30,8 +30,8 @@ type Resolver struct {
 	// Field selection checker
 	FieldSelectionChecker *FieldSelectionChecker
 
-	// RLS (Row Level Security)
-	RLSPolicyAppService  *rls.ModelRLSPolicyAppService
+	// RLS (Row Level Security) — expression validation + dry-run
+	RLSExprValidateService *rls.RLSExprValidateService
 
 	// RLS Policy V2
 	PolicyCRUDService *rls.DataPolicyService

@@ -14,8 +14,8 @@ import (
 // Resolver is the GraphQL resolver for org domain
 type Resolver struct {
 	// Project CRUD
-	ProjectAppService    *project.ProjectAppService
-	ClusterAppService    *cluster.DatabaseClusterAppService
+	ProjectAppService *project.ProjectAppService
+	ClusterAppService *cluster.DatabaseClusterAppService
 
 	// Organization
 	OrganizationAppService *organization.OrganizationAppService

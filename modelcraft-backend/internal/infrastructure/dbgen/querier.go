@@ -103,13 +103,10 @@ type Querier interface {
 	GetOrganizationByPhone(ctx context.Context, phone string) (Organization, error)
 	GetProfileByUserID(ctx context.Context, arg GetProfileByUserIDParams) (GetProfileByUserIDRow, error)
 	// ============================================
-	// RLS (Row Level Security) Queries
-	// ============================================
-	// NOTE: model_rls_policies queries moved to rls_policy_v2.sql
-	// Old single-policy queries (GetModelRLSPolicy, UpsertModelRLSPolicy,
-	// DeleteModelRLSPolicy, ExistsModelRLSPolicy) removed.
-	// ----------------------------------------
 	// Project Auth Schema Queries
+	// ============================================
+	// ----------------------------------------
+	// Project Auth Schema
 	// ----------------------------------------
 	GetProjectAuthSchema(ctx context.Context, arg GetProjectAuthSchemaParams) (ProjectAuthSchema, error)
 	GetProjectByClusterID(ctx context.Context, arg GetProjectByClusterIDParams) (Project, error)

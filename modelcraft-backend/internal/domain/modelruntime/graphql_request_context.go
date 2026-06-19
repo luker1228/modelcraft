@@ -35,11 +35,11 @@ func newGraphqlRequestContext(
 	rlsCtx *RLSContext,
 ) *graphqlRequestContext {
 	return &graphqlRequestContext{
-		ClientRepo:       clientRepo,
-		relationLoaders:  make(map[string]*dataloader.Loader[string, map[string]any]),
-		OrgName:          orgName,
-		ProjectSlug:      projectSlug,
-		RLS:              rlsCtx,
+		ClientRepo:      clientRepo,
+		relationLoaders: make(map[string]*dataloader.Loader[string, map[string]any]),
+		OrgName:         orgName,
+		ProjectSlug:     projectSlug,
+		RLS:             rlsCtx,
 	}
 }
 
@@ -96,4 +96,3 @@ func (rctx *graphqlRequestContext) getOrCreateLoader(
 	rctx.relationLoaders[key] = l
 	return l
 }
-

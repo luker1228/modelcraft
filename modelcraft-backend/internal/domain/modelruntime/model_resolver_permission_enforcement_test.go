@@ -2,10 +2,9 @@ package modelruntime
 
 import (
 	"context"
+	"modelcraft/internal/domain/modeldesign"
 	"strings"
 	"testing"
-
-	"modelcraft/internal/domain/modeldesign"
 
 	"github.com/graphql-go/graphql"
 	"github.com/stretchr/testify/assert"

@@ -3,12 +3,12 @@ package repository
 import (
 	"context"
 	"encoding/json"
-	"time"
-
-	domaindb "modelcraft/internal/domain/modeldatabase"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/dbgenwrap"
 	"modelcraft/internal/infrastructure/sqlerr"
+	"time"
+
+	domaindb "modelcraft/internal/domain/modeldatabase"
 )
 
 type SqlModelSyncJobRepository struct {

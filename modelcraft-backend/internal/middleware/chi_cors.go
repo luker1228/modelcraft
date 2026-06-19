@@ -1,10 +1,9 @@
 package middleware
 
 import (
+	"modelcraft/pkg/httpheader"
 	"net/http"
 	"strings"
-
-	"modelcraft/pkg/httpheader"
 )
 
 // ChiCORS returns a Chi-compatible CORS middleware that mirrors

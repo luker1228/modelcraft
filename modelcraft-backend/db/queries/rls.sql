@@ -1,13 +1,9 @@
 -- ============================================
--- RLS (Row Level Security) Queries
+-- Project Auth Schema Queries
 -- ============================================
 
--- NOTE: model_rls_policies queries moved to rls_policy_v2.sql
--- Old single-policy queries (GetModelRLSPolicy, UpsertModelRLSPolicy,
--- DeleteModelRLSPolicy, ExistsModelRLSPolicy) removed.
-
 -- ----------------------------------------
--- Project Auth Schema Queries
+-- Project Auth Schema
 -- ----------------------------------------
 
 -- name: GetProjectAuthSchema :one

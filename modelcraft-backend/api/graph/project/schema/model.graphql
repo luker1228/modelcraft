@@ -71,10 +71,6 @@ type Model implements Node {
   createdAt: String!
   updatedAt: String!
 
-  """
-  RLS 策略配置（无 owner 字段时返回 null）
-  """
-  rlsPolicy: ModelRLSPolicy
 }
 
 # DbTableStatus - 实际表状态

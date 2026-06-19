@@ -51,7 +51,7 @@ func TestResolvedModelPermissions_CheckAction_UnknownAction(t *testing.T) {
 func TestResolvedModelPermissions_Get(t *testing.T) {
 	p := &modelruntime.ResolvedModelPermissions{
 		Policies: []modelruntime.ResolvedPolicy{
-			{Action: modelruntime.ActionSelect, },
+			{Action: modelruntime.ActionSelect},
 			{Action: modelruntime.ActionInsert},
 		},
 	}

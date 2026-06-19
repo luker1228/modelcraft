@@ -2,9 +2,8 @@ package httputil
 
 import (
 	"encoding/json"
-	"net/http"
-
 	"modelcraft/pkg/httpheader"
+	"net/http"
 )
 
 // WriteJSON writes a JSON response with the given status code and body.

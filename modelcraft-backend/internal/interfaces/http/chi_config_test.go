@@ -1,9 +1,8 @@
 package http
 
 import (
-	"testing"
-
 	"modelcraft/pkg/config"
+	"testing"
 )
 
 func TestNewChiRouterConfigIncludesUserAPITokenService(t *testing.T) {

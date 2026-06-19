@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"modelcraft/pkg/ctxutils"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,7 +13,6 @@ import (
 	appauth "modelcraft/internal/app/auth"
 	domainenduser "modelcraft/internal/domain/enduser"
 	httpmiddleware "modelcraft/internal/interfaces/http/middleware"
-	"modelcraft/pkg/ctxutils"
 )
 
 type stubAPITokenRepo struct {

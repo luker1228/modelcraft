@@ -2,11 +2,7 @@ package auth
 
 import (
 	"encoding/json"
-	"strings"
-	"time"
-
 	"modelcraft/internal/app/apitoken"
-	httpmiddleware "modelcraft/internal/interfaces/http/middleware"
 	"modelcraft/internal/interfaces/http/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/config"
@@ -14,6 +10,10 @@ import (
 	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
+	"strings"
+	"time"
+
+	httpmiddleware "modelcraft/internal/interfaces/http/middleware"
 
 	appAuth "modelcraft/internal/app/auth"
 )

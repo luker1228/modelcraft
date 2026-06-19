@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"modelcraft/internal/app/apitoken"
 	"modelcraft/internal/interfaces/http/generated"
 	"modelcraft/internal/middleware"
 	"modelcraft/pkg/config"
@@ -14,7 +15,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 
-	"modelcraft/internal/app/apitoken"
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
 )
@@ -56,7 +56,7 @@ func NewChiRouterConfig(
 		UserHandler:     designHandlers.UserHandler,
 		DesignHandlers:  designHandlers,
 		RuntimeHandlers: runtimeHandlers,
-		
+
 		APITokenService: designHandlers.UserAPITokenService,
 	}
 }

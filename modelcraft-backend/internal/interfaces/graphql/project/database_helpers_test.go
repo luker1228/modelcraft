@@ -1,10 +1,10 @@
 package projectgraphql
 
 import (
+	"modelcraft/internal/interfaces/graphql/project/generated"
 	"testing"
 
 	domainmodeldatabase "modelcraft/internal/domain/modeldatabase"
-	"modelcraft/internal/interfaces/graphql/project/generated"
 
 	"github.com/stretchr/testify/assert"
 )

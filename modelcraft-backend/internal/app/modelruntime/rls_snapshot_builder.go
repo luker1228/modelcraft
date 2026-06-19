@@ -3,13 +3,12 @@ package modelruntime
 import (
 	"context"
 	"fmt"
-	"strings"
-
-	"github.com/google/cel-go/cel"
-
 	"modelcraft/internal/domain/modelruntime"
 	"modelcraft/internal/domain/rls"
 	"modelcraft/pkg/logfacade"
+	"strings"
+
+	"github.com/google/cel-go/cel"
 )
 
 // PolicyResolver provides access to RLS policy expressions.

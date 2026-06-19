@@ -1,43 +1,13 @@
 # ============================================
-# RLS Schema for ModelCraft
-# File: api/graph/project/schema/rls.graphql
+# RLS Expression Validation Schema
+# Only validateRLSExpr remains — V1 five-piece-set
+# (setModelRLSPolicy / modelRLSPolicy) has been removed.
+# Multi-policy CRUD lives in rls_policy_v2.graphql.
 # ============================================
 
 # ----------------------------------------
 # Enums
 # ----------------------------------------
-
-enum RLSPreset {
-  """
-  默认策略：读写自己
-  五件套均为 {"owner":{"_eq":{"_auth":"uid"}}}
-  """
-  READ_WRITE_OWNER
-
-  """
-  读取全部，写自己
-  selectPredicate=true，其余为 OWNER_EQUALS_USER
-  """
-  READ_ALL_WRITE_OWNER
-
-  """
-  只读全部
-  selectPredicate=true，其余为 false
-  """
-  READ_ALL
-
-  """
-  读写全部（⚠️ 高危策略）
-  五件套均为 true
-  """
-  READ_WRITE_ALL
-
-  """
-  无访问权限
-  五件套均为 false
-  """
-  NO_ACCESS
-}
 
 enum RLSExprType {
   SELECT_PREDICATE
@@ -50,53 +20,6 @@ enum RLSExprType {
 # ----------------------------------------
 # Types
 # ----------------------------------------
-
-type ModelRLSPolicy {
-  """
-  所属模型 ID
-  """
-  modelId: ID!
-
-  """
-  SELECT USING 谓词（JSON 字符串）
-  """
-  selectPredicate: String!
-
-  """
-  INSERT WITH CHECK 谓词（JSON 字符串）
-  """
-  insertCheck: String!
-
-  """
-  UPDATE USING 谓词（JSON 字符串）
-  """
-  updatePredicate: String!
-
-  """
-  UPDATE WITH CHECK 谓词（JSON 字符串）
-  """
-  updateCheck: String!
-
-  """
-  DELETE USING 谓词（JSON 字符串）
-  """
-  deletePredicate: String!
-
-  """
-  当前策略匹配的 Preset，自定义组合时返回 null
-  """
-  preset: RLSPreset
-
-  """
-  创建时间
-  """
-  createdAt: String!
-
-  """
-  更新时间
-  """
-  updatedAt: String!
-}
 
 type ValidationResult {
   """
@@ -131,16 +54,6 @@ type ValidationError {
 # Error Types
 # ----------------------------------------
 
-type ModelHasNoOwnerField implements Error {
-  message: String!
-  suggestion: String
-}
-
-type EndUserRefAlreadyExists implements Error {
-  message: String!
-  suggestion: String
-}
-
 type InvalidRLSExpression implements Error {
   message: String!
   suggestion: String
@@ -153,27 +66,11 @@ type InvalidAuthVariable implements Error {
   variable: String
 }
 
-type RLSCheckViolation implements Error {
-  message: String!
-  operation: String
-}
-
-type DangerousPolicyNotConfirmed implements Error {
-  message: String!
-  suggestion: String
-}
-
-union SetModelRLSPolicyError = ResourceNotFound | ModelHasNoOwnerField | InvalidRLSExpression | InvalidAuthVariable
 union ValidateRLSExprError = ResourceNotFound | InvalidRLSExpression | InvalidAuthVariable
 
 # ----------------------------------------
 # Payload Types
 # ----------------------------------------
-
-type SetModelRLSPolicyPayload {
-  policy: ModelRLSPolicy
-  error: SetModelRLSPolicyError
-}
 
 type ValidateRLSExprPayload {
   result: ValidationResult!
@@ -191,38 +88,6 @@ type RLSExprDryRun {
 # Input Types
 # ----------------------------------------
 
-input SetModelRLSPolicyInput {
-  """
-  模型 ID
-  """
-  modelId: ID!
-
-  """
-  SELECT USING 谓词（JSON 字符串）
-  """
-  selectPredicate: String!
-
-  """
-  INSERT WITH CHECK 谓词（JSON 字符串）
-  """
-  insertCheck: String!
-
-  """
-  UPDATE USING 谓词（JSON 字符串）
-  """
-  updatePredicate: String!
-
-  """
-  UPDATE WITH CHECK 谓词（JSON 字符串）
-  """
-  updateCheck: String!
-
-  """
-  DELETE USING 谓词（JSON 字符串）
-  """
-  deletePredicate: String!
-}
-
 input ValidateRLSExprInput {
   """
   所属模型 ID（用于字段名白名单校验）
@@ -235,7 +100,7 @@ input ValidateRLSExprInput {
   exprType: RLSExprType!
 
   """
-  表达式 JSON 字符串
+  表达式 CEL 字符串
   """
   expression: String!
 
@@ -246,28 +111,13 @@ input ValidateRLSExprInput {
 }
 
 # ----------------------------------------
-# Queries & Mutations
+# Mutations
 # ----------------------------------------
-
-extend type Query {
-  """
-  获取 Model RLS 策略配置
-  """
-  modelRLSPolicy(modelId: ID!): ModelRLSPolicy @hasPermission(action: "model:read")
-
-}
 
 extend type Mutation {
   """
-  设置 Model RLS 策略
-  支持完整的五件套 JSON 表达式，不限于 Preset
-  """
-  setModelRLSPolicy(input: SetModelRLSPolicyInput!): SetModelRLSPolicyPayload! @hasPermission(action: "model:update")
-
-  """
-  校验 RLS 表达式合法性
+  校验 RLS 表达式合法性 + dry-run
   用于 Policy 配置页面的实时校验
   """
   validateRLSExpr(input: ValidateRLSExprInput!): ValidateRLSExprPayload! @hasPermission(action: "model:read")
-
 }

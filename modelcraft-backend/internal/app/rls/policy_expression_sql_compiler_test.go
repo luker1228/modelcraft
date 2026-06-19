@@ -51,10 +51,10 @@ func TestPolicyExpressionSQLCompiler_ComparisonOperators(t *testing.T) {
 	userCtx := &domainrls.UserContext{UserIDStr: "u_1"}
 
 	tests := []struct {
-		name         string
-		expr         string
-		wantSQL      string
-		wantParams   []interface{}
+		name       string
+		expr       string
+		wantSQL    string
+		wantParams []interface{}
 	}{
 		{
 			name:       "greater than integer",
@@ -87,7 +87,7 @@ func TestPolicyExpressionSQLCompiler_ComparisonOperators(t *testing.T) {
 			wantParams: []interface{}{float64(0.5)},
 		},
 		{
-			name:       "range check with AND",
+			name: "range check with AND",
 			// 闭区间 [18, 65]：两个比较通过 && 组合
 			expr:       `row.age >= 18 && row.age <= 65`,
 			wantSQL:    "(age >= ? AND age <= ?)",

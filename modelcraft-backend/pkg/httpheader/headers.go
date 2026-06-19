@@ -15,9 +15,9 @@ const (
 	XCSRFToken     = "X-CSRF-Token"
 	XRequestedWith = "X-Requested-With"
 
-	XAction        = "X-Action"
-	XInternalToken = "X-Internal-Token"
-	XUserID        = "X-User-ID"
+	XAction          = "X-Action"
+	XInternalToken   = "X-Internal-Token"
+	XUserID          = "X-User-ID"
 	XOrgName         = "X-Org-Name"
 	XProjectSlug     = "X-Project-Slug"
 	XRequestID       = "X-Request-Id"

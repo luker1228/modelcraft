@@ -86,4 +86,3 @@ func TestChiJWTAuthMiddleware_NoCredentials(t *testing.T) {
 		t.Fatal("downstream handler must NOT be reached with no credentials")
 	}
 }
-

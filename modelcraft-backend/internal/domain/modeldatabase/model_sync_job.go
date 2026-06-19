@@ -7,8 +7,8 @@ import (
 type ModelSyncJobStatus string
 
 const (
-	ModelSyncJobStatusPending        ModelSyncJobStatus = "pending"
-	ModelSyncJobStatusRunning        ModelSyncJobStatus = "running"
+	ModelSyncJobStatusPending   ModelSyncJobStatus = "pending"
+	ModelSyncJobStatusRunning   ModelSyncJobStatus = "running"
 	ModelSyncJobStatusSucceeded ModelSyncJobStatus = "succeeded"
 	ModelSyncJobStatusFailed    ModelSyncJobStatus = "failed"
 )

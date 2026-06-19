@@ -84,11 +84,6 @@ func (r *mutationResolver) CreateModel(ctx context.Context, input generated.Crea
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
 		}
-		if r.FieldSelectionChecker.IsFieldSelected(ctx, "model.rlsPolicy") {
-			if err := attachModelRLSPolicy(ctx, r.RLSPolicyAppService, graphqlModel); err != nil {
-				return nil, fmt.Errorf("failed to attach model rls policy: %w", err)
-			}
-		}
 	}
 
 	return &generated.CreateModelPayload{
@@ -667,12 +662,6 @@ func (r *queryResolver) Model(ctx context.Context, id string, withActualSchema *
 		graphqlModel.JSONSchema = &schemaJSON
 	}
 
-	if r.FieldSelectionChecker.IsFieldSelected(ctx, "model.rlsPolicy") {
-		if err := attachModelRLSPolicy(ctx, r.RLSPolicyAppService, graphqlModel); err != nil {
-			return nil, fmt.Errorf("failed to attach model rls policy: %w", err)
-		}
-	}
-
 	return &generated.GetModelPayload{
 		Model: graphqlModel,
 		Error: nil,
@@ -756,11 +745,6 @@ func (r *queryResolver) Models(ctx context.Context, input *generated.ModelQueryI
 			if err != nil {
 				return fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
 			}
-			if r.FieldSelectionChecker.IsFieldSelected(ctx, "items.rlsPolicy") {
-				if err := attachModelRLSPolicy(ctx, r.RLSPolicyAppService, graphqlModel); err != nil {
-					return fmt.Errorf("failed to attach model rls policy: %w", err)
-				}
-			}
 			items[i] = graphqlModel
 		}
 
@@ -838,11 +822,6 @@ func (r *queryResolver) ModelByName(ctx context.Context, name string, databaseNa
 	graphqlModel, err := adapter.ModelMapper.ConvertToGraphQLModel(&models[0])
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
-	}
-	if r.FieldSelectionChecker != nil && r.FieldSelectionChecker.IsFieldSelected(ctx, "model.rlsPolicy") {
-		if err := attachModelRLSPolicy(ctx, r.RLSPolicyAppService, graphqlModel); err != nil {
-			return nil, fmt.Errorf("failed to attach model rls policy: %w", err)
-		}
 	}
 
 	return &generated.GetModelPayload{

@@ -42,6 +42,7 @@ func (f *fakeModelDatabaseRepo) List(context.Context, string, string) ([]*domain
 func (f *fakeModelDatabaseRepo) Update(context.Context, string, string, *domaindb.ModelDatabase) error {
 	return nil
 }
+
 func (f *fakeModelDatabaseRepo) UpdateLatestSyncJobID(context.Context, string, string, string, string) error {
 	return nil
 }

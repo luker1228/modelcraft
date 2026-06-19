@@ -2,16 +2,16 @@ package modeldatabase
 
 import (
 	"context"
+	"modelcraft/internal/domain/shared"
+	"modelcraft/pkg/bizerrors"
+	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/logfacade"
 	"time"
 
 	"github.com/google/uuid"
 
 	domaindb "modelcraft/internal/domain/modeldatabase"
 	domainmodel "modelcraft/internal/domain/modeldesign"
-	"modelcraft/internal/domain/shared"
-	"modelcraft/pkg/bizerrors"
-	"modelcraft/pkg/ctxutils"
-	"modelcraft/pkg/logfacade"
 
 	appmodeldesign "modelcraft/internal/app/modeldesign"
 )
@@ -74,11 +74,11 @@ type syncModelsModelRepo interface {
 // SyncModelsAppServiceDeps holds dependencies for SyncModelsAppService.
 type SyncModelsAppServiceDeps struct {
 	SyncJobRepo     domaindb.ModelSyncJobRepository
-	DBRepo          syncModelsDBRepo         // may be nil (degraded mode)
+	DBRepo          syncModelsDBRepo // may be nil (degraded mode)
 	ReverseEngineer syncModelsReverseEngineer
 	ModelRepo       syncModelsModelRepo
 	FieldSyncer     syncModelsFieldSyncer
-	GroupService    syncModelsGroupService   // may be nil
+	GroupService    syncModelsGroupService // may be nil
 	Runner          modelDatabaseSyncRunner
 	Now             func() time.Time
 }
