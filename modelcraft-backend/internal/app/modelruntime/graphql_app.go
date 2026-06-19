@@ -101,15 +101,9 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 			IsAdmin: true,
 		}
 	} else {
-		rlsCtx, err = s.buildRLSContext(ctx, orgName, projectSlug, modelID)
+		rlsCtx, ctx, err = s.resolveNonAdminRLS(ctx, orgName, projectSlug, modelID)
 		if err != nil {
 			return nil, err
-		}
-		if rlsCtx.FastFail {
-			return nil, bizerrors.NewError(bizerrors.PermissionDenied, rlsCtx.FastFailReason)
-		}
-		if rlsCtx.Snapshot != nil {
-			ctx = modelruntime.WithRLSSnapshot(ctx, rlsCtx.Snapshot)
 		}
 	}
 
@@ -203,4 +197,22 @@ func (s *GraphqlAppService) buildRLSContext(
 		!snap.NoSelectPolicy, !snap.NoUpdatePolicy, !snap.NoDeletePolicy, !snap.NoCreatePolicy)
 
 	return rlsCtx, nil
+}
+
+// resolveNonAdminRLS builds the RLS context for a non-admin user and attaches
+// the snapshot to ctx when present. Returns a FastFail error as PermissionDenied.
+func (s *GraphqlAppService) resolveNonAdminRLS(
+	ctx context.Context, orgName, projectSlug, modelID string,
+) (*modelruntime.RLSContext, context.Context, error) {
+	rlsCtx, err := s.buildRLSContext(ctx, orgName, projectSlug, modelID)
+	if err != nil {
+		return nil, ctx, err
+	}
+	if rlsCtx.FastFail {
+		return nil, ctx, bizerrors.NewError(bizerrors.PermissionDenied, rlsCtx.FastFailReason)
+	}
+	if rlsCtx.Snapshot != nil {
+		ctx = modelruntime.WithRLSSnapshot(ctx, rlsCtx.Snapshot)
+	}
+	return rlsCtx, ctx, nil
 }

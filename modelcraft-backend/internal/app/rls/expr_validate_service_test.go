@@ -2,10 +2,10 @@ package rls
 
 import (
 	"context"
+	"modelcraft/internal/domain/modeldesign"
 	"testing"
 
 	domainrls "modelcraft/internal/domain/rls"
-	"modelcraft/internal/domain/modeldesign"
 
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +16,9 @@ type mockModelRepo struct {
 	err   error
 }
 
-func (m *mockModelRepo) GetByID(_ context.Context, _ string, _ ...*modeldesign.ModelQueryOptions) (*modeldesign.DataModel, error) {
+func (m *mockModelRepo) GetByID(
+	_ context.Context, _ string, _ ...*modeldesign.ModelQueryOptions,
+) (*modeldesign.DataModel, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -25,46 +27,64 @@ func (m *mockModelRepo) GetByID(_ context.Context, _ string, _ ...*modeldesign.M
 
 // Stubs for unused interface methods — ModelRepository has many methods but
 // ValidateAndDryRun only calls GetByID.
-func (m *mockModelRepo) Save(_ context.Context, _ string, _ *modeldesign.DataModel) error               { return nil }
-func (m *mockModelRepo) Update(_ context.Context, _ *modeldesign.DataModel) error                       { return nil }
+func (m *mockModelRepo) Save(_ context.Context, _ string, _ *modeldesign.DataModel) error { return nil }
+func (m *mockModelRepo) Update(_ context.Context, _ *modeldesign.DataModel) error         { return nil }
 func (m *mockModelRepo) UpdateWithVersion(_ context.Context, _ *modeldesign.DataModel, _ int64) (int64, error) {
 	return 0, nil
 }
-func (m *mockModelRepo) Delete(_ context.Context, _ string) error                                       { return nil }
-func (m *mockModelRepo) GetByName(_ context.Context, _, _, _, _ string, _ ...*modeldesign.ModelQueryOptions) (*modeldesign.DataModel, error) {
+func (m *mockModelRepo) Delete(_ context.Context, _ string) error { return nil }
+func (m *mockModelRepo) GetByName(
+	_ context.Context, _, _, _, _ string, _ ...*modeldesign.ModelQueryOptions,
+) (*modeldesign.DataModel, error) {
 	return nil, nil
 }
-func (m *mockModelRepo) FindByDeploymentStatus(_ context.Context, _ ...modeldesign.DeploymentStatus) ([]modeldesign.DataModel, error) {
+
+func (m *mockModelRepo) FindByDeploymentStatus(
+	_ context.Context, _ ...modeldesign.DeploymentStatus,
+) ([]modeldesign.DataModel, error) {
 	return nil, nil
 }
+
 func (m *mockModelRepo) GetMetaByIDs(_ context.Context, _, _ string, _ []string) ([]*modeldesign.DataModel, error) {
 	return nil, nil
 }
+
 func (m *mockModelRepo) Query(_ context.Context, _ modeldesign.ModelQuery) ([]modeldesign.DataModel, int, error) {
 	return nil, 0, nil
 }
+
 func (m *mockModelRepo) ListDatabaseCatalog(_ context.Context, _, _, _ string, _, _ int) ([]string, int, error) {
 	return nil, 0, nil
 }
+
 func (m *mockModelRepo) AddFields(_ context.Context, _ string, _ []*modeldesign.FieldDefinition) error {
 	return nil
 }
+
 func (m *mockModelRepo) AddRelationField(_ context.Context, _ string, _ *modeldesign.FieldDefinition) error {
 	return nil
 }
+
 func (m *mockModelRepo) GetFieldByModelID(_ context.Context, _, _ string) (*modeldesign.FieldDefinition, error) {
 	return nil, nil
 }
+
 func (m *mockModelRepo) GetFieldsByModelID(_ context.Context, _ string) ([]*modeldesign.FieldDefinition, error) {
 	return nil, nil
 }
+
 func (m *mockModelRepo) GetTailFieldDisplayOrder(_ context.Context, _ string) (string, error) {
 	return "", nil
 }
-func (m *mockModelRepo) UpdateField(_ context.Context, _ *modeldesign.FieldDefinition) error { return nil }
+
+func (m *mockModelRepo) UpdateField(_ context.Context, _ *modeldesign.FieldDefinition) error {
+	return nil
+}
+
 func (m *mockModelRepo) BulkUpdateFields(_ context.Context, _ []*modeldesign.FieldDefinition) error {
 	return nil
 }
+
 func (m *mockModelRepo) UpdateFieldsStatus(_ context.Context, _ ...modeldesign.UpdateFieldsStatusRequest) error {
 	return nil
 }

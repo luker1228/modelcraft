@@ -47,7 +47,10 @@ func TestPolicyPermissionResolver_ResolveFromV2Policy_NoPermissions(t *testing.T
 func TestPolicyPermissionResolver_ResolveFromV2Policy_SelectAll(t *testing.T) {
 	resolver := appruntimeimport.NewPolicyPermissionResolver(&stubPolicyRepo{
 		policies: []*rls.Policy{
-			{ModelID: "model-id", Action: rls.ActionRead, Role: "viewer", UsingExpr: rls.JsonExpr(`{"status":{"_eq":"open"}}`)},
+			{
+				ModelID: "model-id", Action: rls.ActionRead, Role: "viewer",
+				UsingExpr: rls.JsonExpr(`{"status":{"_eq":"open"}}`),
+			},
 		},
 	})
 
@@ -68,8 +71,14 @@ func TestPolicyPermissionResolver_ResolveFromV2Policy_SelectAll(t *testing.T) {
 func TestPolicyPermissionResolver_ResolveFromV2Policy_SelfScoped(t *testing.T) {
 	resolver := appruntimeimport.NewPolicyPermissionResolver(&stubPolicyRepo{
 		policies: []*rls.Policy{
-			{ModelID: "model-id", Action: rls.ActionRead, Role: "member", UsingExpr: rls.JsonExpr(`{"owner":{"_eq":"$endUserId"}}`)},
-			{ModelID: "model-id", Action: rls.ActionCreate, Role: "member", WithCheckExpr: rls.JsonExpr(`{"owner":{"_eq":"$endUserId"}}`)},
+			{
+				ModelID: "model-id", Action: rls.ActionRead, Role: "member",
+				UsingExpr: rls.JsonExpr(`{"owner":{"_eq":"$endUserId"}}`),
+			},
+			{
+				ModelID: "model-id", Action: rls.ActionCreate, Role: "member",
+				WithCheckExpr: rls.JsonExpr(`{"owner":{"_eq":"$endUserId"}}`),
+			},
 		},
 	})
 

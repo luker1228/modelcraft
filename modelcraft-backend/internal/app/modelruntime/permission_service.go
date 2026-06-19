@@ -34,7 +34,7 @@ func (r *PolicyPermissionResolver) ResolveFromV2Policy(
 	}
 	roleSet["*"] = struct{}{} // wildcard: matches all end-users regardless of role
 
-	var resolved []modelruntime.ResolvedPolicy
+	resolved := make([]modelruntime.ResolvedPolicy, 0, len(policies))
 	for _, p := range policies {
 		if _, ok := roleSet[p.Role]; !ok {
 			continue
@@ -98,7 +98,7 @@ func (r *PolicyPermissionResolver) ResolveUsing(
 		return "", nil, nil
 	}
 
-	var orClauses []string
+	orClauses := make([]string, 0, len(perms.Policies))
 	var allParams []interface{}
 	for _, pol := range perms.Policies {
 		if pol.Action != mappedAction || pol.UsingExpr == "" {

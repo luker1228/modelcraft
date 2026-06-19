@@ -119,7 +119,7 @@ func (b *RLSSnapshotBuilder) mergeUSING(
 		return &modelruntime.RawSQLFilter{SQL: "1=0"}, false, nil
 	}
 
-	var orClauses []string
+	orClauses := make([]string, 0, len(perms.Policies))
 	var allParams []interface{}
 
 	for _, pol := range perms.Policies {
@@ -155,7 +155,7 @@ func (b *RLSSnapshotBuilder) compileCHECKs(
 		return nil, false, nil
 	}
 
-	var checks []*modelruntime.CheckProgram
+	checks := make([]*modelruntime.CheckProgram, 0, len(perms.Policies))
 	for _, pol := range perms.Policies {
 		if pol.Action != action || pol.WithCheckExpr == "" {
 			continue

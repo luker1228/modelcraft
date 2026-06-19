@@ -81,30 +81,6 @@ func (r *fullCapturingRepo) DeleteMany(_ context.Context, input *DeleteManyInput
 	return map[string]any{"count": 1}, nil
 }
 
-// ─── helper: taskModelWithoutOwner ───────────────────────────────────────────
-
-// taskModelWithoutOwner returns a RuntimeModel that has NO FormatEndUserRef field.
-func taskModelWithoutOwner() *RuntimeModel {
-	return &RuntimeModel{
-		Name:  "Task",
-		Title: "任务",
-		Fields: map[string]*RuntimeField{
-			"id": {
-				Name:      "id",
-				Title:     "ID",
-				Type:      &modeldesign.FieldType{Format: modeldesign.FormatUUID},
-				IsPrimary: true,
-				IsUnique:  true,
-			},
-			"title": {
-				Name:  "title",
-				Title: "标题",
-				Type:  &modeldesign.FieldType{Format: modeldesign.FormatString},
-			},
-		},
-	}
-}
-
 // ─── helper: permission builders ─────────────────────────────────────────────
 
 func selectAllPerm() *ResolvedModelPermissions {
@@ -130,29 +106,51 @@ func hasPermissionError(result *graphql.Result) bool {
 		}
 	}
 	// Check structured errors in data payload
-	if result.Data != nil {
-		if dataMap, ok := result.Data.(map[string]interface{}); ok {
-			// Iterate through all operations (findUnique, create, update, delete, etc.)
-			for _, v := range dataMap {
-				if fieldMap, ok := v.(map[string]interface{}); ok {
-					if errField, ok := fieldMap["error"].(map[string]interface{}); ok {
-						if typename, ok := errField["__typename"].(string); ok {
-							if typename == "PermissionDenied" {
-								return true
-							}
-						}
-						if msg, ok := errField["message"].(string); ok {
-							if strings.Contains(strings.ToLower(msg), "permission") {
-								return true
-							}
-						}
-					}
-				}
-			}
+	return dataHasPermissionError(result.Data)
+}
+
+// dataHasPermissionError walks the GraphQL data payload looking for any
+// operation whose "error" field carries a PermissionDenied typename or a
+// message containing "permission".
+func dataHasPermissionError(data any) bool {
+	dataMap, ok := data.(map[string]interface{})
+	if !ok {
+		return false
+	}
+	for _, v := range dataMap {
+		fieldMap, ok := v.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if fieldErrorHasPermission(fieldMap["error"]) {
+			return true
 		}
 	}
 	return false
 }
+
+// fieldErrorHasPermission inspects an operation's "error" value for a
+// PermissionDenied typename or a "permission" message.
+func fieldErrorHasPermission(errVal any) bool {
+	errField, ok := errVal.(map[string]interface{})
+	if !ok {
+		return false
+	}
+	if typename, ok := errField["__typename"].(string); ok && typename == "PermissionDenied" {
+		return true
+	}
+	if msg, ok := errField["message"].(string); ok {
+		if strings.Contains(strings.ToLower(msg), "permission") {
+			return true
+		}
+	}
+	return false
+}
+
+// permErrFrag is the GraphQL error selection appended to operations in the
+// zero-permission test table so PermissionDenied errors surface in data.
+// Note: no leading brace — callers place it alongside other fields.
+const permErrFrag = `error { __typename ... on PermissionDenied { message } }`
 
 // doQuery executes a raw GraphQL string against the built schema with the given context.
 func doQuery(schema *graphql.Schema, ctx context.Context, query string) *graphql.Result {
@@ -183,7 +181,7 @@ func TestPermissionEnforcement_ActionGate_ZeroPerms(t *testing.T) {
 		},
 		{
 			name:  "findUnique",
-			query: `{ findUnique(where: { id: "x" }) { item { id } error { __typename ... on PermissionDenied { message } } } }`,
+			query: `{ findUnique(where: { id: "x" }) { item { id } ` + permErrFrag + ` } }`,
 		},
 		{
 			name:  "findFirst",
@@ -199,27 +197,29 @@ func TestPermissionEnforcement_ActionGate_ZeroPerms(t *testing.T) {
 		},
 		{
 			name:  "create",
-			query: `mutation { create(data: { title: "t" }) { id error { __typename ... on PermissionDenied { message } } } }`,
+			query: `mutation { create(data: { title: "t" }) { id ` + permErrFrag + ` } }`,
 		},
 		{
-			name:  "update",
-			query: `mutation { update(where: { id: "x" }, data: { title: "t" }) { success error { __typename ... on PermissionDenied { message } } } }`,
+			name: "update",
+			query: "mutation { update(where: { id: \"x\" }, data: { title: \"t\" }) " +
+				"{ success " + permErrFrag + " } }",
 		},
 		{
 			name:  "delete",
-			query: `mutation { delete(where: { id: "x" }) { success error { __typename ... on PermissionDenied { message } } } }`,
+			query: `mutation { delete(where: { id: "x" }) { success ` + permErrFrag + ` } }`,
 		},
 		{
 			name:  "createMany",
-			query: `mutation { createMany(data: [{ title: "t" }]) { count error { __typename ... on PermissionDenied { message } } } }`,
+			query: `mutation { createMany(data: [{ title: "t" }]) { count ` + permErrFrag + ` } }`,
 		},
 		{
-			name:  "updateMany",
-			query: `mutation { updateMany(where: {}, data: { title: "t" }, take: 1) { count error { __typename ... on PermissionDenied { message } } } }`,
+			name: "updateMany",
+			query: "mutation { updateMany(where: {}, data: { title: \"t\" }, take: 1) " +
+				"{ count " + permErrFrag + " } }",
 		},
 		{
 			name:  "deleteMany",
-			query: `mutation { deleteMany(where: {}, take: 1) { count error { __typename ... on PermissionDenied { message } } } }`,
+			query: `mutation { deleteMany(where: {}, take: 1) { count ` + permErrFrag + ` } }`,
 		},
 	}
 
