@@ -1,52 +1,194 @@
-# ModelCraft CLI (`mc`)
+# ModelCraft
 
-`mc` 是 ModelCraft 的终端工具，面向 end-user 场景，支持：
+> 低代码平台后端底座之一 —— **数据模型**。
+> 把你的数据库变成可治理、可查询、可鉴权的 GraphQL API。
 
-- PAT Token 登录
-- 项目 / 数据库 / 模型目录发现（catalog）
-- 模型字段 introspection（describe）
-- 运行时 GraphQL 查询执行（run）
+ModelCraft 负责数据模型的设计、托管与运行时查询。管理控制台负责设计时操作（建模、
+托管数据库、配置 RLS 策略），而 **end-user 链路**只对外暴露数据消费能力：通过 PAT
+（Personal Access Token）发现项目/数据库/模型，并在运行时 GraphQL endpoint 上执行
+`findMany` / `count` 等只读查询，RLS（行级安全）自动按调用者身份过滤可见行。
 
-所有输出均为结构化 JSON，方便 AI Agent 或脚本消费。
+## 它解决什么问题
+
+| 能力 | 说明 | 谁来做 |
+|------|------|--------|
+| **模型设计** | 创建/导入模型，定义字段、枚举、外键、分组 | 管理控制台（JWT） |
+| **数据库托管** | 接入 MySQL 集群，反向工程生成模型，下发 DDL | 管理控制台（JWT） |
+| **行级安全 (RLS)** | CEL 表达式声明行级可见范围，运行时自动注入 | 管理控制台（JWT） |
+| **资源发现** | 列出可访问的项目、数据库、模型 | End User（PAT） |
+| **运行时查询** | 模型级 GraphQL endpoint，`findMany` / `count` 等 | End User（PAT） |
+| **多租户隔离** | Org → Project → Database → Model 四级隔离 | — |
+
+## 三种接入方式（end-user 链路）
+
+ModelCraft 对外只暴露 **end-user 链路**：管理控制台完成建模后，数据消费者通过 PAT
+查询数据。你有三种方式接入这条链路：
+
+```
+                         ┌──────────────────────────┐
+                         │   APISIX Gateway (:9080)  │  PAT→JWT 转换 + 身份注入
+                         └───────────┬──────────────┘
+                                     │ end-user 链路
+            ┌────────────────────────┼────────────────────────┐
+            │                        │                        │
+     ① 官方 CLI (`mc`)        ② 直接调 GraphQL            ③ 自研 SDK
+     适合：终端、脚本、CI      适合：后端服务、Agent        适合：封装成语言 SDK
+```
+
+### ① 官方 CLI（`mc`）
+
+面向 end-user 的命令行工具，结构化 JSON 输出，适合 AI Agent 与脚本消费。
+
+```bash
+# 登录（PAT 永不过期，适合 CI）
+mc auth login --server http://localhost:9080 --token 'mc_pat_xxx'
+
+# 发现资源
+mc catalog projects                    # 列出可访问项目
+mc catalog databases --project sales   # 列出项目内数据库
+mc catalog models --database crm       # 列出数据库内模型
+
+# 查看模型结构
+mc describe sales.crm.users
+
+# 执行运行时查询
+mc run sales.crm.users '{ findMany(take: 5) { id name } }'
+
+# 扮演其他用户（注入 X-MC-Auth-* header，用于 RLS 测试）
+mc run sales.crm.users '{ findMany { id } }' \
+  --as-userid user_abc --as-username alice --as-role admin
+```
+
+CLI 源码与完整文档：[`modelcraft-cli/`](./modelcraft-cli)
+
+### ② 直接调用 GraphQL
+
+不使用 CLI 时，可直接用 `curl` 或任意 GraphQL 客户端调用 end-user endpoint。
+PAT 对外只暴露两类操作：**身份验证**（whoami）、**资源发现 + 运行时查询**（GraphQL）。
+设计时操作（建模、RLS 配置等）在管理控制台完成，不通过 PAT 暴露。
+
+**身份验证** —— PAT 换取身份（whoami 返回 userId / orgName / 短效 JWT）：
+
+```bash
+curl http://localhost:9080/api/tenant/auth/whoami \
+  -H "Authorization: Bearer mc_pat_xxx"
+```
+
+OpenAPI Spec（仅认证）：[`modelcraft-backend/api/openapi/`](./modelcraft-backend/api/openapi)
+
+**资源发现** —— 列出项目、数据库、模型：
+
+```bash
+curl http://localhost:9080/end-user/graphql/org/<org>/project/<project> \
+  -H "Authorization: Bearer mc_pat_xxx" \
+  -H "Content-Type: application/json" \
+  -H "X-Action: query:CatalogModels" \
+  -d '{"query":"query CatalogModels($database:String!){ models(input:{databaseName:$database}){ items{ name } } }","operationName":"CatalogModels","variables":{"database":"crm"}}'
+```
+
+> 设计时 GraphQL 路由（`/graphql/org/...`）是租户内部 JWT 鉴权，不对外。
+> End User 可用的查询在 Schema 中标注 `@hasPermission(allowEndUser: true)`。
+
+**运行时查询** —— 模型级动态 GraphQL：
+
+```bash
+curl http://localhost:9080/end-user/graphql/org/<org>/project/<project>/db/<db>/model/<model> \
+  -H "Authorization: Bearer mc_pat_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{ findMany(take: 5) { id name } }"}'
+```
+
+> 运行时 endpoint 不需要 `X-Action` header；资源发现端点需要。
+> RLS 策略在运行时自动生效，按 EndUser 身份过滤行。
+
+### ③ 自研 SDK
+
+API Contract 是机器可读的，你可以基于它生成任意语言的 SDK：
+
+| Contract | 位置 | 用途 |
+|---------|------|------|
+| OpenAPI 3.0 | `modelcraft-backend/api/openapi/openapi.yaml` | REST（认证 whoami） |
+| GraphQL SDL | `modelcraft-backend/api/graph/**/*.graphql` | end-user GraphQL（资源发现 + 运行时查询） |
+
+参考 CLI 的实现（`modelcraft-cli/internal/client/`）—— 它本身就是一个极简的 Go SDK：
+`AuthClient.Whoami` 做 PAT 换身份，`GraphQLClient.Execute` 发 GraphQL 请求。
+照此模式用任何语言封装即可。
 
 ---
 
 ## 目录
 
-1. [前提条件](#前提条件)
-2. [部署后端服务](#部署后端服务)
-3. [初始化控制台](#初始化控制台)
-4. [构建 CLI](#构建-cli)
-5. [快速开始](#快速开始)
-6. [命令参考](#命令参考)
-7. [路径格式](#路径格式)
-8. [典型工作流](#典型工作流)
-9. [认证架构](#认证架构)
-10. [输出格式与退出码](#输出格式与退出码)
-11. [全局参数与环境变量](#全局参数与环境变量)
-12. [常见错误](#常见错误)
-13. [运行测试](#运行测试)
-14. [发布新版本](#发布新版本)
+1. [架构概览](#架构概览)
+2. [仓库结构](#仓库结构)
+3. [快速部署](#快速部署)
+4. [初始化控制台](#初始化控制台)
+5. [认证架构](#认证架构)
+6. [扮演（Impersonation）](#扮演impersonation)
+7. [CLI 命令参考](#cli-命令参考)
+8. [运行测试](#运行测试)
+9. [发布](#发布)
 
 ---
 
-## 前提条件
+## 架构概览
+
+```
+┌─ 管理控制台 (JWT) ──────────────────────────────────────────────┐
+│  建模 / 托管数据库 / 配置 RLS / 权限管理        设计时，不对外    │
+└────────────────────────────────────────────────────────────────┘
+
+┌─ end-user 链路 (PAT) ───────────────────────────────────────────┐
+│  CLI / SDK / 直接 HTTP                                          │
+│    │  Bearer mc_pat_xxx                                         │
+│    ▼                                                            │
+│  APISIX Gateway (:9080)   PAT→JWT 转换，注入 X-User-ID         │
+│    │  Bearer <short-lived JWT>                                  │
+│    ▼                                                            │
+│  Backend (:8080)          end-user GraphQL + 运行时引擎         │
+│    │                                                            │
+│    ├── MySQL System DB (:6033)   元数据：模型、字段、RLS 策略   │
+│    └── MySQL Data Clusters       用户业务数据库（托管的数据源） │
+└────────────────────────────────────────────────────────────────┘
+```
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| APISIX Gateway | `9080` | 统一入口，PAT→JWT 转换，CORS，请求追踪 |
+| Backend | `8080` | Go 后端，REST + GraphQL + 运行时引擎 |
+| Frontend | `3100` | Next.js 管理控制台 + End User 入口 |
+| MySQL | `6033` | 系统库（元数据） |
+| Agent | `8000` | CopilotKit AI Agent（可选） |
+
+---
+
+## 仓库结构
+
+```
+modelcraft/                       ← Monorepo
+├── modelcraft-backend/           ← Go 后端（唯一真相源：api/）
+│   └── api/                        API Contract（OpenAPI + GraphQL SDL）
+├── modelcraft-front/             ← Next.js 前端
+│   └── contract/                   前端消费的 contract（只读，由 skill 同步）
+├── modelcraft-gateway/           ← Gateway 配置
+├── modelcraft-cli/               ← 官方 CLI（mc）
+├── apisix/                       ← APISIX 声明式路由配置
+├── deploy/                       ← Docker Compose 编排 + 环境变量
+└── ai-metadata/                  ← 项目知识文档（唯一文档目录）
+```
+
+---
+
+## 快速部署
+
+### 前提条件
 
 | 工具 | 最低版本 | 用途 |
 |------|---------|------|
-| [Go](https://go.dev/doc/install) | 1.21+ | 编译 CLI |
-| [Docker](https://docs.docker.com/get-docker/) | 24+ | 运行后端服务 |
-| [just](https://github.com/casey/just) | 1.14+ | 任务运行器（可选，方便起停服务） |
-| [atlas](https://atlasgo.io/getting-started) | latest | 数据库 Schema 迁移（`db-up` 时需要） |
-| [mysql client](https://dev.mysql.com/downloads/) | 8.0+ | `db-up` / `db-reset` 时需要 |
+| [Go](https://go.dev/doc/install) | 1.24+ | 编译 CLI / 后端 |
+| [Docker](https://docs.docker.com/get-docker/) | 24+ | 运行服务 |
+| [just](https://github.com/casey/just) | 1.14+ | 任务运行器 |
 
----
-
-## 部署后端服务
-
-### 1. 准备环境配置文件
-
-后端所有服务的配置均位于 `deploy/env/`。每个服务都有一个 `.example` 示例文件：
+### 1. 准备环境配置
 
 ```bash
 cd deploy/env
@@ -57,373 +199,213 @@ cp frontend.local.env.example frontend.local.env
 cp agent.local.env.example    agent.local.env
 ```
 
-根据实际环境编辑各 `.env` 文件，重点关注：
+按实际环境编辑各 `.env`，重点关注 `mysql.local.env`（`MYSQL_ROOT_PASSWORD`）和
+`backend.local.env`（数据库连接串、JWT 密钥）。
 
-- `mysql.local.env`：设置 `MYSQL_ROOT_PASSWORD`
-- `backend.local.env`：设置数据库连接串和密钥
-- `apisix.local.env`：设置 JWT 签名密钥（需与 backend 一致）
-
-### 2. 启动所有服务
+### 2. 启动服务
 
 ```bash
-# 构建镜像并后台启动所有服务（在项目根目录执行）
-just deploy/deploy
-# 等价于: cd deploy && docker compose -f compose/docker-compose.local.yml up -d --build
+# 在仓库根目录执行
+just deploy/deploy     # 构建镜像并后台启动全部服务
+just deploy/db-up      # 首次启动后应用数据库 Schema
+just deploy/ps         # 查看容器状态
 ```
 
-### 3. 初始化数据库 Schema
+> 部署操作必须在 `./deploy` 目录下执行，默认编排文件为
+> `compose/docker-compose.local.yml`。
 
-服务首次启动后，需要应用 Schema：
-
-```bash
-just deploy/db-up
-```
-
-### 4. 验证服务状态
+### 3. 常用运维
 
 ```bash
-just deploy/ps          # 查看各容器状态
-just deploy/logs        # 跟踪所有服务日志
-```
-
-| 服务 | 地址 | 说明 |
-|------|------|------|
-| Backend | `http://localhost:8080` | Go 后端 API |
-| Gateway (APISIX) | `http://localhost:9080` | CLI 和前端统一入口 |
-| Frontend | `http://localhost:3100` | 管理控制台（创建 End User / PAT） |
-| MySQL | `localhost:6033` | 数据库（本地调试用） |
-| phpMyAdmin | `http://localhost:8081` | 数据库管理 UI（需 `just tools` 启动） |
-
-### 5. 常用运维命令
-
-在项目根目录直接运行（无需 `cd deploy`）：
-
-```bash
-just deploy/up          # 启动（不重新构建）
-just deploy/down        # 停止并移除容器
-just deploy/restart     # 重启所有服务
-just deploy/clean       # 停止并清除所有数据卷（慎用，会清空 MySQL）
-just deploy/backend     # 单独重新构建并重启后端
-just deploy/frontend    # 单独重新构建并重启前端
-just deploy/db-reset    # 重建数据库（慎用）
+just deploy/up         # 启动（不重新构建）
+just deploy/down       # 停止
+just deploy/restart    # 重启
+just deploy/backend    # 单独重建后端
+just deploy/clean      # 清除所有数据卷（慎用）
 ```
 
 ---
 
 ## 初始化控制台
 
-服务启动后，CLI 能正常使用前，还需要在管理控制台（`http://localhost:3100`）完成以下初始化。
+服务就绪后，在管理控制台 `http://localhost:3100` 完成首次配置：
 
-### 场景一：自用（管理员即用户本身）
+1. **注册租户管理员**并登录控制台。
+2. **新建项目**（Project，例如 `sales`）。
+3. **托管数据库**：在项目内添加数据库集群连接，ModelCraft 自动发现表并生成模型。
+4. **创建 End User**：在「用户管理 → End User」为 CLI/API 调用者创建账号。
+5. **分配项目访问权限**：将 End User 与项目关联。
+6. **创建 PAT**：以 End User 身份登录用户端，在「API Token 管理」创建 `mc_pat_xxx`。
 
-1. **注册并登录管理控制台**  
-   访问 `http://localhost:3100`，使用租户管理员账号注册并登录。
-
-2. **新建项目（Project）**  
-   进入「项目管理」，创建一个 Project（例如 `sales`）。
-
-3. **托管数据库**  
-   在项目内进入「数据库集群」，添加要查询的数据库连接，ModelCraft 会自动发现其中的表作为 Model。
-
-4. **创建 End User 账号（即自己）**  
-   进入「用户管理 → End User」，为自己创建一个 End User 账号（用户名/密码）。  
-   > End User 是 CLI 的登录身份，与管理控制台的租户账号相互独立。
-
-5. **创建 PAT**  
-   以 End User 身份登录用户端（`http://localhost:3100/end-user/<org-slug>/login`），进入「身份认证 → API Token 管理」，创建一个 PAT，复制明文备用。
-
-6. **完成**，可以开始使用 CLI：
-   ```bash
-   mc auth login --server http://localhost:9080 --token 'mc_pat_xxx'
-   ```
-
----
-
-### 场景二：分享给其他人使用
-
-在场景一的基础上，额外完成以下步骤：
-
-1. **为其他人创建 End User 账号**  
-   在「用户管理 → End User」中为每个使用者创建账号，并通知其修改密码或自行登录后创建 PAT。
-
-2. **分配项目访问权限**  
-   在项目的「访问控制」中，将目标 End User 与该 Project 关联，使其能发现并查询该项目下的数据库和模型。
-
-3. **配置 RBAC（可选，精细化权限）**  
-   如需限制用户只能查询特定资源，在「权限管理 → 角色」中为该 End User 分配对应角色或权限包。  
-   未配置 RBAC 时，有项目访问权限的 End User 默认拥有该项目下的全部只读能力。
-
----
-
-## 构建 CLI
-
-```bash
-# 进入 CLI 目录
-cd modelcraft-cli
-
-# 编译（输出到 bin/mc）
-go build -o ./bin/mc .
-
-# 验证
-./bin/mc --help
-```
-
-可选：将 `bin/mc` 加入 `PATH`，方便全局使用：
-
-```bash
-sudo cp ./bin/mc /usr/local/bin/mc
-# 或
-export PATH="$PWD/bin:$PATH"
-```
-
-> **Windows / macOS 交叉编译**
->
-> ```bash
-> GOOS=darwin GOARCH=arm64 go build -o ./bin/mc-darwin-arm64 .
-> GOOS=windows GOARCH=amd64 go build -o ./bin/mc.exe .
-> ```
-
----
-
-## 快速开始
-
-在管理控制台（`http://localhost:3100`）中为 End User 创建 PAT，然后：
+完成后即可接入：
 
 ```bash
 mc auth login --server http://localhost:9080 --token 'mc_pat_xxx'
 ```
 
-PAT 无过期时间，适合 CI / Agent 使用。登录成功后凭证保存至 `~/.config/modelcraft/credentials.json`，后续命令无需重复指定 `--server`。
-
----
-
-## 命令参考
-
-### auth — 身份认证
-
-```bash
-mc auth login           # 登录（PAT Token）
-mc auth status          # 查看当前登录状态
-mc auth logout          # 清除本地凭证
-mc auth switch-project  # 设置默认 project 上下文
-```
-
-#### `mc auth login`
-
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `--server` | Gateway 地址 | `http://lukemxjia.devcloud.woa.com:9080` |
-| `--token` | PAT（`mc_pat_xxx`） | — |
-| `--credentials` | 凭证文件路径 | `~/.config/modelcraft/credentials.json` |
-
-#### `mc auth switch-project <slug>`
-
-```bash
-mc auth switch-project sales
-```
-
-设置后续命令的默认 project，无需每次传 `--project`。
-
----
-
-### catalog — 资源发现
-
-```bash
-mc catalog projects                         # 列出可访问项目
-mc catalog databases [--project <slug>]     # 列出项目内数据库
-mc catalog models --database <name> [--project <slug>]  # 列出数据库内模型
-```
-
----
-
-### describe — 字段 introspection
-
-```bash
-mc describe sales.crm.users
-mc describe crm.users --project sales
-```
-
-通过 GraphQL introspection 返回模型所有字段、类型及可用 Query/Mutation 操作。
-
----
-
-### run — 执行 GraphQL 查询
-
-```bash
-# 直接传入查询体
-mc run sales.crm.users '{ findMany(take: 5) { id name } }'
-
-# 通过 stdin 传入（便于复杂查询或管道组合）
-echo '{ count { count } }' | mc run sales.crm.users
-
-# 从文件读取
-cat query.graphql | mc run sales.crm.users
-```
-
----
-
-### schema — 导出命令 schema
-
-```bash
-mc schema commands    # 输出 CLI 命令与 flag 的完整 JSON schema
-```
-
-AI Agent 可通过此命令自省可用操作，无需硬编码命令列表。
-
----
-
-### version — 版本信息
-
-```bash
-mc version
-```
-
----
-
-## 路径格式
-
-运行时命令（`describe`、`run`）使用统一路径格式：
-
-```
-project.database.model    # 完整路径
-database.model            # 省略 project（需预先设置默认 project）
-```
-
-示例：
-
-```bash
-mc describe sales.crm.users           # project=sales, db=crm, model=users
-mc run crm.orders --project sales     # 通过 --project 覆盖
-```
-
----
-
-## 典型工作流
-
-```bash
-# ─── 1. 登录 ───────────────────────────────────────────────
-mc auth login --server http://localhost:9080 --token 'mc_pat_xxx'
-
-# ─── 2. 确认身份 ────────────────────────────────────────────
-mc auth status
-
-# ─── 3. 查看可访问项目 ─────────────────────────────────────
-mc catalog projects
-
-# ─── 4. 设置默认 project（后续省略 --project）─────────────
-mc auth switch-project sales
-
-# ─── 5. 发现数据库与模型 ────────────────────────────────────
-mc catalog databases
-mc catalog models --database crm
-
-# ─── 6. 查看模型字段 ────────────────────────────────────────
-mc describe sales.crm.users
-
-# ─── 7. 执行查询 ────────────────────────────────────────────
-mc run sales.crm.users '{ findMany(take: 5) { id name email } }'
-
-# ─── 8. 组合管道 ────────────────────────────────────────────
-mc run sales.crm.users '{ count { count } }' | jq '.data.count.count'
-```
+> RBAC 可选：未配置时，有项目访问权限的 End User 默认拥有该项目下全部只读能力。
+> 需要精细化权限时，在「权限管理」中分配角色 / 权限包。
 
 ---
 
 ## 认证架构
 
+end-user 链路的 PAT 鉴权流程：
+
 ```
-CLI (mc_pat_xxx / JWT)
-  → APISIX Gateway (:9080)        # 验证 Token，注入 X-User-ID
-      → Backend (:8080)           # 信任 X-User-ID，执行业务逻辑
-          → MySQL (:6033)
+CLI / SDK (Bearer mc_pat_xxx)
+  → APISIX (:9080)
+      │  检测 mc_pat_ 前缀 → subrequest backend /api/tenant/auth/whoami
+      │  验证通过 → 取回短效 JWT，替换 Authorization header
+      │  注入 X-User-ID / X-Org-Name / X-Is-Admin
+      ▼
+  Backend (:8080)
+      │  end-user GraphQL 路由：ChiJWTAuthMiddleware 验证 JWT
+      │  运行时 model 路由：RLSContextMiddleware 读取 X-MC-Auth-* header
+      ▼
+  运行时 GraphQL 引擎 → 按身份执行 RLS 过滤
 ```
 
-| 登录方式 | 本地存储 | 过期策略 |
-|---------|---------|---------|
-| PAT (`--token`) | PAT 原文作为 access_token | 永不过期，由管理员手动吊销 |
+设计时链路（管理控制台）使用独立的 JWT 鉴权，不经过 PAT，也不对外暴露。
+
+| 凭证类型 | 格式 | 过期 | 适用场景 |
+|---------|------|------|---------|
+| PAT | `mc_pat_` + hex | 永不过期，手动吊销 | end-user 链路：CLI、CI、SDK |
+| End User JWT | ES256 签名 | 短效 | 网关→后端内部链路，不对外暴露 |
+| 管理员 JWT | ES256 签名 | 短效 | 管理控制台，设计时操作 |
 
 ---
 
-## 输出格式与退出码
+## 扮演（Impersonation）
 
-所有命令输出统一 JSON 包装：
+CLI 支持通过全局 flag 注入 `X-MC-Auth-*` header，模拟其他用户的 RLS 上下文，
+用于测试行级安全策略：
 
-```json
+```bash
+mc run sales.crm.users '{ findMany { id name } }' \
+  --as-userid user_abc \
+  --as-username alice \
+  --as-role "admin,manager"
+```
+
+| Flag | 注入的 Header | 说明 |
+|------|--------------|------|
+| `--as-userid` | `X-MC-Auth-Userid-Int` 或 `X-MC-Auth-Userid-Str` | 纯数字 → Int，否则 → Str |
+| `--as-username` | `X-MC-Auth-Username` | |
+| `--as-role` | `X-MC-Auth-Roles` | 逗号分隔多角色 |
+
+> 扮演 header 仅对运行时 GraphQL 路由（`/end-user/graphql/.../model/...`）生效，
+> 由后端 `RLSContextMiddleware` 消费。
+
+---
+
+## CLI 命令参考
+
+### 构建与安装
+
+```bash
+cd modelcraft-cli
+go build -o ./bin/mc .
+sudo cp ./bin/mc /usr/local/bin/mc   # 可选：加入 PATH
+```
+
+### auth — 身份认证
+
+```bash
+mc auth login --server <url> --token 'mc_pat_xxx'   # 登录
+mc auth status                                       # 当前状态
+mc auth logout                                       # 清除本地凭证
+mc auth switch-project <slug>                        # 设置默认 project
+```
+
+### catalog — 资源发现
+
+```bash
+mc catalog projects                              # 可访问项目
+mc catalog databases [--project <slug>]          # 项目内数据库
+mc catalog models --database <name> [--project <slug>]   # 数据库内模型
+```
+
+### describe — 模型结构
+
+```bash
+mc describe <project>.<database>.<model>
+mc describe <database>.<model> --project <slug>
+```
+
+### run — 运行时查询
+
+```bash
+mc run <path> '{ findMany(take: 5) { id name } }'
+echo '{ count { count } }' | mc run <path>     # stdin
+```
+
+路径格式：`project.database.model` 或 `database.model`（需预设默认 project）。
+
+### schema — 导出命令 Schema
+
+```bash
+mc schema commands    # 输出命令 + flag 的 JSON schema，供 Agent 自省
+```
+
+### 全局参数
+
+| 参数 | 环境变量 | 说明 |
+|------|---------|------|
+| `--credentials` | — | 凭证文件路径，默认 `~/.config/modelcraft/credentials.json` |
+| `--project` | `MC_PROJECT` | 覆盖默认 project |
+| `--as-userid` | — | 扮演用户 ID |
+| `--as-username` | — | 扮演用户名 |
+| `--as-role` | — | 扮演角色 |
+| — | `MC_SERVER` | 覆盖 Gateway 地址 |
+| — | `MC_ORG` | 覆盖 Org slug |
+| — | `MC_ACCESS_TOKEN` | 覆盖 access token |
+
+### 输出格式
+
+所有命令输出统一 JSON：
+
+```jsonc
 // 成功
 {"ok": true, "data": {...}, "meta": {"project": "sales"}}
 
 // 失败
-{"ok": false, "error": {"code": "UNAUTHENTICATED", "message": "No local session found.", "retryable": true, "suggestion": "Run 'mc auth login'."}}
+{"ok": false, "error": {"code": "UNAUTHENTICATED", "message": "...", "retryable": true, "suggestion": "..."}}
 ```
 
-### 退出码
-
-| 码 | 含义 |
-|----|------|
-| `0` | 成功 |
-| `2` | 参数错误（`INVALID_ARGUMENT` / `MISSING_REQUIRED_FLAG`） |
-| `3` | 未认证（`UNAUTHENTICATED`） |
-| `4` | 权限不足（`PERMISSION_DENIED`） |
-| `5` | 资源不存在（`NOT_FOUND` / `NO_PROJECT_CONTEXT`） |
-| `7` | 未知错误 |
-
----
-
-## 全局参数与环境变量
-
-| 参数 | 环境变量 | 说明 | 默认值 |
-|------|---------|------|--------|
-| `--credentials` | — | 凭证文件路径 | `~/.config/modelcraft/credentials.json` |
-| `--project` | `MC_PROJECT` | 临时覆盖 project 上下文 | 从凭证文件读取 |
-| — | `MC_SERVER` | 覆盖 Gateway 地址 | 从凭证文件读取 |
-| — | `MC_ORG` | 覆盖 Org slug | 从凭证文件读取 |
-| — | `MC_ACCESS_TOKEN` | 覆盖 access token（CI 场景） | 从凭证文件读取 |
-
----
-
-## 常见错误
-
-| 错误码 | 原因 | 解决方案 |
-|--------|------|----------|
-| `UNAUTHENTICATED` | 未登录或 PAT 已被吊销 | `mc auth login --token mc_pat_xxx` |
-| `NO_PROJECT_CONTEXT` | 未设置默认 project | `--project <slug>` 或 `mc auth switch-project <slug>` |
-| `MISSING_REQUIRED_FLAG` | 缺少必填参数 | `mc <command> --help` |
-| `PROJECT_NOT_FOUND` | project slug 不在授权列表 | `mc catalog projects` 查看可访问列表 |
-| `SERVICE_UNAVAILABLE` | 网关不可达 | 检查 `--server` 地址和服务状态（`just ps`） |
+退出码：`0` 成功 · `2` 参数错误 · `3` 未认证 · `4` 权限不足 · `5` 资源不存在 · `7` 未知错误
 
 ---
 
 ## 运行测试
 
 ```bash
-# 单元测试
-just modelcraft-cli/test
-
-# 集成测试（需要先编译二进制）
-just modelcraft-cli/test-integration
-
-# 全部测试
+# CLI 单元 + 集成测试
 just modelcraft-cli/test-all
 
-# 过滤特定测试
-go test ./modelcraft-cli/... -v -run TestAuth
+# 后端测试
+just test-unit           # 单元测试
+just test-coverage       # 覆盖率
+just bdd                 # BDD 验收测试（Cucumber）
+
+# 前端
+cd modelcraft-front && npm test
 ```
 
 ---
 
-## 发布新版本
+## 发布
 
-CLI 通过 GitHub Actions 自动构建发布（`release-cli.yml`），触发条件为推送 `cli-vX.Y.Z` 格式的 tag。
+### CLI
 
 ```bash
-# 打 tag 并推送，触发自动构建（darwin-arm64 + linux-amd64）
-just modelcraft-cli/release v0.2.2
+just modelcraft-cli/release v0.2.2    # 打 cli-vX.Y.Z tag，触发 GitHub Actions
 ```
 
-构建产物会作为 GitHub Release Assets 发布，页面 Dashboard 的 CLI 下载链接指向 latest release。
+构建产物（darwin-arm64 + linux-amd64）自动发布为 GitHub Release Assets。
 
 ---
 
 ## License
 
-This repository is licensed under the Apache License 2.0. See [LICENSE](./LICENSE).
+[Apache License 2.0](./LICENSE)
