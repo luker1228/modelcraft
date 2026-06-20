@@ -225,7 +225,8 @@ func (h *Handler) HandlePATWhoami(w http.ResponseWriter, r *http.Request) {
 
 	authHeader := r.Header.Get(httpheader.Authorization)
 	if !strings.HasPrefix(authHeader, "Bearer mc_pat_") {
-		logfacade.GetLogger(r.Context()).Warnf(r.Context(), "PAT whoami rejected: invalid auth header requestId=%s", requestID)
+		logfacade.GetLogger(r.Context()).
+			Warnf(r.Context(), "PAT whoami rejected: invalid auth header requestId=%s", requestID)
 		writeAuthError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", "valid PAT token required")
 		return
 	}
@@ -243,7 +244,8 @@ func (h *Handler) HandlePATWhoami(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			msg = err.Error()
 		}
-		logfacade.GetLogger(r.Context()).Warnf(r.Context(), "PAT whoami validation failed requestId=%s err=%v", requestID, err)
+		logfacade.GetLogger(r.Context()).
+			Warnf(r.Context(), "PAT whoami validation failed requestId=%s err=%v", requestID, err)
 		writeAuthError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", msg)
 		return
 	}

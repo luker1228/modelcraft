@@ -8,6 +8,9 @@ import (
 // ErrNoMatchingPolicy is returned when no RLS policy matches the request.
 var ErrNoMatchingPolicy = errors.New("RLS deny: no matching policy")
 
+// ErrPolicyNotFound is returned when a specific policy lookup yields no result.
+var ErrPolicyNotFound = errors.New("RLS policy not found")
+
 // Action 操作类型
 type Action string
 

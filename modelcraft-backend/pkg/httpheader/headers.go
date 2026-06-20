@@ -12,7 +12,7 @@ const (
 	AcceptEncoding = "Accept-Encoding"
 	AcceptLanguage = "Accept-Language"
 	CacheControl   = "Cache-Control"
-	XCSRFToken     = "X-CSRF-Token"
+	XCSRFToken     = "X-CSRF-Token" //nolint:gosec // G101: header name constant, not a credential
 	XRequestedWith = "X-Requested-With"
 
 	XAction          = "X-Action"

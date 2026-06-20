@@ -6,22 +6,31 @@ package projectgraphql
 
 import (
 	"context"
-	"fmt"
 	appRLS "modelcraft/internal/app/rls"
 	domainRLS "modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"sort"
 	"strconv"
-	"time"
 )
 
 // UpsertRlsPolicy is the resolver for the upsertRlsPolicy field.
-func (r *mutationResolver) UpsertRlsPolicy(ctx context.Context, modelID string, input generated.RlsPolicyInput) (*generated.UpsertRlsPolicyPayload, error) {
+func (r *mutationResolver) UpsertRlsPolicy(ctx context.Context, modelID string, role string, input generated.RlsActionPolicyInput) (*generated.UpsertRlsPolicyPayload, error) {
 	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	if role == "" {
+		return &generated.UpsertRlsPolicyPayload{
+			ActionPolicy: nil,
+			Error:        &generated.InvalidInput{Message: "role must not be empty"},
+		}, nil
+	}
+
+	var policyName string
+	if input.PolicyName != nil {
+		policyName = *input.PolicyName
+	}
 	var usingExpr domainRLS.JsonExpr
 	if input.UsingExpr != nil {
 		usingExpr = domainRLS.JsonExpr(*input.UsingExpr)
@@ -33,31 +42,22 @@ func (r *mutationResolver) UpsertRlsPolicy(ctx context.Context, modelID string, 
 
 	policy, err := r.PolicyCRUDService.Upsert(ctx, orgName, projectSlug, appRLS.UpsertInput{
 		ModelID:       modelID,
-		PolicyName:    input.PolicyName,
+		PolicyName:    policyName,
 		Action:        domainRLS.Action(input.Action),
-		Role:          input.Role,
+		Role:          role,
 		UsingExpr:     usingExpr,
 		WithCheckExpr: withCheckExpr,
 	})
 	if err != nil {
 		return &generated.UpsertRlsPolicyPayload{
-			Policy: nil,
-			Error:  &generated.InvalidInput{Message: err.Error()},
+			ActionPolicy: nil,
+			Error:        &generated.InvalidInput{Message: err.Error()},
 		}, nil
 	}
 
 	return &generated.UpsertRlsPolicyPayload{
-		Policy: &generated.RlsPolicy{
-			ID:            fmt.Sprintf("%d", policy.ID),
-			PolicyName:    policy.PolicyName,
-			Action:        generated.RlsAction(policy.Action),
-			Role:          policy.Role,
-			UsingExpr:     stringPtr(string(policy.UsingExpr)),
-			WithCheckExpr: stringPtr(string(policy.WithCheckExpr)),
-			CreatedAt:     policy.CreatedAt.Format(time.RFC3339),
-			UpdatedAt:     policy.UpdatedAt.Format(time.RFC3339),
-		},
-		Error: nil,
+		ActionPolicy: toActionPolicy(policy),
+		Error:        nil,
 	}, nil
 }
 
@@ -86,6 +86,23 @@ func (r *mutationResolver) DeleteRlsPolicy(ctx context.Context, id string) (*gen
 	return &generated.DeleteRlsPolicyPayload{Success: true, Error: nil}, nil
 }
 
+// DeleteRlsPoliciesByRole is the resolver for the deleteRlsPoliciesByRole field.
+func (r *mutationResolver) DeleteRlsPoliciesByRole(ctx context.Context, modelID string, role string) (*generated.DeleteRlsPolicyPayload, error) {
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := r.PolicyCRUDService.DeleteByRole(ctx, orgName, projectSlug, modelID, role); err != nil {
+		return &generated.DeleteRlsPolicyPayload{
+			Success: false,
+			Error:   &generated.ResourceNotFound{Message: err.Error()},
+		}, nil
+	}
+
+	return &generated.DeleteRlsPolicyPayload{Success: true, Error: nil}, nil
+}
+
 // DeleteRlsPoliciesByModel is the resolver for the deleteRlsPoliciesByModel field.
 func (r *mutationResolver) DeleteRlsPoliciesByModel(ctx context.Context, modelID string) (*generated.DeleteRlsPolicyPayload, error) {
 	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
@@ -104,7 +121,8 @@ func (r *mutationResolver) DeleteRlsPoliciesByModel(ctx context.Context, modelID
 }
 
 // RlsPolicies is the resolver for the rlsPolicies field.
-func (r *queryResolver) RlsPolicies(ctx context.Context, modelID string, orderBy *generated.RlsPoliciesOrderBy) ([]*generated.RlsPolicy, error) {
+// Returns policies grouped by role — the minimum unit the frontend displays.
+func (r *queryResolver) RlsPolicies(ctx context.Context, modelID string) ([]*generated.RlsRolePolicy, error) {
 	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -115,34 +133,30 @@ func (r *queryResolver) RlsPolicies(ctx context.Context, modelID string, orderBy
 		return nil, err
 	}
 
-	if orderBy != nil {
-		sort.SliceStable(policies, func(i, j int) bool {
-			switch *orderBy {
-			case generated.RlsPoliciesOrderByActionAsc:
-				return policies[i].Action < policies[j].Action
-			case generated.RlsPoliciesOrderByActionDesc:
-				return policies[i].Action > policies[j].Action
-			case generated.RlsPoliciesOrderByRoleAsc:
-				return policies[i].Role < policies[j].Role
-			case generated.RlsPoliciesOrderByRoleDesc:
-				return policies[i].Role > policies[j].Role
-			default:
-				return false
-			}
-		})
+	// Sort by role then action for deterministic output
+	sort.SliceStable(policies, func(i, j int) bool {
+		if policies[i].Role != policies[j].Role {
+			return policies[i].Role < policies[j].Role
+		}
+		return policies[i].Action < policies[j].Action
+	})
+
+	// Group by role
+	grouped := make(map[string][]*generated.RlsActionPolicy)
+	roleOrder := make([]string, 0, len(policies))
+	for _, p := range policies {
+		actions, ok := grouped[p.Role]
+		if !ok {
+			roleOrder = append(roleOrder, p.Role)
+		}
+		grouped[p.Role] = append(actions, toActionPolicy(p))
 	}
 
-	result := make([]*generated.RlsPolicy, 0, len(policies))
-	for _, p := range policies {
-		result = append(result, &generated.RlsPolicy{
-			ID:            fmt.Sprintf("%d", p.ID),
-			PolicyName:    p.PolicyName,
-			Action:        generated.RlsAction(p.Action),
-			Role:          p.Role,
-			UsingExpr:     stringPtr(string(p.UsingExpr)),
-			WithCheckExpr: stringPtr(string(p.WithCheckExpr)),
-			CreatedAt:     p.CreatedAt.Format(time.RFC3339),
-			UpdatedAt:     p.UpdatedAt.Format(time.RFC3339),
+	result := make([]*generated.RlsRolePolicy, 0, len(roleOrder))
+	for _, role := range roleOrder {
+		result = append(result, &generated.RlsRolePolicy{
+			Role:    role,
+			Actions: grouped[role],
 		})
 	}
 	return result, nil

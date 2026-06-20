@@ -18,6 +18,12 @@ func (s *stubPolicyRepo) ListByModel(
 	return s.policies, nil
 }
 
+func (s *stubPolicyRepo) GetByRoleAction(
+	_ context.Context, _, _, _ string, _ rls.Action, _ string,
+) (*rls.Policy, error) {
+	return nil, nil
+}
+
 func (s *stubPolicyRepo) Upsert(_ context.Context, _, _ string, _ *rls.Policy) error {
 	return nil
 }
@@ -27,6 +33,10 @@ func (s *stubPolicyRepo) Delete(_ context.Context, _, _ string, _ int64) error {
 }
 
 func (s *stubPolicyRepo) DeleteByModel(_ context.Context, _, _, _ string) error {
+	return nil
+}
+
+func (s *stubPolicyRepo) DeleteByRole(_ context.Context, _, _, _, _ string) error {
 	return nil
 }
 
@@ -98,7 +108,7 @@ func TestPolicyPermissionResolver_ResolveFromV2Policy_SelfScoped(t *testing.T) {
 func TestPolicyPermissionResolver_ResolveFromV2Policy_DefaultRole(t *testing.T) {
 	resolver := appruntimeimport.NewPolicyPermissionResolver(&stubPolicyRepo{
 		policies: []*rls.Policy{
-			{ModelID: "model-id", Action: rls.ActionDelete, Role: "", UsingExpr: rls.JsonExpr(`true`)},
+			{ModelID: "model-id", Action: rls.ActionDelete, Role: "*", UsingExpr: rls.JsonExpr(`true`)},
 		},
 	})
 

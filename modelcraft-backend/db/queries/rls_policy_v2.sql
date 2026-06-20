@@ -17,8 +17,7 @@ INSERT INTO model_rls_policies (
     org_name, project_slug, model_id, policy_name, action, role, using_expr, with_check_expr
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
-    action = VALUES(action),
-    role = VALUES(role),
+    policy_name = VALUES(policy_name),
     using_expr = VALUES(using_expr),
     with_check_expr = VALUES(with_check_expr);
 
@@ -29,6 +28,14 @@ WHERE id = ? AND org_name = ? AND project_slug = ?;
 -- name: DeletePoliciesByModel :exec
 DELETE FROM model_rls_policies
 WHERE org_name = ? AND project_slug = ? AND model_id = ?;
+
+-- name: GetPolicyByRoleAction :one
+SELECT * FROM model_rls_policies
+WHERE org_name = ? AND project_slug = ? AND model_id = ? AND action = ? AND role = ?;
+
+-- name: DeletePoliciesByRole :exec
+DELETE FROM model_rls_policies
+WHERE org_name = ? AND project_slug = ? AND model_id = ? AND role = ?;
 
 -- name: PolicyExists :one
 SELECT EXISTS(

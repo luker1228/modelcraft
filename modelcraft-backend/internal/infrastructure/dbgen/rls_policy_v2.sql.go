@@ -27,6 +27,28 @@ func (q *Queries) DeletePoliciesByModel(ctx context.Context, arg DeletePoliciesB
 	return err
 }
 
+const deletePoliciesByRole = `-- name: DeletePoliciesByRole :exec
+DELETE FROM model_rls_policies
+WHERE org_name = ? AND project_slug = ? AND model_id = ? AND role = ?
+`
+
+type DeletePoliciesByRoleParams struct {
+	OrgName     string
+	ProjectSlug string
+	ModelID     string
+	Role        string
+}
+
+func (q *Queries) DeletePoliciesByRole(ctx context.Context, arg DeletePoliciesByRoleParams) error {
+	_, err := q.db.ExecContext(ctx, deletePoliciesByRole,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.ModelID,
+		arg.Role,
+	)
+	return err
+}
+
 const deletePolicy = `-- name: DeletePolicy :exec
 DELETE FROM model_rls_policies
 WHERE id = ? AND org_name = ? AND project_slug = ?
@@ -41,6 +63,44 @@ type DeletePolicyParams struct {
 func (q *Queries) DeletePolicy(ctx context.Context, arg DeletePolicyParams) error {
 	_, err := q.db.ExecContext(ctx, deletePolicy, arg.ID, arg.OrgName, arg.ProjectSlug)
 	return err
+}
+
+const getPolicyByRoleAction = `-- name: GetPolicyByRoleAction :one
+SELECT id, org_name, project_slug, model_id, policy_name, action, role, using_expr, with_check_expr, created_at, updated_at FROM model_rls_policies
+WHERE org_name = ? AND project_slug = ? AND model_id = ? AND action = ? AND role = ?
+`
+
+type GetPolicyByRoleActionParams struct {
+	OrgName     string
+	ProjectSlug string
+	ModelID     string
+	Action      ModelRlsPoliciesAction
+	Role        string
+}
+
+func (q *Queries) GetPolicyByRoleAction(ctx context.Context, arg GetPolicyByRoleActionParams) (ModelRlsPolicy, error) {
+	row := q.db.QueryRowContext(ctx, getPolicyByRoleAction,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.ModelID,
+		arg.Action,
+		arg.Role,
+	)
+	var i ModelRlsPolicy
+	err := row.Scan(
+		&i.ID,
+		&i.OrgName,
+		&i.ProjectSlug,
+		&i.ModelID,
+		&i.PolicyName,
+		&i.Action,
+		&i.Role,
+		&i.UsingExpr,
+		&i.WithCheckExpr,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const listPoliciesByAction = `-- name: ListPoliciesByAction :many
@@ -190,8 +250,7 @@ INSERT INTO model_rls_policies (
     org_name, project_slug, model_id, policy_name, action, role, using_expr, with_check_expr
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
-    action = VALUES(action),
-    role = VALUES(role),
+    policy_name = VALUES(policy_name),
     using_expr = VALUES(using_expr),
     with_check_expr = VALUES(with_check_expr)
 `

@@ -74,7 +74,7 @@ func (c *ClientDBRepoImpl) FindUnique(
 				return nil, err
 			}
 			// 添加 LIMIT 2 以检查是否有多条记录
-			sql = sql + " LIMIT 2"
+			sql += " LIMIT 2"
 			logger.Infof(ctx, "sql=%v args=%v", sql, args)
 
 			rows, err := c.stdDB.Queryx(sql, args...)

@@ -2,6 +2,7 @@ package rls
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"modelcraft/internal/domain/rls"
 )
@@ -33,7 +34,7 @@ type UpsertInput struct {
 	WithCheckExpr rls.JsonExpr
 }
 
-// Upsert 创建或更新策略
+// Upsert 创建或更新策略（按 model+role+action 唯一键）
 func (s *DataPolicyService) Upsert(
 	ctx context.Context, orgName, projectSlug string, input UpsertInput,
 ) (*rls.Policy, error) {
@@ -55,16 +56,14 @@ func (s *DataPolicyService) Upsert(
 	}
 
 	// Re-query to get the persisted record (with ID, timestamps)
-	policies, err := s.repo.ListByModel(ctx, orgName, projectSlug, input.ModelID)
+	persisted, err := s.repo.GetByRoleAction(ctx, orgName, projectSlug, input.ModelID, input.Action, input.Role)
 	if err != nil {
+		if errors.Is(err, rls.ErrPolicyNotFound) {
+			return policy, nil
+		}
 		return nil, err
 	}
-	for _, p := range policies {
-		if p.PolicyName == input.PolicyName {
-			return p, nil
-		}
-	}
-	return policy, nil
+	return persisted, nil
 }
 
 // Delete 删除单条策略
@@ -79,4 +78,11 @@ func (s *DataPolicyService) DeleteByModel(
 	ctx context.Context, orgName, projectSlug, modelID string,
 ) error {
 	return s.repo.DeleteByModel(ctx, orgName, projectSlug, modelID)
+}
+
+// DeleteByRole 删除模型下某角色的所有策略
+func (s *DataPolicyService) DeleteByRole(
+	ctx context.Context, orgName, projectSlug, modelID, role string,
+) error {
+	return s.repo.DeleteByRole(ctx, orgName, projectSlug, modelID, role)
 }

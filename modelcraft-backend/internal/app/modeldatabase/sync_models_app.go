@@ -146,23 +146,18 @@ func (s *SyncModelsAppService) StartSync(
 	}
 
 	staleBefore := s.now().Add(-defaultStalePeriod)
-	if s.dbRepo != nil {
-		active, err := s.syncJobRepo.GetActiveByDatabase(ctx, orgName, projectSlug, databaseID, staleBefore)
-		if err != nil {
-			return nil, err
-		}
-		if active != nil {
-			return nil, bizerrors.NewError(bizerrors.Conflict, "sync job already running for database "+cmd.DatabaseName)
-		}
-	} else {
+	dbKey := databaseID
+	if s.dbRepo == nil {
 		// Degraded mode: check by database name (backward compat).
-		active, err := s.syncJobRepo.GetActiveByDatabase(ctx, orgName, projectSlug, cmd.DatabaseName, staleBefore)
-		if err != nil {
-			return nil, err
-		}
-		if active != nil {
-			return nil, bizerrors.NewError(bizerrors.Conflict, "sync job already running for database "+cmd.DatabaseName)
-		}
+		dbKey = cmd.DatabaseName
+	}
+	active, err := s.syncJobRepo.GetActiveByDatabase(ctx, orgName, projectSlug, dbKey, staleBefore)
+	if err != nil {
+		return nil, err
+	}
+	if active != nil {
+		return nil, bizerrors.NewError(bizerrors.Conflict,
+			"sync job already running for database "+cmd.DatabaseName)
 	}
 
 	tableNames := cmd.TableNames
@@ -271,7 +266,8 @@ func (s *SyncModelsAppService) StartModelSync(
 			return "", nil, cerr
 		}
 		if s.dbRepo != nil {
-			if uerr := s.dbRepo.UpdateLatestSyncJobID(ctx, orgName, projectSlug, target.DatabaseID, job.ID); uerr != nil {
+			uerr := s.dbRepo.UpdateLatestSyncJobID(ctx, orgName, projectSlug, target.DatabaseID, job.ID)
+			if uerr != nil {
 				logfacade.GetLogger(ctx).Warn(
 					ctx, "failed to update latest_sync_job_id",
 					logfacade.String("database_id", target.DatabaseID),
@@ -444,21 +440,11 @@ func (s *SyncModelsAppService) processTable(
 		}
 		job.SyncedModels++
 	} else {
-		importResult, importErr := s.reverseEngineer.ImportModel(ctx, appmodeldesign.ImportModelCommand{
-			OrgName:      orgName,
-			ProjectSlug:  projectSlug,
-			DatabaseName: databaseName,
-			TableName:    tableName,
-		})
-		if importErr != nil {
-			return s.recordTableFailure(ctx, job, tableName, importErr)
+		created, err := s.importNewModel(ctx, orgName, projectSlug, databaseName, tableName, group)
+		if err != nil {
+			return s.recordTableFailure(ctx, job, tableName, err)
 		}
-		if group != nil {
-			if err := s.groupService.MoveModelToGroup(ctx, importResult.ModelID, &group.ID); err != nil {
-				return s.recordTableFailure(ctx, job, tableName, err)
-			}
-		}
-		job.CreatedModels++
+		job.CreatedModels += created
 	}
 
 	job.ProcessedTables++
@@ -480,6 +466,29 @@ func (s *SyncModelsAppService) recordTableFailure(
 	})
 	job.UpdatedAt = s.now()
 	return s.syncJobRepo.Update(ctx, job)
+}
+
+// importNewModel imports a table as a new model and optionally moves it into
+// the import group. Returns the number of created models (1 on success).
+func (s *SyncModelsAppService) importNewModel(
+	ctx context.Context, orgName, projectSlug, databaseName, tableName string,
+	group *domainmodel.ModelGroup,
+) (int, error) {
+	importResult, err := s.reverseEngineer.ImportModel(ctx, appmodeldesign.ImportModelCommand{
+		OrgName:      orgName,
+		ProjectSlug:  projectSlug,
+		DatabaseName: databaseName,
+		TableName:    tableName,
+	})
+	if err != nil {
+		return 0, err
+	}
+	if group != nil {
+		if err := s.groupService.MoveModelToGroup(ctx, importResult.ModelID, &group.ID); err != nil {
+			return 0, err
+		}
+	}
+	return 1, nil
 }
 
 func (s *SyncModelsAppService) failJob(

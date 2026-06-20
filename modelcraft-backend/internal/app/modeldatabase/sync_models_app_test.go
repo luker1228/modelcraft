@@ -86,7 +86,7 @@ func (f *fakeSyncModelsJobRepo) Update(_ context.Context, job *domaindb.ModelSyn
 func (f *fakeSyncModelsJobRepo) GetByIDs(
 	_ context.Context, orgName, projectSlug string, jobIDs []string,
 ) ([]*domaindb.ModelSyncJob, error) {
-	var result []*domaindb.ModelSyncJob
+	result := make([]*domaindb.ModelSyncJob, 0, len(jobIDs))
 	for _, id := range jobIDs {
 		job := f.jobs[id]
 		if job == nil || job.OrgName != orgName || job.ProjectSlug != projectSlug {
@@ -101,7 +101,7 @@ func (f *fakeSyncModelsJobRepo) GetByIDs(
 func (f *fakeSyncModelsJobRepo) GetByBatchID(
 	_ context.Context, orgName, projectSlug, batchID string,
 ) ([]*domaindb.ModelSyncJob, error) {
-	var result []*domaindb.ModelSyncJob
+	result := make([]*domaindb.ModelSyncJob, 0, len(f.jobs))
 	for _, job := range f.jobs {
 		if job.BatchID != batchID || job.OrgName != orgName || job.ProjectSlug != projectSlug {
 			continue

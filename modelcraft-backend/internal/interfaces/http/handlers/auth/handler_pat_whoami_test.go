@@ -31,7 +31,9 @@ func (s *stubAPITokenRepo) FindByHash(ctx context.Context, hash string) (*domain
 	return nil, nil
 }
 
-func (s *stubAPITokenRepo) ListByUser(ctx context.Context, orgName, endUserID string) ([]*domainenduser.APIToken, error) {
+func (s *stubAPITokenRepo) ListByUser(
+	ctx context.Context, orgName, endUserID string,
+) ([]*domainenduser.APIToken, error) {
 	return nil, nil
 }
 

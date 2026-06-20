@@ -108,7 +108,10 @@ func initOpenDataErrorTypes() {
 	openDataErrorUnion = graphql.NewUnion(graphql.UnionConfig{
 		Name:        "OpenDataErrorUnion",
 		Description: "Open Data API 错误联合类型",
-		Types:       []*graphql.Object{recordNotFoundType, permissionDeniedType, duplicateKeyType, multipleRecordsFoundType},
+		Types: []*graphql.Object{
+			recordNotFoundType, permissionDeniedType,
+			duplicateKeyType, multipleRecordsFoundType,
+		},
 		ResolveType: func(p graphql.ResolveTypeParams) *graphql.Object {
 			if val, ok := p.Value.(map[string]interface{}); ok {
 				if typeName, ok := val["__typename"].(string); ok {

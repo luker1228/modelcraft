@@ -53,7 +53,28 @@ func (r *SqlPolicyRepository) ListByAction(
 	return todomainPolicies(rows), nil
 }
 
-// Upsert creates or updates a policy (keyed by policy_name within a model).
+// GetByRoleAction returns the single policy matching model+role+action.
+func (r *SqlPolicyRepository) GetByRoleAction(
+	ctx context.Context, orgName, projectSlug, modelID string,
+	action domainRLS.Action, role string,
+) (*domainRLS.Policy, error) {
+	row, err := r.q.GetPolicyByRoleAction(ctx, dbgen.GetPolicyByRoleActionParams{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		ModelID:     modelID,
+		Action:      dbgen.ModelRlsPoliciesAction(action),
+		Role:        role,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, domainRLS.ErrPolicyNotFound
+		}
+		return nil, sqlerr.WrapSQLError(err)
+	}
+	return toDomainPolicy(row), nil
+}
+
+// Upsert creates or updates a policy (keyed by role+action within a model).
 func (r *SqlPolicyRepository) Upsert(
 	ctx context.Context, orgName, projectSlug string, policy *domainRLS.Policy,
 ) error {
@@ -94,22 +115,39 @@ func (r *SqlPolicyRepository) DeleteByModel(
 	return sqlerr.WrapSQLError(err)
 }
 
+// DeleteByRole deletes all policies for a role in a model.
+func (r *SqlPolicyRepository) DeleteByRole(
+	ctx context.Context, orgName, projectSlug, modelID, role string,
+) error {
+	err := r.q.DeletePoliciesByRole(ctx, dbgen.DeletePoliciesByRoleParams{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		ModelID:     modelID,
+		Role:        role,
+	})
+	return sqlerr.WrapSQLError(err)
+}
+
+func toDomainPolicy(r dbgen.ModelRlsPolicy) *domainRLS.Policy {
+	return &domainRLS.Policy{
+		ID:            int64(r.ID),
+		OrgName:       r.OrgName,
+		ProjectSlug:   r.ProjectSlug,
+		ModelID:       r.ModelID,
+		PolicyName:    r.PolicyName,
+		Action:        domainRLS.Action(r.Action),
+		Role:          r.Role,
+		UsingExpr:     domainRLS.JsonExpr(r.UsingExpr.String),
+		WithCheckExpr: domainRLS.JsonExpr(r.WithCheckExpr.String),
+		CreatedAt:     r.CreatedAt,
+		UpdatedAt:     r.UpdatedAt,
+	}
+}
+
 func todomainPolicies(rows []dbgen.ModelRlsPolicy) []*domainRLS.Policy {
 	result := make([]*domainRLS.Policy, 0, len(rows))
 	for _, r := range rows {
-		result = append(result, &domainRLS.Policy{
-			ID:            int64(r.ID),
-			OrgName:       r.OrgName,
-			ProjectSlug:   r.ProjectSlug,
-			ModelID:       r.ModelID,
-			PolicyName:    r.PolicyName,
-			Action:        domainRLS.Action(r.Action),
-			Role:          r.Role,
-			UsingExpr:     domainRLS.JsonExpr(r.UsingExpr.String),
-			WithCheckExpr: domainRLS.JsonExpr(r.WithCheckExpr.String),
-			CreatedAt:     r.CreatedAt,
-			UpdatedAt:     r.UpdatedAt,
-		})
+		result = append(result, toDomainPolicy(r))
 	}
 	return result
 }

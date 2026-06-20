@@ -8,7 +8,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"log"
 	"modelcraft/internal/app/apitoken"
 	"modelcraft/internal/app/auth"
 	"modelcraft/internal/app/cluster"
@@ -211,7 +210,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	go func() {
 		ctx := context.Background()
 		if err := syncModelsAppService.RecoverStaleJobs(ctx); err != nil {
-			log.Printf("failed to recover stale model sync jobs: %v", err)
+			logfacade.GetLogger(ctx).Errorf(ctx, "failed to recover stale model sync jobs: %v", err)
 		}
 	}()
 

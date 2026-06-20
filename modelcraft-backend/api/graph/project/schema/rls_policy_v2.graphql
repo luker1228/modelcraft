@@ -1,6 +1,7 @@
 # ============================================
-# RLS Policy V2 — Multi-Policy CRUD
-# Each model can have multiple policies, matched by action + role
+# RLS Policy V2 — Role-Centric Policy Management
+# Policy uniqueness: (org, project, model, role, action)
+# Frontend views data grouped by role under a model.
 # ============================================
 
 # ----------------------------------------
@@ -14,36 +15,34 @@ enum RlsAction {
   delete
 }
 
-enum RlsPoliciesOrderBy {
-  ACTION_ASC
-  ACTION_DESC
-  ROLE_ASC
-  ROLE_DESC
-}
-
 # ----------------------------------------
 # Types
 # ----------------------------------------
 
-type RlsPolicy {
+# A single action policy within a role
+type RlsActionPolicy {
   id: ID!
-  policyName: String!
   action: RlsAction!
-  role: String!
+  policyName: String
   usingExpr: String
   withCheckExpr: String
   createdAt: String!
   updatedAt: String!
 }
 
+# Role-level policy grouping — the minimum display unit on the frontend
+type RlsRolePolicy {
+  role: String!
+  actions: [RlsActionPolicy!]!
+}
+
 # ----------------------------------------
 # Input Types
 # ----------------------------------------
 
-input RlsPolicyInput {
-  policyName: String!
+input RlsActionPolicyInput {
   action: RlsAction!
-  role: String!
+  policyName: String
   usingExpr: String
   withCheckExpr: String
 }
@@ -64,7 +63,7 @@ union DeleteRlsPolicyError = ResourceNotFound
 # ----------------------------------------
 
 type UpsertRlsPolicyPayload {
-  policy: RlsPolicy
+  actionPolicy: RlsActionPolicy
   error: UpsertRlsPolicyError
 }
 
@@ -78,17 +77,20 @@ type DeleteRlsPolicyPayload {
 # ----------------------------------------
 
 extend type Query {
-  """List all RLS policies for a model"""
-  rlsPolicies(modelId: ID!, orderBy: RlsPoliciesOrderBy): [RlsPolicy!]! @hasPermission(action: "model:read")
+  """List all RLS policies for a model, grouped by role"""
+  rlsPolicies(modelId: ID!): [RlsRolePolicy!]! @hasPermission(action: "model:read")
 }
 
 extend type Mutation {
-  """Create or update an RLS policy"""
-  upsertRlsPolicy(modelId: ID!, input: RlsPolicyInput!): UpsertRlsPolicyPayload! @hasPermission(action: "model:update")
+  """Create or update a single action policy for a role in a model"""
+  upsertRlsPolicy(modelId: ID!, role: String!, input: RlsActionPolicyInput!): UpsertRlsPolicyPayload! @hasPermission(action: "model:update")
 
-  """Delete a single RLS policy by ID"""
+  """Delete a single action policy by ID"""
   deleteRlsPolicy(id: ID!): DeleteRlsPolicyPayload! @hasPermission(action: "model:update")
 
-  """Delete all RLS policies for a model"""
+  """Delete all action policies for a role in a model"""
+  deleteRlsPoliciesByRole(modelId: ID!, role: String!): DeleteRlsPolicyPayload! @hasPermission(action: "model:update")
+
+  """Delete all policies for a model"""
   deleteRlsPoliciesByModel(modelId: ID!): DeleteRlsPolicyPayload! @hasPermission(action: "model:update")
 }

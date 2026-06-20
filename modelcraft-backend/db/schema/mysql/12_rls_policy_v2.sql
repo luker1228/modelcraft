@@ -24,11 +24,11 @@ CREATE TABLE model_rls_policies (
     created_at      DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at      DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
 
-    -- 唯一约束：同一 model 下 policy_name 唯一
-    UNIQUE KEY uk_policy_name (org_name, project_slug, model_id, policy_name),
+    -- 唯一约束：同一 model 下 role + action 唯一
+    UNIQUE KEY uk_policy_role_action (org_name, project_slug, model_id, role, action),
 
-    -- 查询索引：按 action + role 匹配
-    INDEX idx_policy_match (org_name, project_slug, model_id, action, role),
+    -- 查询索引：按 policy_name 查找
+    INDEX idx_policy_name (org_name, project_slug, model_id, policy_name),
 
     -- 级联外键：model 删除时自动清除其所有策略
     CONSTRAINT fk_rls_policies_model FOREIGN KEY (model_id) REFERENCES models (id) ON DELETE CASCADE

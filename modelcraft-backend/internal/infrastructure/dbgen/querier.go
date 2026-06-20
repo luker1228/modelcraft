@@ -49,6 +49,7 @@ type Querier interface {
 	DeletePermission(ctx context.Context, arg DeletePermissionParams) error
 	DeletePermissionsByRole(ctx context.Context, roleID int64) error
 	DeletePoliciesByModel(ctx context.Context, arg DeletePoliciesByModelParams) error
+	DeletePoliciesByRole(ctx context.Context, arg DeletePoliciesByRoleParams) error
 	DeletePolicy(ctx context.Context, arg DeletePolicyParams) error
 	DeleteProjectAuthSchema(ctx context.Context, arg DeleteProjectAuthSchemaParams) error
 	DeleteRole(ctx context.Context, id int64) error
@@ -101,6 +102,7 @@ type Querier interface {
 	GetModelSyncJobsByIDs(ctx context.Context, arg GetModelSyncJobsByIDsParams) ([]ModelSyncJob, error)
 	GetOrganizationByName(ctx context.Context, name string) (Organization, error)
 	GetOrganizationByPhone(ctx context.Context, phone string) (Organization, error)
+	GetPolicyByRoleAction(ctx context.Context, arg GetPolicyByRoleActionParams) (ModelRlsPolicy, error)
 	GetProfileByUserID(ctx context.Context, arg GetProfileByUserIDParams) (GetProfileByUserIDRow, error)
 	// ============================================
 	// Project Auth Schema Queries

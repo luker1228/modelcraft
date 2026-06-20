@@ -489,6 +489,7 @@ type ComplexityRoot struct {
 		DeleteLogicalForeignKey     func(childComplexity int, pairID string) int
 		DeleteModel                 func(childComplexity int, id string, dropTable *bool) int
 		DeleteRlsPoliciesByModel    func(childComplexity int, modelID string) int
+		DeleteRlsPoliciesByRole     func(childComplexity int, modelID string, role string) int
 		DeleteRlsPolicy             func(childComplexity int, id string) int
 		DeprecateField              func(childComplexity int, modelID string, fieldName string) int
 		ImportModel                 func(childComplexity int, input ImportModelInput) int
@@ -511,7 +512,7 @@ type ComplexityRoot struct {
 		UpdateModelDatabase         func(childComplexity int, id string, input UpdateModelDatabaseInput) int
 		UpdateModelMeta             func(childComplexity int, id string, input UpdateModelMetaInput) int
 		UpdateProjectCluster        func(childComplexity int, input UpdateClusterConnectionInput) int
-		UpsertRlsPolicy             func(childComplexity int, modelID string, input RlsPolicyInput) int
+		UpsertRlsPolicy             func(childComplexity int, modelID string, role string, input RlsActionPolicyInput) int
 		ValidateRLSExpr             func(childComplexity int, input ValidateRLSExprInput) int
 	}
 
@@ -545,7 +546,7 @@ type ComplexityRoot struct {
 		Node                 func(childComplexity int, id string) int
 		Ping                 func(childComplexity int) int
 		RegisteredDatabases  func(childComplexity int, input *RegisteredDatabasesInput) int
-		RlsPolicies          func(childComplexity int, modelID string, orderBy *RlsPoliciesOrderBy) int
+		RlsPolicies          func(childComplexity int, modelID string) int
 	}
 
 	RLSExprDryRun struct {
@@ -597,12 +598,11 @@ type ComplexityRoot struct {
 		ResourceType func(childComplexity int) int
 	}
 
-	RlsPolicy struct {
+	RlsActionPolicy struct {
 		Action        func(childComplexity int) int
 		CreatedAt     func(childComplexity int) int
 		ID            func(childComplexity int) int
 		PolicyName    func(childComplexity int) int
-		Role          func(childComplexity int) int
 		UpdatedAt     func(childComplexity int) int
 		UsingExpr     func(childComplexity int) int
 		WithCheckExpr func(childComplexity int) int
@@ -610,6 +610,11 @@ type ComplexityRoot struct {
 
 	RlsPolicyNotFound struct {
 		Message func(childComplexity int) int
+	}
+
+	RlsRolePolicy struct {
+		Actions func(childComplexity int) int
+		Role    func(childComplexity int) int
 	}
 
 	SchemaIssue struct {
@@ -678,8 +683,8 @@ type ComplexityRoot struct {
 	}
 
 	UpsertRlsPolicyPayload struct {
-		Error  func(childComplexity int) int
-		Policy func(childComplexity int) int
+		ActionPolicy func(childComplexity int) int
+		Error        func(childComplexity int) int
 	}
 
 	ValidateRLSExprPayload struct {
@@ -742,8 +747,9 @@ type MutationResolver interface {
 	StartModelSync(ctx context.Context, targets []*ModelSyncTargetInput) (*StartModelSyncPayload, error)
 	SyncModelsFromDb(ctx context.Context, input SyncModelsFromDBInput) (*SyncModelsFromDBPayload, error)
 	ValidateRLSExpr(ctx context.Context, input ValidateRLSExprInput) (*ValidateRLSExprPayload, error)
-	UpsertRlsPolicy(ctx context.Context, modelID string, input RlsPolicyInput) (*UpsertRlsPolicyPayload, error)
+	UpsertRlsPolicy(ctx context.Context, modelID string, role string, input RlsActionPolicyInput) (*UpsertRlsPolicyPayload, error)
 	DeleteRlsPolicy(ctx context.Context, id string) (*DeleteRlsPolicyPayload, error)
+	DeleteRlsPoliciesByRole(ctx context.Context, modelID string, role string) (*DeleteRlsPolicyPayload, error)
 	DeleteRlsPoliciesByModel(ctx context.Context, modelID string) (*DeleteRlsPolicyPayload, error)
 }
 type QueryResolver interface {
@@ -769,7 +775,7 @@ type QueryResolver interface {
 	ModelGroups(ctx context.Context) ([]*ModelGroup, error)
 	ModelSyncJobs(ctx context.Context, jobIds []string, batchID *string) ([]*ModelSyncJob, error)
 	ModelSyncJob(ctx context.Context, jobID string) (*ModelSyncJob, error)
-	RlsPolicies(ctx context.Context, modelID string, orderBy *RlsPoliciesOrderBy) ([]*RlsPolicy, error)
+	RlsPolicies(ctx context.Context, modelID string) ([]*RlsRolePolicy, error)
 }
 
 type executableSchema struct {
@@ -2392,6 +2398,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteRlsPoliciesByModel(childComplexity, args["modelId"].(string)), true
+	case "Mutation.deleteRlsPoliciesByRole":
+		if e.complexity.Mutation.DeleteRlsPoliciesByRole == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteRlsPoliciesByRole_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteRlsPoliciesByRole(childComplexity, args["modelId"].(string), args["role"].(string)), true
 	case "Mutation.deleteRlsPolicy":
 		if e.complexity.Mutation.DeleteRlsPolicy == nil {
 			break
@@ -2639,7 +2656,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpsertRlsPolicy(childComplexity, args["modelId"].(string), args["input"].(RlsPolicyInput)), true
+		return e.complexity.Mutation.UpsertRlsPolicy(childComplexity, args["modelId"].(string), args["role"].(string), args["input"].(RlsActionPolicyInput)), true
 	case "Mutation.validateRLSExpr":
 		if e.complexity.Mutation.ValidateRLSExpr == nil {
 			break
@@ -2894,7 +2911,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.RlsPolicies(childComplexity, args["modelId"].(string), args["orderBy"].(*RlsPoliciesOrderBy)), true
+		return e.complexity.Query.RlsPolicies(childComplexity, args["modelId"].(string)), true
 
 	case "RLSExprDryRun.params":
 		if e.complexity.RLSExprDryRun.Params == nil {
@@ -3054,54 +3071,48 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ResourceNotFound.ResourceType(childComplexity), true
 
-	case "RlsPolicy.action":
-		if e.complexity.RlsPolicy.Action == nil {
+	case "RlsActionPolicy.action":
+		if e.complexity.RlsActionPolicy.Action == nil {
 			break
 		}
 
-		return e.complexity.RlsPolicy.Action(childComplexity), true
-	case "RlsPolicy.createdAt":
-		if e.complexity.RlsPolicy.CreatedAt == nil {
+		return e.complexity.RlsActionPolicy.Action(childComplexity), true
+	case "RlsActionPolicy.createdAt":
+		if e.complexity.RlsActionPolicy.CreatedAt == nil {
 			break
 		}
 
-		return e.complexity.RlsPolicy.CreatedAt(childComplexity), true
-	case "RlsPolicy.id":
-		if e.complexity.RlsPolicy.ID == nil {
+		return e.complexity.RlsActionPolicy.CreatedAt(childComplexity), true
+	case "RlsActionPolicy.id":
+		if e.complexity.RlsActionPolicy.ID == nil {
 			break
 		}
 
-		return e.complexity.RlsPolicy.ID(childComplexity), true
-	case "RlsPolicy.policyName":
-		if e.complexity.RlsPolicy.PolicyName == nil {
+		return e.complexity.RlsActionPolicy.ID(childComplexity), true
+	case "RlsActionPolicy.policyName":
+		if e.complexity.RlsActionPolicy.PolicyName == nil {
 			break
 		}
 
-		return e.complexity.RlsPolicy.PolicyName(childComplexity), true
-	case "RlsPolicy.role":
-		if e.complexity.RlsPolicy.Role == nil {
+		return e.complexity.RlsActionPolicy.PolicyName(childComplexity), true
+	case "RlsActionPolicy.updatedAt":
+		if e.complexity.RlsActionPolicy.UpdatedAt == nil {
 			break
 		}
 
-		return e.complexity.RlsPolicy.Role(childComplexity), true
-	case "RlsPolicy.updatedAt":
-		if e.complexity.RlsPolicy.UpdatedAt == nil {
+		return e.complexity.RlsActionPolicy.UpdatedAt(childComplexity), true
+	case "RlsActionPolicy.usingExpr":
+		if e.complexity.RlsActionPolicy.UsingExpr == nil {
 			break
 		}
 
-		return e.complexity.RlsPolicy.UpdatedAt(childComplexity), true
-	case "RlsPolicy.usingExpr":
-		if e.complexity.RlsPolicy.UsingExpr == nil {
+		return e.complexity.RlsActionPolicy.UsingExpr(childComplexity), true
+	case "RlsActionPolicy.withCheckExpr":
+		if e.complexity.RlsActionPolicy.WithCheckExpr == nil {
 			break
 		}
 
-		return e.complexity.RlsPolicy.UsingExpr(childComplexity), true
-	case "RlsPolicy.withCheckExpr":
-		if e.complexity.RlsPolicy.WithCheckExpr == nil {
-			break
-		}
-
-		return e.complexity.RlsPolicy.WithCheckExpr(childComplexity), true
+		return e.complexity.RlsActionPolicy.WithCheckExpr(childComplexity), true
 
 	case "RlsPolicyNotFound.message":
 		if e.complexity.RlsPolicyNotFound.Message == nil {
@@ -3109,6 +3120,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.RlsPolicyNotFound.Message(childComplexity), true
+
+	case "RlsRolePolicy.actions":
+		if e.complexity.RlsRolePolicy.Actions == nil {
+			break
+		}
+
+		return e.complexity.RlsRolePolicy.Actions(childComplexity), true
+	case "RlsRolePolicy.role":
+		if e.complexity.RlsRolePolicy.Role == nil {
+			break
+		}
+
+		return e.complexity.RlsRolePolicy.Role(childComplexity), true
 
 	case "SchemaIssue.description":
 		if e.complexity.SchemaIssue.Description == nil {
@@ -3296,18 +3320,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.UpdateModelMetaPayload.Success(childComplexity), true
 
+	case "UpsertRlsPolicyPayload.actionPolicy":
+		if e.complexity.UpsertRlsPolicyPayload.ActionPolicy == nil {
+			break
+		}
+
+		return e.complexity.UpsertRlsPolicyPayload.ActionPolicy(childComplexity), true
 	case "UpsertRlsPolicyPayload.error":
 		if e.complexity.UpsertRlsPolicyPayload.Error == nil {
 			break
 		}
 
 		return e.complexity.UpsertRlsPolicyPayload.Error(childComplexity), true
-	case "UpsertRlsPolicyPayload.policy":
-		if e.complexity.UpsertRlsPolicyPayload.Policy == nil {
-			break
-		}
-
-		return e.complexity.UpsertRlsPolicyPayload.Policy(childComplexity), true
 
 	case "ValidateRLSExprPayload.dryRun":
 		if e.complexity.ValidateRLSExprPayload.DryRun == nil {
@@ -3420,7 +3444,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputRenameGroupInput,
 		ec.unmarshalInputReorderGroupInput,
 		ec.unmarshalInputRepairModelInput,
-		ec.unmarshalInputRlsPolicyInput,
+		ec.unmarshalInputRlsActionPolicyInput,
 		ec.unmarshalInputSyncModelSchemaInput,
 		ec.unmarshalInputSyncModelsFromDBInput,
 		ec.unmarshalInputTestDatabaseConnectionInput,
@@ -4873,8 +4897,9 @@ extend type Mutation {
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/project/schema/rls_policy_v2.graphql", Input: `# ============================================
-# RLS Policy V2 — Multi-Policy CRUD
-# Each model can have multiple policies, matched by action + role
+# RLS Policy V2 — Role-Centric Policy Management
+# Policy uniqueness: (org, project, model, role, action)
+# Frontend views data grouped by role under a model.
 # ============================================
 
 # ----------------------------------------
@@ -4888,36 +4913,34 @@ enum RlsAction {
   delete
 }
 
-enum RlsPoliciesOrderBy {
-  ACTION_ASC
-  ACTION_DESC
-  ROLE_ASC
-  ROLE_DESC
-}
-
 # ----------------------------------------
 # Types
 # ----------------------------------------
 
-type RlsPolicy {
+# A single action policy within a role
+type RlsActionPolicy {
   id: ID!
-  policyName: String!
   action: RlsAction!
-  role: String!
+  policyName: String
   usingExpr: String
   withCheckExpr: String
   createdAt: String!
   updatedAt: String!
 }
 
+# Role-level policy grouping — the minimum display unit on the frontend
+type RlsRolePolicy {
+  role: String!
+  actions: [RlsActionPolicy!]!
+}
+
 # ----------------------------------------
 # Input Types
 # ----------------------------------------
 
-input RlsPolicyInput {
-  policyName: String!
+input RlsActionPolicyInput {
   action: RlsAction!
-  role: String!
+  policyName: String
   usingExpr: String
   withCheckExpr: String
 }
@@ -4938,7 +4961,7 @@ union DeleteRlsPolicyError = ResourceNotFound
 # ----------------------------------------
 
 type UpsertRlsPolicyPayload {
-  policy: RlsPolicy
+  actionPolicy: RlsActionPolicy
   error: UpsertRlsPolicyError
 }
 
@@ -4952,21 +4975,23 @@ type DeleteRlsPolicyPayload {
 # ----------------------------------------
 
 extend type Query {
-  """List all RLS policies for a model"""
-  rlsPolicies(modelId: ID!, orderBy: RlsPoliciesOrderBy): [RlsPolicy!]! @hasPermission(action: "model:read")
+  """List all RLS policies for a model, grouped by role"""
+  rlsPolicies(modelId: ID!): [RlsRolePolicy!]! @hasPermission(action: "model:read")
 }
 
 extend type Mutation {
-  """Create or update an RLS policy"""
-  upsertRlsPolicy(modelId: ID!, input: RlsPolicyInput!): UpsertRlsPolicyPayload! @hasPermission(action: "model:update")
+  """Create or update a single action policy for a role in a model"""
+  upsertRlsPolicy(modelId: ID!, role: String!, input: RlsActionPolicyInput!): UpsertRlsPolicyPayload! @hasPermission(action: "model:update")
 
-  """Delete a single RLS policy by ID"""
+  """Delete a single action policy by ID"""
   deleteRlsPolicy(id: ID!): DeleteRlsPolicyPayload! @hasPermission(action: "model:update")
 
-  """Delete all RLS policies for a model"""
+  """Delete all action policies for a role in a model"""
+  deleteRlsPoliciesByRole(modelId: ID!, role: String!): DeleteRlsPolicyPayload! @hasPermission(action: "model:update")
+
+  """Delete all policies for a model"""
   deleteRlsPoliciesByModel(modelId: ID!): DeleteRlsPolicyPayload! @hasPermission(action: "model:update")
-}
-`, BuiltIn: false},
+}`, BuiltIn: false},
 	{Name: "../../../../../api/graph/project/schema/schema.graphql", Input: `schema {
   query: Query
   mutation: Mutation
@@ -5134,6 +5159,22 @@ func (ec *executionContext) field_Mutation_deleteRlsPoliciesByModel_args(ctx con
 		return nil, err
 	}
 	args["modelId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteRlsPoliciesByRole_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "modelId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["modelId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "role", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["role"] = arg1
 	return args, nil
 }
 
@@ -5416,11 +5457,16 @@ func (ec *executionContext) field_Mutation_upsertRlsPolicy_args(ctx context.Cont
 		return nil, err
 	}
 	args["modelId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRlsPolicyInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPolicyInput)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "role", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
-	args["input"] = arg1
+	args["role"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRlsActionPolicyInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsActionPolicyInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg2
 	return args, nil
 }
 
@@ -5634,11 +5680,6 @@ func (ec *executionContext) field_Query_rlsPolicies_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["modelId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy", ec.unmarshalORlsPoliciesOrderBy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPoliciesOrderBy)
-	if err != nil {
-		return nil, err
-	}
-	args["orderBy"] = arg1
 	return args, nil
 }
 
@@ -15238,7 +15279,7 @@ func (ec *executionContext) _Mutation_upsertRlsPolicy(ctx context.Context, field
 		ec.fieldContext_Mutation_upsertRlsPolicy,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpsertRlsPolicy(ctx, fc.Args["modelId"].(string), fc.Args["input"].(RlsPolicyInput))
+			return ec.resolvers.Mutation().UpsertRlsPolicy(ctx, fc.Args["modelId"].(string), fc.Args["role"].(string), fc.Args["input"].(RlsActionPolicyInput))
 		},
 		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
 			directive0 := next
@@ -15278,8 +15319,8 @@ func (ec *executionContext) fieldContext_Mutation_upsertRlsPolicy(ctx context.Co
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "policy":
-				return ec.fieldContext_UpsertRlsPolicyPayload_policy(ctx, field)
+			case "actionPolicy":
+				return ec.fieldContext_UpsertRlsPolicyPayload_actionPolicy(ctx, field)
 			case "error":
 				return ec.fieldContext_UpsertRlsPolicyPayload_error(ctx, field)
 			}
@@ -15364,6 +15405,76 @@ func (ec *executionContext) fieldContext_Mutation_deleteRlsPolicy(ctx context.Co
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteRlsPolicy_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteRlsPoliciesByRole(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteRlsPoliciesByRole,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteRlsPoliciesByRole(ctx, fc.Args["modelId"].(string), fc.Args["role"].(string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "model:update")
+				if err != nil {
+					var zeroVal *DeleteRlsPolicyPayload
+					return zeroVal, err
+				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *DeleteRlsPolicyPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *DeleteRlsPolicyPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNDeleteRlsPolicyPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDeleteRlsPolicyPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteRlsPoliciesByRole(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_DeleteRlsPolicyPayload_success(ctx, field)
+			case "error":
+				return ec.fieldContext_DeleteRlsPolicyPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DeleteRlsPolicyPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteRlsPoliciesByRole_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -17028,7 +17139,7 @@ func (ec *executionContext) _Query_rlsPolicies(ctx context.Context, field graphq
 		ec.fieldContext_Query_rlsPolicies,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().RlsPolicies(ctx, fc.Args["modelId"].(string), fc.Args["orderBy"].(*RlsPoliciesOrderBy))
+			return ec.resolvers.Query().RlsPolicies(ctx, fc.Args["modelId"].(string))
 		},
 		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
 			directive0 := next
@@ -17036,16 +17147,16 @@ func (ec *executionContext) _Query_rlsPolicies(ctx context.Context, field graphq
 			directive1 := func(ctx context.Context) (any, error) {
 				action, err := ec.unmarshalNString2string(ctx, "model:read")
 				if err != nil {
-					var zeroVal []*RlsPolicy
+					var zeroVal []*RlsRolePolicy
 					return zeroVal, err
 				}
 				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
 				if err != nil {
-					var zeroVal []*RlsPolicy
+					var zeroVal []*RlsRolePolicy
 					return zeroVal, err
 				}
 				if ec.directives.HasPermission == nil {
-					var zeroVal []*RlsPolicy
+					var zeroVal []*RlsRolePolicy
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
 				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
@@ -17054,7 +17165,7 @@ func (ec *executionContext) _Query_rlsPolicies(ctx context.Context, field graphq
 			next = directive1
 			return next
 		},
-		ec.marshalNRlsPolicy2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPolicyᚄ,
+		ec.marshalNRlsRolePolicy2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsRolePolicyᚄ,
 		true,
 		true,
 	)
@@ -17068,24 +17179,12 @@ func (ec *executionContext) fieldContext_Query_rlsPolicies(ctx context.Context, 
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_RlsPolicy_id(ctx, field)
-			case "policyName":
-				return ec.fieldContext_RlsPolicy_policyName(ctx, field)
-			case "action":
-				return ec.fieldContext_RlsPolicy_action(ctx, field)
 			case "role":
-				return ec.fieldContext_RlsPolicy_role(ctx, field)
-			case "usingExpr":
-				return ec.fieldContext_RlsPolicy_usingExpr(ctx, field)
-			case "withCheckExpr":
-				return ec.fieldContext_RlsPolicy_withCheckExpr(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_RlsPolicy_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_RlsPolicy_updatedAt(ctx, field)
+				return ec.fieldContext_RlsRolePolicy_role(ctx, field)
+			case "actions":
+				return ec.fieldContext_RlsRolePolicy_actions(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type RlsPolicy", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type RlsRolePolicy", field.Name)
 		},
 	}
 	defer func() {
@@ -18035,12 +18134,12 @@ func (ec *executionContext) fieldContext_ResourceNotFound_resourceType(_ context
 	return fc, nil
 }
 
-func (ec *executionContext) _RlsPolicy_id(ctx context.Context, field graphql.CollectedField, obj *RlsPolicy) (ret graphql.Marshaler) {
+func (ec *executionContext) _RlsActionPolicy_id(ctx context.Context, field graphql.CollectedField, obj *RlsActionPolicy) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_RlsPolicy_id,
+		ec.fieldContext_RlsActionPolicy_id,
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
@@ -18051,9 +18150,9 @@ func (ec *executionContext) _RlsPolicy_id(ctx context.Context, field graphql.Col
 	)
 }
 
-func (ec *executionContext) fieldContext_RlsPolicy_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_RlsActionPolicy_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "RlsPolicy",
+		Object:     "RlsActionPolicy",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -18064,41 +18163,12 @@ func (ec *executionContext) fieldContext_RlsPolicy_id(_ context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _RlsPolicy_policyName(ctx context.Context, field graphql.CollectedField, obj *RlsPolicy) (ret graphql.Marshaler) {
+func (ec *executionContext) _RlsActionPolicy_action(ctx context.Context, field graphql.CollectedField, obj *RlsActionPolicy) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_RlsPolicy_policyName,
-		func(ctx context.Context) (any, error) {
-			return obj.PolicyName, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_RlsPolicy_policyName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "RlsPolicy",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _RlsPolicy_action(ctx context.Context, field graphql.CollectedField, obj *RlsPolicy) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_RlsPolicy_action,
+		ec.fieldContext_RlsActionPolicy_action,
 		func(ctx context.Context) (any, error) {
 			return obj.Action, nil
 		},
@@ -18109,9 +18179,9 @@ func (ec *executionContext) _RlsPolicy_action(ctx context.Context, field graphql
 	)
 }
 
-func (ec *executionContext) fieldContext_RlsPolicy_action(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_RlsActionPolicy_action(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "RlsPolicy",
+		Object:     "RlsActionPolicy",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -18122,25 +18192,25 @@ func (ec *executionContext) fieldContext_RlsPolicy_action(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _RlsPolicy_role(ctx context.Context, field graphql.CollectedField, obj *RlsPolicy) (ret graphql.Marshaler) {
+func (ec *executionContext) _RlsActionPolicy_policyName(ctx context.Context, field graphql.CollectedField, obj *RlsActionPolicy) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_RlsPolicy_role,
+		ec.fieldContext_RlsActionPolicy_policyName,
 		func(ctx context.Context) (any, error) {
-			return obj.Role, nil
+			return obj.PolicyName, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		ec.marshalOString2ᚖstring,
 		true,
-		true,
+		false,
 	)
 }
 
-func (ec *executionContext) fieldContext_RlsPolicy_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_RlsActionPolicy_policyName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "RlsPolicy",
+		Object:     "RlsActionPolicy",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -18151,12 +18221,12 @@ func (ec *executionContext) fieldContext_RlsPolicy_role(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _RlsPolicy_usingExpr(ctx context.Context, field graphql.CollectedField, obj *RlsPolicy) (ret graphql.Marshaler) {
+func (ec *executionContext) _RlsActionPolicy_usingExpr(ctx context.Context, field graphql.CollectedField, obj *RlsActionPolicy) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_RlsPolicy_usingExpr,
+		ec.fieldContext_RlsActionPolicy_usingExpr,
 		func(ctx context.Context) (any, error) {
 			return obj.UsingExpr, nil
 		},
@@ -18167,9 +18237,9 @@ func (ec *executionContext) _RlsPolicy_usingExpr(ctx context.Context, field grap
 	)
 }
 
-func (ec *executionContext) fieldContext_RlsPolicy_usingExpr(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_RlsActionPolicy_usingExpr(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "RlsPolicy",
+		Object:     "RlsActionPolicy",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -18180,12 +18250,12 @@ func (ec *executionContext) fieldContext_RlsPolicy_usingExpr(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _RlsPolicy_withCheckExpr(ctx context.Context, field graphql.CollectedField, obj *RlsPolicy) (ret graphql.Marshaler) {
+func (ec *executionContext) _RlsActionPolicy_withCheckExpr(ctx context.Context, field graphql.CollectedField, obj *RlsActionPolicy) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_RlsPolicy_withCheckExpr,
+		ec.fieldContext_RlsActionPolicy_withCheckExpr,
 		func(ctx context.Context) (any, error) {
 			return obj.WithCheckExpr, nil
 		},
@@ -18196,9 +18266,9 @@ func (ec *executionContext) _RlsPolicy_withCheckExpr(ctx context.Context, field 
 	)
 }
 
-func (ec *executionContext) fieldContext_RlsPolicy_withCheckExpr(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_RlsActionPolicy_withCheckExpr(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "RlsPolicy",
+		Object:     "RlsActionPolicy",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -18209,12 +18279,12 @@ func (ec *executionContext) fieldContext_RlsPolicy_withCheckExpr(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _RlsPolicy_createdAt(ctx context.Context, field graphql.CollectedField, obj *RlsPolicy) (ret graphql.Marshaler) {
+func (ec *executionContext) _RlsActionPolicy_createdAt(ctx context.Context, field graphql.CollectedField, obj *RlsActionPolicy) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_RlsPolicy_createdAt,
+		ec.fieldContext_RlsActionPolicy_createdAt,
 		func(ctx context.Context) (any, error) {
 			return obj.CreatedAt, nil
 		},
@@ -18225,9 +18295,9 @@ func (ec *executionContext) _RlsPolicy_createdAt(ctx context.Context, field grap
 	)
 }
 
-func (ec *executionContext) fieldContext_RlsPolicy_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_RlsActionPolicy_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "RlsPolicy",
+		Object:     "RlsActionPolicy",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -18238,12 +18308,12 @@ func (ec *executionContext) fieldContext_RlsPolicy_createdAt(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _RlsPolicy_updatedAt(ctx context.Context, field graphql.CollectedField, obj *RlsPolicy) (ret graphql.Marshaler) {
+func (ec *executionContext) _RlsActionPolicy_updatedAt(ctx context.Context, field graphql.CollectedField, obj *RlsActionPolicy) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_RlsPolicy_updatedAt,
+		ec.fieldContext_RlsActionPolicy_updatedAt,
 		func(ctx context.Context) (any, error) {
 			return obj.UpdatedAt, nil
 		},
@@ -18254,9 +18324,9 @@ func (ec *executionContext) _RlsPolicy_updatedAt(ctx context.Context, field grap
 	)
 }
 
-func (ec *executionContext) fieldContext_RlsPolicy_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_RlsActionPolicy_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "RlsPolicy",
+		Object:     "RlsActionPolicy",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -18291,6 +18361,80 @@ func (ec *executionContext) fieldContext_RlsPolicyNotFound_message(_ context.Con
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RlsRolePolicy_role(ctx context.Context, field graphql.CollectedField, obj *RlsRolePolicy) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RlsRolePolicy_role,
+		func(ctx context.Context) (any, error) {
+			return obj.Role, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RlsRolePolicy_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RlsRolePolicy",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RlsRolePolicy_actions(ctx context.Context, field graphql.CollectedField, obj *RlsRolePolicy) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RlsRolePolicy_actions,
+		func(ctx context.Context) (any, error) {
+			return obj.Actions, nil
+		},
+		nil,
+		ec.marshalNRlsActionPolicy2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsActionPolicyᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RlsRolePolicy_actions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RlsRolePolicy",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_RlsActionPolicy_id(ctx, field)
+			case "action":
+				return ec.fieldContext_RlsActionPolicy_action(ctx, field)
+			case "policyName":
+				return ec.fieldContext_RlsActionPolicy_policyName(ctx, field)
+			case "usingExpr":
+				return ec.fieldContext_RlsActionPolicy_usingExpr(ctx, field)
+			case "withCheckExpr":
+				return ec.fieldContext_RlsActionPolicy_withCheckExpr(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_RlsActionPolicy_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_RlsActionPolicy_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RlsActionPolicy", field.Name)
 		},
 	}
 	return fc, nil
@@ -19329,23 +19473,23 @@ func (ec *executionContext) fieldContext_UpdateModelMetaPayload_error(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _UpsertRlsPolicyPayload_policy(ctx context.Context, field graphql.CollectedField, obj *UpsertRlsPolicyPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _UpsertRlsPolicyPayload_actionPolicy(ctx context.Context, field graphql.CollectedField, obj *UpsertRlsPolicyPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_UpsertRlsPolicyPayload_policy,
+		ec.fieldContext_UpsertRlsPolicyPayload_actionPolicy,
 		func(ctx context.Context) (any, error) {
-			return obj.Policy, nil
+			return obj.ActionPolicy, nil
 		},
 		nil,
-		ec.marshalORlsPolicy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPolicy,
+		ec.marshalORlsActionPolicy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsActionPolicy,
 		true,
 		false,
 	)
 }
 
-func (ec *executionContext) fieldContext_UpsertRlsPolicyPayload_policy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_UpsertRlsPolicyPayload_actionPolicy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "UpsertRlsPolicyPayload",
 		Field:      field,
@@ -19354,23 +19498,21 @@ func (ec *executionContext) fieldContext_UpsertRlsPolicyPayload_policy(_ context
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_RlsPolicy_id(ctx, field)
-			case "policyName":
-				return ec.fieldContext_RlsPolicy_policyName(ctx, field)
+				return ec.fieldContext_RlsActionPolicy_id(ctx, field)
 			case "action":
-				return ec.fieldContext_RlsPolicy_action(ctx, field)
-			case "role":
-				return ec.fieldContext_RlsPolicy_role(ctx, field)
+				return ec.fieldContext_RlsActionPolicy_action(ctx, field)
+			case "policyName":
+				return ec.fieldContext_RlsActionPolicy_policyName(ctx, field)
 			case "usingExpr":
-				return ec.fieldContext_RlsPolicy_usingExpr(ctx, field)
+				return ec.fieldContext_RlsActionPolicy_usingExpr(ctx, field)
 			case "withCheckExpr":
-				return ec.fieldContext_RlsPolicy_withCheckExpr(ctx, field)
+				return ec.fieldContext_RlsActionPolicy_withCheckExpr(ctx, field)
 			case "createdAt":
-				return ec.fieldContext_RlsPolicy_createdAt(ctx, field)
+				return ec.fieldContext_RlsActionPolicy_createdAt(ctx, field)
 			case "updatedAt":
-				return ec.fieldContext_RlsPolicy_updatedAt(ctx, field)
+				return ec.fieldContext_RlsActionPolicy_updatedAt(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type RlsPolicy", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type RlsActionPolicy", field.Name)
 		},
 	}
 	return fc, nil
@@ -22216,27 +22358,20 @@ func (ec *executionContext) unmarshalInputRepairModelInput(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputRlsPolicyInput(ctx context.Context, obj any) (RlsPolicyInput, error) {
-	var it RlsPolicyInput
+func (ec *executionContext) unmarshalInputRlsActionPolicyInput(ctx context.Context, obj any) (RlsActionPolicyInput, error) {
+	var it RlsActionPolicyInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"policyName", "action", "role", "usingExpr", "withCheckExpr"}
+	fieldsInOrder := [...]string{"action", "policyName", "usingExpr", "withCheckExpr"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "policyName":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("policyName"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.PolicyName = data
 		case "action":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("action"))
 			data, err := ec.unmarshalNRlsAction2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsAction(ctx, v)
@@ -22244,13 +22379,13 @@ func (ec *executionContext) unmarshalInputRlsPolicyInput(ctx context.Context, ob
 				return it, err
 			}
 			it.Action = data
-		case "role":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+		case "policyName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("policyName"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Role = data
+			it.PolicyName = data
 		case "usingExpr":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("usingExpr"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -26945,6 +27080,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "deleteRlsPoliciesByRole":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteRlsPoliciesByRole(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "deleteRlsPoliciesByModel":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteRlsPoliciesByModel(ctx, field)
@@ -27937,48 +28079,40 @@ func (ec *executionContext) _ResourceNotFound(ctx context.Context, sel ast.Selec
 	return out
 }
 
-var rlsPolicyImplementors = []string{"RlsPolicy"}
+var rlsActionPolicyImplementors = []string{"RlsActionPolicy"}
 
-func (ec *executionContext) _RlsPolicy(ctx context.Context, sel ast.SelectionSet, obj *RlsPolicy) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, rlsPolicyImplementors)
+func (ec *executionContext) _RlsActionPolicy(ctx context.Context, sel ast.SelectionSet, obj *RlsActionPolicy) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, rlsActionPolicyImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	deferred := make(map[string]*graphql.FieldSet)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("RlsPolicy")
+			out.Values[i] = graphql.MarshalString("RlsActionPolicy")
 		case "id":
-			out.Values[i] = ec._RlsPolicy_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "policyName":
-			out.Values[i] = ec._RlsPolicy_policyName(ctx, field, obj)
+			out.Values[i] = ec._RlsActionPolicy_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "action":
-			out.Values[i] = ec._RlsPolicy_action(ctx, field, obj)
+			out.Values[i] = ec._RlsActionPolicy_action(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "role":
-			out.Values[i] = ec._RlsPolicy_role(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
+		case "policyName":
+			out.Values[i] = ec._RlsActionPolicy_policyName(ctx, field, obj)
 		case "usingExpr":
-			out.Values[i] = ec._RlsPolicy_usingExpr(ctx, field, obj)
+			out.Values[i] = ec._RlsActionPolicy_usingExpr(ctx, field, obj)
 		case "withCheckExpr":
-			out.Values[i] = ec._RlsPolicy_withCheckExpr(ctx, field, obj)
+			out.Values[i] = ec._RlsActionPolicy_withCheckExpr(ctx, field, obj)
 		case "createdAt":
-			out.Values[i] = ec._RlsPolicy_createdAt(ctx, field, obj)
+			out.Values[i] = ec._RlsActionPolicy_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "updatedAt":
-			out.Values[i] = ec._RlsPolicy_updatedAt(ctx, field, obj)
+			out.Values[i] = ec._RlsActionPolicy_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -28018,6 +28152,50 @@ func (ec *executionContext) _RlsPolicyNotFound(ctx context.Context, sel ast.Sele
 			out.Values[i] = graphql.MarshalString("RlsPolicyNotFound")
 		case "message":
 			out.Values[i] = ec._RlsPolicyNotFound_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var rlsRolePolicyImplementors = []string{"RlsRolePolicy"}
+
+func (ec *executionContext) _RlsRolePolicy(ctx context.Context, sel ast.SelectionSet, obj *RlsRolePolicy) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, rlsRolePolicyImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RlsRolePolicy")
+		case "role":
+			out.Values[i] = ec._RlsRolePolicy_role(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "actions":
+			out.Values[i] = ec._RlsRolePolicy_actions(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -28569,8 +28747,8 @@ func (ec *executionContext) _UpsertRlsPolicyPayload(ctx context.Context, sel ast
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("UpsertRlsPolicyPayload")
-		case "policy":
-			out.Values[i] = ec._UpsertRlsPolicyPayload_policy(ctx, field, obj)
+		case "actionPolicy":
+			out.Values[i] = ec._UpsertRlsPolicyPayload_actionPolicy(ctx, field, obj)
 		case "error":
 			out.Values[i] = ec._UpsertRlsPolicyPayload_error(ctx, field, obj)
 		default:
@@ -30844,7 +31022,7 @@ func (ec *executionContext) marshalNRlsAction2modelcraftᚋinternalᚋinterfaces
 	return v
 }
 
-func (ec *executionContext) marshalNRlsPolicy2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPolicyᚄ(ctx context.Context, sel ast.SelectionSet, v []*RlsPolicy) graphql.Marshaler {
+func (ec *executionContext) marshalNRlsActionPolicy2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsActionPolicyᚄ(ctx context.Context, sel ast.SelectionSet, v []*RlsActionPolicy) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -30868,7 +31046,7 @@ func (ec *executionContext) marshalNRlsPolicy2ᚕᚖmodelcraftᚋinternalᚋinte
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNRlsPolicy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPolicy(ctx, sel, v[i])
+			ret[i] = ec.marshalNRlsActionPolicy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsActionPolicy(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -30888,19 +31066,73 @@ func (ec *executionContext) marshalNRlsPolicy2ᚕᚖmodelcraftᚋinternalᚋinte
 	return ret
 }
 
-func (ec *executionContext) marshalNRlsPolicy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPolicy(ctx context.Context, sel ast.SelectionSet, v *RlsPolicy) graphql.Marshaler {
+func (ec *executionContext) marshalNRlsActionPolicy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsActionPolicy(ctx context.Context, sel ast.SelectionSet, v *RlsActionPolicy) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
-	return ec._RlsPolicy(ctx, sel, v)
+	return ec._RlsActionPolicy(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNRlsPolicyInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPolicyInput(ctx context.Context, v any) (RlsPolicyInput, error) {
-	res, err := ec.unmarshalInputRlsPolicyInput(ctx, v)
+func (ec *executionContext) unmarshalNRlsActionPolicyInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsActionPolicyInput(ctx context.Context, v any) (RlsActionPolicyInput, error) {
+	res, err := ec.unmarshalInputRlsActionPolicyInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRlsRolePolicy2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsRolePolicyᚄ(ctx context.Context, sel ast.SelectionSet, v []*RlsRolePolicy) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNRlsRolePolicy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsRolePolicy(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNRlsRolePolicy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsRolePolicy(ctx context.Context, sel ast.SelectionSet, v *RlsRolePolicy) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RlsRolePolicy(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNSchemaIssue2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐSchemaIssueᚄ(ctx context.Context, sel ast.SelectionSet, v []*SchemaIssue) graphql.Marshaler {
@@ -32009,27 +32241,11 @@ func (ec *executionContext) marshalOReorderGroupError2modelcraftᚋinternalᚋin
 	return ec._ReorderGroupError(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalORlsPoliciesOrderBy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPoliciesOrderBy(ctx context.Context, v any) (*RlsPoliciesOrderBy, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var res = new(RlsPoliciesOrderBy)
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalORlsPoliciesOrderBy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPoliciesOrderBy(ctx context.Context, sel ast.SelectionSet, v *RlsPoliciesOrderBy) graphql.Marshaler {
+func (ec *executionContext) marshalORlsActionPolicy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsActionPolicy(ctx context.Context, sel ast.SelectionSet, v *RlsActionPolicy) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return v
-}
-
-func (ec *executionContext) marshalORlsPolicy2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRlsPolicy(ctx context.Context, sel ast.SelectionSet, v *RlsPolicy) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._RlsPolicy(ctx, sel, v)
+	return ec._RlsActionPolicy(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {

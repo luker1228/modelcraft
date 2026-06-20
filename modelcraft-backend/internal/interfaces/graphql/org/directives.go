@@ -75,11 +75,13 @@ func (d *HasPermissionDirective) HasPermission(
 	// the internal link handler has enforceEndUserGate=false and skips this check.
 	if d.enforceEndUserGate {
 		if !allowEndUser {
-			logger.Infof(ctx, "@hasPermission directive: end-user link access denied (allowEndUser=false) user=%s action=%s",
+			logger.Infof(ctx,
+				"@hasPermission directive: end-user link access denied (allowEndUser=false) user=%s action=%s",
 				userID, action)
 			return nil, newPermissionDeniedError(action, userID, orgName, "end-user-link-default-deny")
 		}
-		logger.Infof(ctx, "@hasPermission directive: end-user link access granted (allowEndUser=true) user=%s action=%s",
+		logger.Infof(ctx,
+			"@hasPermission directive: end-user link access granted (allowEndUser=true) user=%s action=%s",
 			userID, action)
 		return next(ctx)
 	}

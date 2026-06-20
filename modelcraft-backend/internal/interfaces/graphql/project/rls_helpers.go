@@ -3,8 +3,10 @@ package projectgraphql
 import (
 	"context"
 	"fmt"
+	"modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/ctxutils"
+	"time"
 )
 
 // stringPtr returns nil for empty string, otherwise a pointer to s.
@@ -51,5 +53,18 @@ func convertGraphQLExprTypeToDomain(exprType generated.RLSExprType) string {
 		return "DELETE_PREDICATE"
 	default:
 		return "SELECT_PREDICATE"
+	}
+}
+
+func toActionPolicy(p *rls.Policy) *generated.RlsActionPolicy {
+	policyName := p.PolicyName
+	return &generated.RlsActionPolicy{
+		ID:            fmt.Sprintf("%d", p.ID),
+		Action:        generated.RlsAction(p.Action),
+		PolicyName:    &policyName,
+		UsingExpr:     stringPtr(string(p.UsingExpr)),
+		WithCheckExpr: stringPtr(string(p.WithCheckExpr)),
+		CreatedAt:     p.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:     p.UpdatedAt.Format(time.RFC3339),
 	}
 }

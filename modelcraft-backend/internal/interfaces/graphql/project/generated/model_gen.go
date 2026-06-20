@@ -922,21 +922,19 @@ func (ResourceNotFound) IsUpsertRlsPolicyError() {}
 
 func (ResourceNotFound) IsDeleteRlsPolicyError() {}
 
-type RlsPolicy struct {
+type RlsActionPolicy struct {
 	ID            string    `json:"id"`
-	PolicyName    string    `json:"policyName"`
 	Action        RlsAction `json:"action"`
-	Role          string    `json:"role"`
+	PolicyName    *string   `json:"policyName,omitempty"`
 	UsingExpr     *string   `json:"usingExpr,omitempty"`
 	WithCheckExpr *string   `json:"withCheckExpr,omitempty"`
 	CreatedAt     string    `json:"createdAt"`
 	UpdatedAt     string    `json:"updatedAt"`
 }
 
-type RlsPolicyInput struct {
-	PolicyName    string    `json:"policyName"`
+type RlsActionPolicyInput struct {
 	Action        RlsAction `json:"action"`
-	Role          string    `json:"role"`
+	PolicyName    *string   `json:"policyName,omitempty"`
 	UsingExpr     *string   `json:"usingExpr,omitempty"`
 	WithCheckExpr *string   `json:"withCheckExpr,omitempty"`
 }
@@ -947,6 +945,11 @@ type RlsPolicyNotFound struct {
 
 func (RlsPolicyNotFound) IsError()                {}
 func (this RlsPolicyNotFound) GetMessage() string { return this.Message }
+
+type RlsRolePolicy struct {
+	Role    string             `json:"role"`
+	Actions []*RlsActionPolicy `json:"actions"`
+}
 
 type SchemaIssue struct {
 	Type        SchemaIssueType `json:"type"`
@@ -1062,8 +1065,8 @@ type UpdateModelMetaPayload struct {
 }
 
 type UpsertRlsPolicyPayload struct {
-	Policy *RlsPolicy           `json:"policy,omitempty"`
-	Error  UpsertRlsPolicyError `json:"error,omitempty"`
+	ActionPolicy *RlsActionPolicy     `json:"actionPolicy,omitempty"`
+	Error        UpsertRlsPolicyError `json:"error,omitempty"`
 }
 
 type ValidateRLSExprInput struct {
@@ -2070,65 +2073,6 @@ func (e *RlsAction) UnmarshalJSON(b []byte) error {
 }
 
 func (e RlsAction) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	e.MarshalGQL(&buf)
-	return buf.Bytes(), nil
-}
-
-type RlsPoliciesOrderBy string
-
-const (
-	RlsPoliciesOrderByActionAsc  RlsPoliciesOrderBy = "ACTION_ASC"
-	RlsPoliciesOrderByActionDesc RlsPoliciesOrderBy = "ACTION_DESC"
-	RlsPoliciesOrderByRoleAsc    RlsPoliciesOrderBy = "ROLE_ASC"
-	RlsPoliciesOrderByRoleDesc   RlsPoliciesOrderBy = "ROLE_DESC"
-)
-
-var AllRlsPoliciesOrderBy = []RlsPoliciesOrderBy{
-	RlsPoliciesOrderByActionAsc,
-	RlsPoliciesOrderByActionDesc,
-	RlsPoliciesOrderByRoleAsc,
-	RlsPoliciesOrderByRoleDesc,
-}
-
-func (e RlsPoliciesOrderBy) IsValid() bool {
-	switch e {
-	case RlsPoliciesOrderByActionAsc, RlsPoliciesOrderByActionDesc, RlsPoliciesOrderByRoleAsc, RlsPoliciesOrderByRoleDesc:
-		return true
-	}
-	return false
-}
-
-func (e RlsPoliciesOrderBy) String() string {
-	return string(e)
-}
-
-func (e *RlsPoliciesOrderBy) UnmarshalGQL(v any) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = RlsPoliciesOrderBy(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid RlsPoliciesOrderBy", str)
-	}
-	return nil
-}
-
-func (e RlsPoliciesOrderBy) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-func (e *RlsPoliciesOrderBy) UnmarshalJSON(b []byte) error {
-	s, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	return e.UnmarshalGQL(s)
-}
-
-func (e RlsPoliciesOrderBy) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil
