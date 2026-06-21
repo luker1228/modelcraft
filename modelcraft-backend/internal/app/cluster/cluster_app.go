@@ -124,7 +124,7 @@ func (s *DatabaseClusterAppService) UpdateProjectCluster(
 	// Get existing cluster by project key (one-to-one relationship)
 	entity, err := s.clusterRepo.GetByProjectKey(ctx, cmd.OrgName, cmd.ProjectSlug)
 	if err != nil {
-		logger.Error(ctx, "Failed to get cluster by project key", logfacade.Err(err))
+		logger.Errorf(ctx, "Failed to get cluster by project key, err=%v", err)
 		return nil, bizerrors.Wrapf(err, "failed to get cluster for project")
 	}
 	if entity == nil {
@@ -180,7 +180,7 @@ func (s *DatabaseClusterAppService) UpdateProjectCluster(
 
 	// Persist
 	if err := s.clusterRepo.Update(ctx, cmd.OrgName, cmd.ProjectSlug, entity); err != nil {
-		logger.Error(ctx, "Failed to update database cluster", logfacade.Err(err))
+		logger.Errorf(ctx, "Failed to update database cluster, err=%v", err)
 		return nil, bizerrors.Wrapf(err, "failed to update cluster")
 	}
 

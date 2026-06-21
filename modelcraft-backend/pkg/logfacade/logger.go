@@ -21,7 +21,7 @@ package logfacade
 //	    log.Fatal(err)
 //	}
 //	defer logger.Sync()
-//	logger.Info("应用启动", String("version", "1.0.0"))
+//	logger.With(String("version", "1.0.0")).Infof(ctx, "应用启动")
 //
 // 注意：
 //   - 每个服务或组件通常应该创建自己的 Logger 实例

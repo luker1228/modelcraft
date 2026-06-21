@@ -150,7 +150,7 @@ func (c *ClientDBRepoImpl) FindManyIn(
 
 			rows, err := c.stdDB.Queryx(sql, args...)
 			if err != nil {
-				logger.Error(ctx, "FindManyIn query fail", logfacade.Err(err))
+				logger.Errorf(ctx, "FindManyIn query fail, err=%v", err)
 				return nil, err
 			}
 			defer rows.Close()
@@ -159,13 +159,13 @@ func (c *ClientDBRepoImpl) FindManyIn(
 			for rows.Next() {
 				record := make(map[string]any)
 				if err := rows.MapScan(record); err != nil {
-					logger.Error(ctx, "FindManyIn map scan fail", logfacade.Err(err))
+					logger.Errorf(ctx, "FindManyIn map scan fail, err=%v", err)
 					return nil, err
 				}
 				results = append(results, convertBytesToString(record))
 			}
 			if err := rows.Err(); err != nil {
-				logger.Error(ctx, "FindManyIn rows iteration fail", logfacade.Err(err))
+				logger.Errorf(ctx, "FindManyIn rows iteration fail, err=%v", err)
 				return nil, err
 			}
 
@@ -200,7 +200,7 @@ func (c *ClientDBRepoImpl) FindMany(ctx context.Context, input *modelruntime.Fin
 			// 使用 Queryx 和 MapScan 来处理动态结果
 			rows, err := c.stdDB.Queryx(sql, args...)
 			if err != nil {
-				logger.Error(ctx, "query fail", logfacade.Err(err))
+				logger.Errorf(ctx, "query fail, err=%v", err)
 				return nil, err
 			}
 			defer rows.Close()
@@ -215,14 +215,14 @@ func (c *ClientDBRepoImpl) FindMany(ctx context.Context, input *modelruntime.Fin
 				record := make(map[string]any)
 				err := rows.MapScan(record)
 				if err != nil {
-					logger.Error(ctx, "map scan fail", logfacade.Err(err))
+					logger.Errorf(ctx, "map scan fail, err=%v", err)
 					return nil, err
 				}
 				results = append(results, convertBytesToString(record))
 			}
 
 			if err := rows.Err(); err != nil {
-				logger.Error(ctx, "rows iteration fail", logfacade.Err(err))
+				logger.Errorf(ctx, "rows iteration fail, err=%v", err)
 				return nil, err
 			}
 
@@ -249,7 +249,7 @@ func (c *ClientDBRepoImpl) ListByCursor(
 
 		rows, err := c.stdDB.Queryx(sql, args...)
 		if err != nil {
-			logger.Error(ctx, "listByCursor query fail", logfacade.Err(err))
+			logger.Errorf(ctx, "listByCursor query fail, err=%v", err)
 			return nil, err
 		}
 		defer rows.Close()
@@ -258,13 +258,13 @@ func (c *ClientDBRepoImpl) ListByCursor(
 		for rows.Next() {
 			record := make(map[string]any)
 			if err := rows.MapScan(record); err != nil {
-				logger.Error(ctx, "listByCursor map scan fail", logfacade.Err(err))
+				logger.Errorf(ctx, "listByCursor map scan fail, err=%v", err)
 				return nil, err
 			}
 			results = append(results, convertBytesToString(record))
 		}
 		if err := rows.Err(); err != nil {
-			logger.Error(ctx, "listByCursor rows iteration fail", logfacade.Err(err))
+			logger.Errorf(ctx, "listByCursor rows iteration fail, err=%v", err)
 			return nil, err
 		}
 		return results, nil
@@ -524,7 +524,7 @@ func (c *ClientDBRepoImpl) CreateOne(ctx context.Context, input *modelruntime.Cr
 			// 执行插入操作
 			_, err = c.stdDB.Exec(sql, args...)
 			if err != nil {
-				logger.Error(ctx, "createOne fail", logfacade.Err(err))
+				logger.Errorf(ctx, "createOne fail, err=%v", err)
 				return "", err
 			}
 			return input.Id, nil
@@ -553,13 +553,13 @@ func (c *ClientDBRepoImpl) UpdateOne(ctx context.Context, input *modelruntime.Up
 
 			result, err := c.stdDB.Exec(sql, args...)
 			if err != nil {
-				logger.Error(ctx, "updateOne fail", logfacade.Err(err))
+				logger.Errorf(ctx, "updateOne fail, err=%v", err)
 				return nil, err
 			}
 
 			rowsAffected, err := result.RowsAffected()
 			if err != nil {
-				logger.Error(ctx, "get rows affected fail", logfacade.Err(err))
+				logger.Errorf(ctx, "get rows affected fail, err=%v", err)
 				return nil, err
 			}
 
@@ -616,13 +616,13 @@ func (c *ClientDBRepoImpl) DeleteOne(ctx context.Context, input *modelruntime.De
 
 			result, err := c.stdDB.Exec(sql, args...)
 			if err != nil {
-				logger.Error(ctx, "deleteOne fail", logfacade.Err(err))
+				logger.Errorf(ctx, "deleteOne fail, err=%v", err)
 				return nil, err
 			}
 
 			rowsAffected, err := result.RowsAffected()
 			if err != nil {
-				logger.Error(ctx, "get rows affected fail", logfacade.Err(err))
+				logger.Errorf(ctx, "get rows affected fail, err=%v", err)
 				return nil, err
 			}
 			_ = rowsAffected
@@ -694,7 +694,7 @@ func (c *ClientDBRepoImpl) createManyBatch(
 	// 获取受影响的行数
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		logger.Error(ctx, "get rows affected fail", logfacade.Err(err))
+		logger.Errorf(ctx, "get rows affected fail, err=%v", err)
 		return nil, common.WrapDatabaseError(err)
 	}
 
@@ -812,7 +812,7 @@ func (c *ClientDBRepoImpl) UpdateMany(ctx context.Context, input *modelruntime.U
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		logger.Error(ctx, "get rows affected fail", logfacade.Err(err))
+		logger.Errorf(ctx, "get rows affected fail, err=%v", err)
 		return nil, common.WrapDatabaseError(err)
 	}
 
@@ -856,7 +856,7 @@ func (c *ClientDBRepoImpl) DeleteMany(ctx context.Context, input *modelruntime.D
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		logger.Error(ctx, "get rows affected fail", logfacade.Err(err))
+		logger.Errorf(ctx, "get rows affected fail, err=%v", err)
 		return nil, common.WrapDatabaseError(err)
 	}
 

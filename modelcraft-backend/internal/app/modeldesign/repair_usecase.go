@@ -82,7 +82,7 @@ func (s *RepairModelUseCase) RepairModel(
 
 	// In dry run mode, return without making changes
 	if mode == entity.DryRun {
-		logger.Info(ctx, "Dry run mode: returning without making changes")
+		logger.Infof(ctx, "Dry run mode: returning without making changes")
 		return result, nil
 	}
 

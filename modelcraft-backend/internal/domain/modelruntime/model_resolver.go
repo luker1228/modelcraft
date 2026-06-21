@@ -192,23 +192,23 @@ func (m *graphqlModelResolver) newGraphqlSchema(ctx context.Context) (*graphql.S
 
 	modelType, err := m.createModelType(ctx)
 	if err != nil {
-		logger.Error(ctx, "createModelType_fail", logfacade.Err(err))
+		logger.Errorf(ctx, "createModelType_fail, err=%v", err)
 		return nil, bizerrors.New("createModelType_fail")
 	}
 	rootQuery, err := m.createRootQuery(ctx, modelType)
 	if err != nil {
-		logger.Error(ctx, "createRootQuery_fail", logfacade.Err(err))
+		logger.Errorf(ctx, "createRootQuery_fail, err=%v", err)
 		return nil, bizerrors.New("createRootQuery_fail")
 	}
 
 	baseModelType, err := m.generateModelTypeSkipRelation(ctx, m.model)
 	if err != nil {
-		logger.Error(ctx, "generateModelTypeSkipRelation_fail", logfacade.Err(err))
+		logger.Errorf(ctx, "generateModelTypeSkipRelation_fail, err=%v", err)
 		return nil, bizerrors.New("generateModelTypeSkipRelation_fail")
 	}
 	rootMutation, err := m.createRootMutation(baseModelType)
 	if err != nil {
-		logger.Error(ctx, "createRootMutation_fail", logfacade.Err(err))
+		logger.Errorf(ctx, "createRootMutation_fail, err=%v", err)
 		return nil, bizerrors.New("createRootMutation_fail")
 	}
 	schema, err := graphql.NewSchema(graphql.SchemaConfig{
@@ -493,7 +493,7 @@ func (m *graphqlModelResolver) createAggregateResultType(ctx context.Context) *g
 
 	// 验证模型名称不为空
 	if m.model == nil || m.model.Name == "" {
-		logger.Error(ctx, "model name is empty when creating aggregate result type")
+		logger.Errorf(ctx, "model name is empty when creating aggregate result type")
 		// 返回一个空的聚合结果类型
 		return graphql.NewObject(graphql.ObjectConfig{
 			Name:        "EmptyAggregateResult",
@@ -659,7 +659,7 @@ func (m *graphqlModelResolver) createCountResultType(ctx context.Context) *graph
 
 	// 验证模型名称不为空
 	if m.model == nil || m.model.Name == "" {
-		logger.Error(ctx, "model name is empty when creating count result type")
+		logger.Errorf(ctx, "model name is empty when creating count result type")
 		// 返回一个空的计数结果类型
 		return graphql.NewObject(graphql.ObjectConfig{
 			Name:        "EmptyCountResult",
@@ -2180,7 +2180,7 @@ func (m *graphqlModelResolver) createDeleteManyField(modelType graphql.Type) (*g
 
 func handleErr(ctx context.Context, err error) error {
 	logger := logfacade.GetLogger(ctx)
-	logger.Error(ctx, "before_process_graphql_err", logfacade.Err(err))
+	logger.Errorf(ctx, "before_process_graphql_err, err=%v", err)
 	err = handleRepoErr(ctx, err)
 	return gqlerrors.FormatError(err)
 }

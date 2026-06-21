@@ -92,7 +92,7 @@ func TestStackWithLogger(t *testing.T) {
 	wrappedErr := pkgerrors.Wrap(originalErr, "failed to initialize database")
 
 	// Log with Stack field
-	logger.Error(context.Background(), "Operation failed", Stack(wrappedErr))
+	logger.With(Stack(wrappedErr)).Errorf(context.Background(), nil, "Operation failed")
 
 	// This test mainly verifies that the logger can handle Stack field without panic
 	// Visual inspection of output is needed to verify the stack trace is printed

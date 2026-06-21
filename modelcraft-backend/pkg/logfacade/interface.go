@@ -9,37 +9,19 @@ import (
 )
 
 // Logger 定义了日志记录接口，隐藏底层实现细节，支持多种日志库的无缝切换。
-// 该接口提供了结构化日志记录的完整功能，包括基础日志方法、链式调用。
-// 上下文通过每个方法的第一个参数传入，自动提取 request_id 等字段。
+// 该接口统一采用 printf 风格的日志记录方法，上下文通过第一个参数传入，
+// 自动提取 request_id 等字段。
 //
 // 使用方式：
 //
-//	// 结构化日志
-//	logger.Info(ctx, "请求开始处理")
-//	logger.Error(ctx, "处理失败", logfacade.Err(err), logfacade.Stack(err))
-//
 //	// 格式化日志
 //	logger.Infof(ctx, "created project: slug=%s", slug)
+//	logger.Errorf(ctx, "处理失败: %v", err)
 //
-//	// 附加固定字段
+//	// 附加固定字段（结构化字段通过 With 预附加）
 //	repoLogger := logger.With(logfacade.String("component", "model-repo"))
-//	repoLogger.Info(ctx, "fetching model", logfacade.String("id", id))
+//	repoLogger.Infof(ctx, "fetching model: id=%s", id)
 type Logger interface {
-	// Debug records a debug-level log message with context.
-	Debug(ctx context.Context, msg string, fields ...Field)
-
-	// Info records an info-level log message with context.
-	Info(ctx context.Context, msg string, fields ...Field)
-
-	// Warn records a warn-level log message with context.
-	Warn(ctx context.Context, msg string, fields ...Field)
-
-	// Error records an error-level log message with context.
-	Error(ctx context.Context, msg string, fields ...Field)
-
-	// Fatal records a fatal-level log message with context and exits.
-	Fatal(ctx context.Context, msg string, fields ...Field)
-
 	// Debugf records a debug-level log message using printf-style formatting.
 	Debugf(ctx context.Context, format string, args ...any)
 
@@ -49,11 +31,16 @@ type Logger interface {
 	// Warnf records a warn-level log message using printf-style formatting.
 	Warnf(ctx context.Context, format string, args ...any)
 
-	// Errorf records an error-level log message using printf-style formatting.
-	Errorf(ctx context.Context, format string, args ...any)
+	// Errorf records an error-level log message with printf-style formatting and
+	// automatic stack trace extraction from the provided error.
+	// The error is recorded as a structured "error" field; if the error carries
+	// a stack trace (e.g. pkg/errors), it is also recorded in a structured "stack" field.
+	// Pass nil when there is no associated error.
+	Errorf(ctx context.Context, err error, format string, args ...any)
 
-	// Fatalf records a fatal-level log message using printf-style formatting and exits.
-	Fatalf(ctx context.Context, format string, args ...any)
+	// Fatalf records a fatal-level log message with printf-style formatting and exits.
+	// Stack trace extraction behaves the same as Errorf.
+	Fatalf(ctx context.Context, err error, format string, args ...any)
 
 	// With creates a child Logger with the given fields pre-attached to all subsequent log calls.
 	With(fields ...Field) Logger
@@ -114,7 +101,7 @@ type Config struct {
 //
 // 示例：
 //
-//	logger.Info("用户登录", logfacade.String("username", "john"))
+//	logger.With(logfacade.String("username", "john")).Infof(ctx, "用户登录")
 func String(key, val string) Field {
 	return Field{Key: key, Value: val}
 }
@@ -130,7 +117,7 @@ func String(key, val string) Field {
 //
 // 示例：
 //
-//	logger.Info("用户信息", logfacade.Int("user_id", 123))
+//	logger.With(logfacade.Int("user_id", 123)).Infof(ctx, "用户信息")
 func Int(key string, val int) Field {
 	return Field{Key: key, Value: val}
 }
@@ -146,7 +133,7 @@ func Int(key string, val int) Field {
 //
 // 示例：
 //
-//	logger.Info("统计信息", logfacade.Int64("total_count", 9223372036854775807))
+//	logger.With(logfacade.Int64("total_count", 9223372036854775807)).Infof(ctx, "统计信息")
 func Int64(key string, val int64) Field {
 	return Field{Key: key, Value: val}
 }
@@ -162,7 +149,7 @@ func Int64(key string, val int64) Field {
 //
 // 示例：
 //
-//	logger.Info("性能指标", logfacade.Float64("response_time", 0.123))
+//	logger.With(logfacade.Float64("response_time", 0.123)).Infof(ctx, "性能指标")
 func Float64(key string, val float64) Field {
 	return Field{Key: key, Value: val}
 }
@@ -178,7 +165,7 @@ func Float64(key string, val float64) Field {
 //
 // 示例：
 //
-//	logger.Info("系统状态", logfacade.Bool("is_running", true))
+//	logger.With(logfacade.Bool("is_running", true)).Infof(ctx, "系统状态")
 func Bool(key string, val bool) Field {
 	return Field{Key: key, Value: val}
 }
@@ -194,7 +181,7 @@ func Bool(key string, val bool) Field {
 //
 // 示例：
 //
-//	logger.Info("请求耗时", logfacade.Duration("elapsed", 150*time.Millisecond))
+//	logger.With(logfacade.Duration("elapsed", 150*time.Millisecond)).Infof(ctx, "请求耗时")
 func Duration(key string, val time.Duration) Field {
 	return Field{Key: key, Value: val}
 }
@@ -210,7 +197,7 @@ func Duration(key string, val time.Duration) Field {
 //
 // 示例：
 //
-//	logger.Error("操作失败", logfacade.Err(err))
+//	logger.With(logfacade.Err(err)).Errorf(ctx, "操作失败")
 func Err(err error) Field {
 	// 如果有堆栈信息
 	if _, ok := err.(interface{ StackTrace() errors.StackTrace }); ok {
@@ -235,10 +222,10 @@ func Err(err error) Field {
 //
 //	// 带有堆栈跟踪的错误
 //	err := pkgerrors.Wrap(originalErr, "context")
-//	logger.Error("operation failed", logfacade.Stack(err))
+//	logger.With(logfacade.Stack(err)).Errorf(ctx, "operation failed")
 //
 //	// 将同时打印错误信息和堆栈跟踪
-//	logger.Error("operation failed", logfacade.Err(err), logfacade.Stack(err))
+//	logger.With(logfacade.Err(err), logfacade.Stack(err)).Errorf(ctx, "operation failed")
 func Stack(err error) Field {
 	if err == nil {
 		return Field{Key: "stack", Value: nil}
@@ -266,7 +253,7 @@ func Stack(err error) Field {
 //
 // 示例：
 //
-//	logger.Info("复杂数据", logfacade.Any("user", user))
+//	logger.With(logfacade.Any("user", user)).Infof(ctx, "复杂数据")
 func Any(key string, val interface{}) Field {
 	return Field{Key: key, Value: val}
 }

@@ -141,7 +141,7 @@ func (s *CreateOrganizationService) ExecuteWithQuerier(
 
 	orgExists, err := orgRepo.ExistsByName(ctx, orgSlug)
 	if err != nil {
-		logger.Error(ctx, "Failed to check organization name", logfacade.Err(err))
+		logger.Errorf(ctx, "Failed to check organization name, err=%v", err)
 		return nil, bizerrors.Wrap(err, "Failed to check organization name")
 	}
 	if orgExists {
@@ -296,7 +296,7 @@ func (s *CreateOrganizationService) handleExistingOrganization(
 	logger := logfacade.GetLogger(ctx)
 	existingOrgs, err := s.orgRepo.ListByUser(ctx, userID)
 	if err != nil {
-		logger.Error(ctx, "Failed to list user organizations", logfacade.Err(err))
+		logger.Errorf(ctx, "Failed to list user organizations, err=%v", err)
 		return nil
 	}
 	if len(existingOrgs) == 0 {

@@ -277,7 +277,7 @@ func (s *DeploymentImpl) DeployModelToAddFields(
 
 	// 如果没有需要添加的列，直接返回
 	if len(fieldsToAdd) == 0 {
-		logger.Info(ctx, "所有列都已存在，无需添加")
+		logger.Infof(ctx, "所有列都已存在，无需添加")
 		return nil
 	}
 

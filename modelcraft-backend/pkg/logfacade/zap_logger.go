@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -59,56 +60,6 @@ func newZapLogger(config Config, skipStack int) (Logger, error) {
 	return &ZapLogger{logger: zapLogger}, nil
 }
 
-// Debug records a debug-level log message with context.
-func (z *ZapLogger) Debug(ctx context.Context, msg string, fields ...Field) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	contextFields := z.extractContextFields(ctx)
-	allFields := append(contextFields, z.convertFields(fields)...) //nolint:gocritic
-	z.logger.Debug(msg, allFields...)
-}
-
-// Info records an info-level log message with context.
-func (z *ZapLogger) Info(ctx context.Context, msg string, fields ...Field) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	contextFields := z.extractContextFields(ctx)
-	allFields := append(contextFields, z.convertFields(fields)...) //nolint:gocritic
-	z.logger.Info(msg, allFields...)
-}
-
-// Warn records a warn-level log message with context.
-func (z *ZapLogger) Warn(ctx context.Context, msg string, fields ...Field) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	contextFields := z.extractContextFields(ctx)
-	allFields := append(contextFields, z.convertFields(fields)...) //nolint:gocritic
-	z.logger.Warn(msg, allFields...)
-}
-
-// Error records an error-level log message with context.
-func (z *ZapLogger) Error(ctx context.Context, msg string, fields ...Field) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	contextFields := z.extractContextFields(ctx)
-	allFields := append(contextFields, z.convertFields(fields)...) //nolint:gocritic
-	z.logger.Error(msg, allFields...)
-}
-
-// Fatal records a fatal-level log message with context and exits.
-func (z *ZapLogger) Fatal(ctx context.Context, msg string, fields ...Field) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	contextFields := z.extractContextFields(ctx)
-	allFields := append(contextFields, z.convertFields(fields)...) //nolint:gocritic
-	z.logger.Fatal(msg, allFields...)
-}
-
 // Debugf records a debug-level log message using printf-style formatting.
 func (z *ZapLogger) Debugf(ctx context.Context, format string, args ...any) {
 	if ctx == nil {
@@ -140,23 +91,42 @@ func (z *ZapLogger) Warnf(ctx context.Context, format string, args ...any) {
 }
 
 // Errorf records an error-level log message using printf-style formatting.
-func (z *ZapLogger) Errorf(ctx context.Context, format string, args ...any) {
+// When err is non-nil, it (and its stack trace if available) is recorded as
+// structured fields, independent of the format string.
+func (z *ZapLogger) Errorf(ctx context.Context, err error, format string, args ...any) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	msg := fmt.Sprintf(format, args...)
-	contextFields := z.extractContextFields(ctx)
-	z.logger.Error(msg, contextFields...)
+	fields := z.extractContextFields(ctx)
+	fields = append(fields, z.extractErrFields(err)...)
+	z.logger.Error(msg, fields...)
 }
 
 // Fatalf records a fatal-level log message using printf-style formatting and exits.
-func (z *ZapLogger) Fatalf(ctx context.Context, format string, args ...any) {
+// Stack trace extraction behaves the same as Errorf.
+func (z *ZapLogger) Fatalf(ctx context.Context, err error, format string, args ...any) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	msg := fmt.Sprintf(format, args...)
-	contextFields := z.extractContextFields(ctx)
-	z.logger.Fatal(msg, contextFields...)
+	fields := z.extractContextFields(ctx)
+	fields = append(fields, z.extractErrFields(err)...)
+	z.logger.Fatal(msg, fields...)
+}
+
+// extractErrFields produces structured fields from an error:
+// always an "error" field; additionally a "stack" field when the error
+// carries a stack trace (e.g. pkg/errors).
+func (z *ZapLogger) extractErrFields(err error) []zap.Field {
+	if err == nil {
+		return nil
+	}
+	fields := []zap.Field{zap.String(ErrorFieldKey, err.Error())}
+	if _, ok := err.(interface{ StackTrace() errors.StackTrace }); ok {
+		fields = append(fields, zap.Any(StackFieldKey, fmt.Sprintf("%+v", err)))
+	}
+	return fields
 }
 
 // With creates a child Logger with the given fields pre-attached to all subsequent log calls.
@@ -164,7 +134,7 @@ func (z *ZapLogger) Fatalf(ctx context.Context, format string, args ...any) {
 // 示例：
 //
 //	serviceLogger := logger.With(String("service", "user-service"))
-//	serviceLogger.Info(ctx, "服务启动")  // 自动附加 service=user-service
+//	serviceLogger.Infof(ctx, "服务启动")  // 自动附加 service=user-service
 func (z *ZapLogger) With(fields ...Field) Logger {
 	return &ZapLogger{
 		logger: z.logger.With(z.convertFields(fields)...),
