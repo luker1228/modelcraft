@@ -9,8 +9,8 @@ import (
 	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
+	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
-	"modelcraft/pkg/requestcontext"
 	"strings"
 	"time"
 
@@ -256,13 +256,6 @@ func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (inter
 		return nil, err
 	}
 
-	// Get metadata from context
-	metadata := requestcontext.GetMetadata(p.Context)
-	reqId := ""
-	if metadata != nil {
-		reqId = metadata.ReqID
-	}
-
 	// Calculate time cost
 	timeCost := int(time.Since(startTime).Milliseconds())
 
@@ -270,7 +263,7 @@ func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (inter
 	return map[string]any{
 		FieldItem:     result,
 		FieldTimeCost: timeCost,
-		FieldReqId:    reqId,
+		FieldReqId:    requestIDFromContext(p.Context),
 	}, nil
 }
 
@@ -363,13 +356,6 @@ func (m *graphqlModelResolver) executeFindFirst(p graphql.ResolveParams) (any, e
 		}
 	}
 
-	// Get metadata from context
-	metadata := requestcontext.GetMetadata(p.Context)
-	reqId := ""
-	if metadata != nil {
-		reqId = metadata.ReqID
-	}
-
 	// Calculate time cost
 	timeCost := int(time.Since(startTime).Milliseconds())
 
@@ -377,7 +363,7 @@ func (m *graphqlModelResolver) executeFindFirst(p graphql.ResolveParams) (any, e
 	return map[string]any{
 		FieldItem:     result,
 		FieldTimeCost: timeCost,
-		FieldReqId:    reqId,
+		FieldReqId:    requestIDFromContext(p.Context),
 	}, nil
 }
 
@@ -435,13 +421,6 @@ func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[str
 		}
 	}
 
-	// Get metadata from context
-	metadata := requestcontext.GetMetadata(p.Context)
-	reqId := ""
-	if metadata != nil {
-		reqId = metadata.ReqID
-	}
-
 	// Calculate time cost
 	timeCost := int(time.Since(startTime).Milliseconds())
 
@@ -449,7 +428,7 @@ func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[str
 		FieldItems:      result,
 		FieldTotalCount: totalCount,
 		FieldTimeCost:   timeCost,
-		FieldReqId:      reqId,
+		FieldReqId:      requestIDFromContext(p.Context),
 	}, nil
 }
 
@@ -1574,18 +1553,12 @@ func (m *graphqlModelResolver) executeListByCursor(p graphql.ResolveParams) (map
 		nextCursorStr = &encoded
 	}
 
-	metadata := requestcontext.GetMetadata(p.Context)
-	reqId := ""
-	if metadata != nil {
-		reqId = metadata.ReqID
-	}
-
 	return map[string]any{
 		FieldItems:       rows,
 		FieldNextCursor:  nextCursorStr,
 		FieldHasNextPage: hasNextPage,
 		FieldTimeCost:    int(time.Since(startTime).Milliseconds()),
-		FieldReqId:       reqId,
+		FieldReqId:       requestIDFromContext(p.Context),
 	}, nil
 }
 
@@ -1650,20 +1623,18 @@ func (m *graphqlModelResolver) executeListByPage(p graphql.ResolveParams) (map[s
 		return nil, bizerrors.Errorf("invalid count result for listByPage: %w", err)
 	}
 
-	metadata := requestcontext.GetMetadata(p.Context)
-	reqID := ""
-	if metadata != nil {
-		reqID = metadata.ReqID
-	}
-
 	return map[string]any{
 		FieldItems:     items,
 		FieldTotal:     total,
 		FieldPageIndex: pageIndexRaw,
 		FieldPageSize:  pageSizeRaw,
 		FieldTimeCost:  int(time.Since(startTime).Milliseconds()),
-		FieldReqId:     reqID,
+		FieldReqId:     requestIDFromContext(p.Context),
 	}, nil
+}
+
+func requestIDFromContext(ctx context.Context) string {
+	return ctxutils.GetRequestID(ctx)
 }
 
 func (m *graphqlModelResolver) createListByCursorField(modelType graphql.Type) (*graphql.Field, error) {

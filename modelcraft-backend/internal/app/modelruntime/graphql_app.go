@@ -14,7 +14,6 @@ import (
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
-	"modelcraft/pkg/requestcontext"
 
 	"github.com/graphql-go/graphql"
 )
@@ -67,9 +66,6 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 	cmd ExecuteGraphQLCommand,
 ) (*graphql.Result, error) {
 	logger := logfacade.GetLogger(ctx)
-
-	// Inject request metadata into context
-	ctx = requestcontext.WithMetadata(ctx)
 	modelLocator, err := modeldesign.NewModelLocator(orgName, projectSlug, databaseName, name)
 	if err != nil {
 		return nil, err
