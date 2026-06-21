@@ -195,7 +195,7 @@ func (cm *ClusterConnectionManager) CloseAll() error {
 		return fmt.Errorf("errors occurred while closing connections: %v", errors)
 	}
 
-	cm.logger.Info(context.Background(), "所有集群连接已关闭")
+	cm.logger.Infof(context.Background(), "所有集群连接已关闭")
 	return nil
 }
 
@@ -246,14 +246,14 @@ func (cm *ClusterConnectionManager) StartPeriodicSync(ctx context.Context) {
 	defer cm.runningMutex.Unlock()
 
 	if cm.isRunning {
-		cm.logger.Warn(context.Background(), "定期同步任务已在运行中")
+		cm.logger.Warnf(context.Background(), "定期同步任务已在运行中")
 		return
 	}
 
 	cm.ticker = time.NewTicker(1 * time.Minute)
 	cm.isRunning = true
 
-	cm.logger.Info(context.Background(), "启动集群连接池定期同步任务", logfacade.Duration("interval", 1*time.Minute))
+	cm.logger.With(logfacade.Duration("interval", 1*time.Minute)).Infof(context.Background(), "启动集群连接池定期同步任务")
 
 	// 启动后台协程执行定期同步
 	bizutils.GoWithCtx(ctx, func(ctx context.Context) {
@@ -262,7 +262,7 @@ func (cm *ClusterConnectionManager) StartPeriodicSync(ctx context.Context) {
 			case <-cm.ticker.C:
 				cm.syncConnections(ctx)
 			case <-cm.stopChan:
-				cm.logger.Info(context.Background(), "定期同步任务已停止")
+				cm.logger.Infof(context.Background(), "定期同步任务已停止")
 				return
 			}
 		}
@@ -287,30 +287,31 @@ func (cm *ClusterConnectionManager) StopPeriodicSync() {
 	cm.stopChan = make(chan struct{}) // 重新创建channel以便下次使用
 	cm.isRunning = false
 
-	cm.logger.Info(context.Background(), "定期同步任务已停止")
+	cm.logger.Infof(context.Background(), "定期同步任务已停止")
 }
 
 // syncConnections 同步连接池
 func (cm *ClusterConnectionManager) syncConnections(ctx context.Context) {
-	cm.logger.Debug(context.Background(),
-		"开始同步集群连接池", logfacade.String("last_sync_time", cm.lastSyncTime.Format(time.RFC3339)))
+	cm.logger.With(
+		logfacade.String("last_sync_time", cm.lastSyncTime.Format(time.RFC3339)),
+	).Debugf(context.Background(), "开始同步集群连接池")
 
 	// 获取自上次同步以来更新的集群（传入空字符串表示跨所有组织和项目）
 	updatedClusters, err := cm.repo.ListUpdatedAfter(
 		ctx, cm.lastSyncTime, cluster.ClusterStatusActive,
 	)
 	if err != nil {
-		cm.logger.Error(context.Background(), "获取更新的集群失败", logfacade.Err(err))
+		cm.logger.With(logfacade.Err(err)).Errorf(context.Background(), nil, "获取更新的集群失败")
 		return
 	}
 
 	if len(updatedClusters) == 0 {
-		cm.logger.Debug(context.Background(), "没有发现更新的集群")
+		cm.logger.Debugf(context.Background(), "没有发现更新的集群")
 		cm.lastSyncTime = time.Now()
 		return
 	}
 
-	cm.logger.Info(context.Background(), "发现更新的集群", logfacade.Int("count", len(updatedClusters)))
+	cm.logger.With(logfacade.Int("count", len(updatedClusters))).Infof(context.Background(), "发现更新的集群")
 
 	// 更新连接池
 	for _, clusterInfo := range updatedClusters {
@@ -319,21 +320,20 @@ func (cm *ClusterConnectionManager) syncConnections(ctx context.Context) {
 
 	// 更新同步时间
 	cm.lastSyncTime = time.Now()
-	cm.logger.Debug(
-		context.Background(),
-		"集群连接池同步完成",
+	cm.logger.With(
 		logfacade.String("sync_time", cm.lastSyncTime.Format(time.RFC3339)),
-	)
+	).Debugf(context.Background(), "集群连接池同步完成")
 }
 
 // updateConnection 更新单个集群的连接
 func (cm *ClusterConnectionManager) updateConnection(ctx context.Context, clusterInfo *cluster.DatabaseCluster) {
 	clusterID := clusterInfo.ID
 
-	cm.logger.Debug(context.Background(), "更新集群连接",
+	cm.logger.With(
 		logfacade.String("cluster_id", clusterID),
 		logfacade.String("host", clusterInfo.Host),
-		logfacade.Int("port", clusterInfo.Port))
+		logfacade.Int("port", clusterInfo.Port),
+	).Debugf(context.Background(), "更新集群连接")
 
 	// 关闭现有连接
 	if value, exists := cm.connections.LoadAndDelete(clusterID); exists {
@@ -344,9 +344,10 @@ func (cm *ClusterConnectionManager) updateConnection(ctx context.Context, cluste
 	connectionInfo := clusterInfo.GetConnectionInfo()
 	newConn, err := cm.createConnection(connectionInfo)
 	if err != nil {
-		cm.logger.Error(context.Background(), "创建新连接失败",
+		cm.logger.With(
 			logfacade.String("cluster_id", clusterID),
-			logfacade.Err(err))
+			logfacade.Err(err),
+		).Errorf(context.Background(), nil, "创建新连接失败")
 		return
 	}
 
@@ -358,19 +359,21 @@ func (cm *ClusterConnectionManager) updateConnection(ctx context.Context, cluste
 	pingCtx, cancel := context.WithTimeout(ctx, pingTimeout)
 	defer cancel()
 	if err := newConn.PingContext(pingCtx); err != nil {
-		cm.logger.Error(context.Background(), "新连接测试失败",
+		cm.logger.With(
 			logfacade.String("cluster_id", clusterID),
-			logfacade.Err(err))
+			logfacade.Err(err),
+		).Errorf(context.Background(), nil, "新连接测试失败")
 		_ = newConn.Close()
 		return
 	}
 
 	// 存储新连接
 	cm.connections.Store(clusterID, newConn)
-	cm.logger.Info(context.Background(), "集群连接已更新",
+	cm.logger.With(
 		logfacade.String("cluster_id", clusterID),
 		logfacade.String("host", clusterInfo.Host),
-		logfacade.Int("port", clusterInfo.Port))
+		logfacade.Int("port", clusterInfo.Port),
+	).Infof(context.Background(), "集群连接已更新")
 }
 
 func (cm *ClusterConnectionManager) closeExistingConnection(clusterName string, value interface{}) {
@@ -379,12 +382,13 @@ func (cm *ClusterConnectionManager) closeExistingConnection(clusterName string, 
 		return
 	}
 	if err := conn.Close(); err != nil {
-		cm.logger.Warn(context.Background(), "关闭旧连接失败",
+		cm.logger.With(
 			logfacade.String("cluster_name", clusterName),
-			logfacade.Err(err))
+			logfacade.Err(err),
+		).Warnf(context.Background(), "关闭旧连接失败")
 		return
 	}
-	cm.logger.Debug(context.Background(), "已关闭旧连接", logfacade.String("cluster_name", clusterName))
+	cm.logger.With(logfacade.String("cluster_name", clusterName)).Debugf(context.Background(), "已关闭旧连接")
 }
 
 // IsRunning 检查定期同步任务是否正在运行
@@ -451,7 +455,7 @@ func (cm *ClusterConnectionManager) ListDatabases(
 	for rows.Next() {
 		var dbInfo DatabaseInfo
 		if err := rows.Scan(&dbInfo.Name); err != nil {
-			cm.logger.Warn(context.Background(), "failed to scan database info", logfacade.Err(err))
+			cm.logger.With(logfacade.Err(err)).Warnf(context.Background(), "failed to scan database info")
 			continue
 		}
 		databases = append(databases, &dbInfo)
@@ -461,10 +465,11 @@ func (cm *ClusterConnectionManager) ListDatabases(
 		return nil, 0, fmt.Errorf("failed to iterate databases: %w", err)
 	}
 
-	cm.logger.Info(context.Background(), "successfully listed databases",
+	cm.logger.With(
 		logfacade.String("project", projectSlug),
 		logfacade.Int("total", totalCount),
-		logfacade.Int("returned", len(databases)))
+		logfacade.Int("returned", len(databases)),
+	).Infof(context.Background(), "successfully listed databases")
 
 	return databases, totalCount, nil
 }

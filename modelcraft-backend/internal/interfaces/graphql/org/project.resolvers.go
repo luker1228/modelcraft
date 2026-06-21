@@ -63,10 +63,10 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input generated.Cr
 	proj, err := r.ProjectAppService.CreateProject(ctx, cmd)
 	if err != nil {
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-			logger.Error(ctx, "Failed to create project",
+			logger.With(
 				logfacade.Err(bizErr),
 				logfacade.Stack(bizErr),
-			)
+			).Errorf(ctx, nil, "Failed to create project")
 			gqlError := errorAdapter.ConvertToCreateProjectErrors(bizErr)
 			return &generated.CreateProjectPayload{
 				Project: nil,
@@ -175,10 +175,10 @@ func (r *mutationResolver) UpdateProjectCluster(ctx context.Context, projectSlug
 	clusterEntity, err := r.ClusterAppService.UpdateProjectCluster(ctx, cmd)
 	if err != nil {
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-			logger.Error(ctx, "Failed to update project cluster",
+			logger.With(
 				logfacade.Err(bizErr),
 				logfacade.Stack(bizErr),
-			)
+			).Errorf(ctx, nil, "Failed to update project cluster")
 			return &generated.UpdateClusterPayload{
 				Cluster: nil,
 				Error:   errorAdapter.ConvertToUpdateClusterError(bizErr),

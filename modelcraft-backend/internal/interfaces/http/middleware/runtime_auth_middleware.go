@@ -39,14 +39,14 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 		// 1. Extract JWT from Authorization header
 		authHeader := r.Header.Get(httpheader.Authorization)
 		if authHeader == "" {
-			m.logger.Warn(ctx, "Missing Authorization header")
+			m.logger.Warnf(ctx, "Missing Authorization header")
 			http.Error(w, `{"error": "Unauthorized: Missing token"}`, http.StatusUnauthorized)
 			return
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			m.logger.Warn(ctx, "Invalid Authorization header format")
+			m.logger.Warnf(ctx, "Invalid Authorization header format")
 			http.Error(w, `{"error": "Unauthorized: Invalid token format"}`, http.StatusUnauthorized)
 			return
 		}
@@ -55,7 +55,7 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 		// 2. Parse and validate JWT
 		claims, err := m.jwtValidator.Validate(token)
 		if err != nil {
-			m.logger.Warn(ctx, "Invalid JWT", logfacade.Err(err))
+			m.logger.With(logfacade.Err(err)).Warnf(ctx, "Invalid JWT")
 			http.Error(w, `{"error": "Unauthorized: Invalid token"}`, http.StatusUnauthorized)
 			return
 		}
@@ -63,15 +63,16 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 		// 3. Validate issuer must be "mc-platform"
 		issuer, ok := claims["iss"].(string)
 		if !ok {
-			m.logger.Warn(ctx, "Missing iss claim in JWT")
+			m.logger.Warnf(ctx, "Missing iss claim in JWT")
 			http.Error(w, `{"error": "Unauthorized: Invalid token claims"}`, http.StatusUnauthorized)
 			return
 		}
 
 		if issuer != issuerPlatform {
-			m.logger.Warn(ctx, "Invalid JWT issuer for runtime endpoint",
+			m.logger.With(
 				logfacade.String("issuer", issuer),
-				logfacade.String("expected", issuerPlatform))
+				logfacade.String("expected", issuerPlatform),
+			).Warnf(ctx, "Invalid JWT issuer for runtime endpoint")
 			http.Error(
 				w,
 				`{"error": "Unauthorized: Invalid issuer. Runtime endpoints require mc-platform JWT"}`,
@@ -83,7 +84,7 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 		// 4. Extract endUserId from claims
 		endUserID, ok := claims["user_id"].(string)
 		if !ok || endUserID == "" {
-			m.logger.Warn(ctx, "Missing user_id claim in JWT")
+			m.logger.Warnf(ctx, "Missing user_id claim in JWT")
 			http.Error(w, `{"error": "Unauthorized: Invalid token claims"}`, http.StatusUnauthorized)
 			return
 		}
@@ -94,9 +95,10 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 		ctx = ctxutils.SetEndUserID(ctx, endUserID)
 		ctx = ctxutils.SetUserID(ctx, endUserID)
 
-		m.logger.Debug(ctx, "EndUser authenticated",
+		m.logger.With(
 			logfacade.String("endUserId", endUserID),
-			logfacade.String("issuer", issuer))
+			logfacade.String("issuer", issuer),
+		).Debugf(ctx, "EndUser authenticated")
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

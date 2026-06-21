@@ -42,7 +42,7 @@ func (a *ProjectErrorAdapter) ConvertToCreateProjectErrors(err *bizerrors.Busine
 		suggestion := "Please verify host, port, username, and password are correct"
 		return &generated.DatabaseConnectionFailed{Message: err.Msg(), Suggestion: &suggestion}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for CreateProject: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for CreateProject: %s", err.Info().GetCode())
 		return &generated.InvalidInput{Message: err.Msg()}
 	}
 }
@@ -64,7 +64,7 @@ func (a *ProjectErrorAdapter) ConvertToUpdateProjectErrors(err *bizerrors.Busine
 		}
 		return gqlErr
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for UpdateProject: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for UpdateProject: %s", err.Info().GetCode())
 		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	}
 }
@@ -81,7 +81,7 @@ func (a *ProjectErrorAdapter) ConvertToDeleteProjectErrors(err *bizerrors.Busine
 	case bizerrors.CannotDeleteDefaultProject.GetCode(), bizerrors.OperationDenied.GetCode():
 		return &generated.CannotDeleteDefaultProject{Message: err.Msg()}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for DeleteProject: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for DeleteProject: %s", err.Info().GetCode())
 		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	}
 }
@@ -96,7 +96,7 @@ func (a *ProjectErrorAdapter) ConvertToGetProjectErrors(err *bizerrors.BusinessE
 	case bizerrors.ProjectNotFound.GetCode(), bizerrors.NotFound.GetCode():
 		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for GetProject: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for GetProject: %s", err.Info().GetCode())
 		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	}
 }

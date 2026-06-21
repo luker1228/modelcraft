@@ -39,7 +39,7 @@ func (a *EnumErrorAdapter) ConvertToGetEnumError(err *bizerrors.BusinessError) g
 			ResourceType: generated.ResourceTypeEnum,
 		}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for GetEnum: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for GetEnum: %s", err.Info().GetCode())
 		return &generated.ResourceNotFound{
 			Message:      err.Msg(),
 			ResourceType: generated.ResourceTypeEnum,
@@ -79,7 +79,7 @@ func (a *EnumErrorAdapter) ConvertToCreateEnumError(err *bizerrors.BusinessError
 		}
 		return gqlErr
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for CreateEnum: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for CreateEnum: %s", err.Info().GetCode())
 		// Return as InvalidInput for unknown errors
 		return &generated.InvalidInput{
 			Message: err.Msg(),
@@ -117,7 +117,7 @@ func (a *EnumErrorAdapter) ConvertToUpdateEnumError(err *bizerrors.BusinessError
 		}
 		return gqlErr
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for UpdateEnum: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for UpdateEnum: %s", err.Info().GetCode())
 		return &generated.ResourceNotFound{
 			Message:      err.Msg(),
 			ResourceType: generated.ResourceTypeEnum,
@@ -149,7 +149,7 @@ func (a *EnumErrorAdapter) ConvertToDeleteEnumError(err *bizerrors.BusinessError
 			Suggestion: &suggestion,
 		}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for DeleteEnum: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for DeleteEnum: %s", err.Info().GetCode())
 		return &generated.ResourceNotFound{
 			Message:      err.Msg(),
 			ResourceType: generated.ResourceTypeEnum,

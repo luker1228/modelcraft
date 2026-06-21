@@ -97,7 +97,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	var req generated.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logfacade.GetLogger(r.Context()).Warn(r.Context(), "Invalid register request body", logfacade.Err(err))
+		logfacade.GetLogger(r.Context()).With(logfacade.Err(err)).Warnf(r.Context(), "Invalid register request body")
 		writeAuthError(w, http.StatusBadRequest, requestID, "PARAM_INVALID.AUTH", "Invalid request body")
 		return
 	}
@@ -135,7 +135,7 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	var req generated.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logfacade.GetLogger(r.Context()).Warn(r.Context(), "Invalid login request body", logfacade.Err(err))
+		logfacade.GetLogger(r.Context()).With(logfacade.Err(err)).Warnf(r.Context(), "Invalid login request body")
 		writeAuthError(w, http.StatusBadRequest, requestID, "PARAM_INVALID.AUTH", "Invalid request body")
 		return
 	}
@@ -232,7 +232,7 @@ func (h *Handler) HandlePATWhoami(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.apiTokenSvc == nil {
-		logfacade.GetLogger(r.Context()).Error(r.Context(), "PAT whoami unavailable: api token service is nil")
+		logfacade.GetLogger(r.Context()).Errorf(r.Context(), nil, "PAT whoami unavailable: api token service is nil")
 		writeAuthError(w, http.StatusInternalServerError, requestID, "SYSTEM_ERROR", "Internal server error")
 		return
 	}
@@ -299,13 +299,13 @@ func (h *Handler) handleBusinessError(
 	bizErr, ok := err.(*bizerrors.BusinessError)
 	if !ok {
 		// Not a BusinessError — unexpected system error
-		logfacade.GetLogger(r.Context()).Error(r.Context(), logMsg, logfacade.Err(err), logfacade.Stack(err))
+		logfacade.GetLogger(r.Context()).With(logfacade.Err(err), logfacade.Stack(err)).Errorf(r.Context(), nil, logMsg)
 		writeAuthError(w, http.StatusInternalServerError, requestID, "SYSTEM_ERROR", "Internal server error")
 		return
 	}
 
 	// Log with stack at the Interfaces layer error conversion point
-	logfacade.GetLogger(r.Context()).Error(r.Context(), logMsg, logfacade.Err(err), logfacade.Stack(err))
+	logfacade.GetLogger(r.Context()).With(logfacade.Err(err), logfacade.Stack(err)).Errorf(r.Context(), nil, logMsg)
 
 	statusCode := bizErr.GetHTTPStatusCode()
 	code := bizErr.Info().GetCode()

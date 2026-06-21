@@ -141,7 +141,7 @@ func LoadConfigWithOptions(ctx context.Context, opts ConfigOptions) *Config {
 	// 解析配置到结构体
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
-		logger.Fatal(ctx, "❌ 配置解析失败", logfacade.Err(err))
+		logger.Fatalf(ctx, err, "配置解析失败")
 	}
 
 	logger.Infof(ctx, "✅ 配置加载完成: 服务端口=%s, 数据库=%s:%d/%s",

@@ -26,12 +26,12 @@ func GoWithCtx(ctx context.Context, fn func(context.Context)) {
 				panicTime := time.Now()
 
 				// 记录详细的 panic 信息，包含上下文
-				logger.Error(ctx, "协程发生 panic",
+				logger.With(
 					logfacade.Any("panic_value", r),
 					logfacade.String("stack_trace", stackTrace),
 					logfacade.Int("goroutine_count", goroutineCount),
 					logfacade.String("panic_time", panicTime.Format(time.RFC3339Nano)),
-				)
+				).Errorf(ctx, nil, "协程发生 panic")
 			}
 		}()
 

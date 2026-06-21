@@ -526,7 +526,7 @@ func (s *ModelDesignAppService) addPhysicFields(
 		log.Warnf(ctx, "部署字段失败，执行回滚: modelID=%s, fields=%v, err=%v", model.ID, fieldNames, err)
 		rollbackErr := s.modelRepo.DeleteFields(ctx, model.ID, fieldNames)
 		if rollbackErr != nil {
-			log.Errorf(ctx, "回滚字段失败: modelID=%s, fields=%v, err=%v", model.ID, fieldNames, rollbackErr)
+			log.Errorf(ctx, rollbackErr, "回滚字段失败: modelID=%s, fields=%v", model.ID, fieldNames)
 			// 返回组合错误：包含部署失败和回滚失败
 			return bizerrors.Wrapf(errors.Join(err, rollbackErr),
 				"部署模型到客户DB失败且回滚失败: modelID=%s, fields=%v", model.ID, fieldNames)
@@ -558,8 +558,9 @@ func (s *ModelDesignAppService) addPhysicFields(
 				DatabaseName: model.DatabaseName,
 			}
 			if err := enumAssocRepo.Create(ctx, association); err != nil {
-				log.Errorf(ctx, "创建枚举关联失败: modelID=%s, fieldName=%s, enumName=%s, err=%v",
-					model.ID, field.Name, field.EnumName, err)
+				log.Errorf(ctx, err,
+					"创建枚举关联失败: modelID=%s, fieldName=%s, enumName=%s",
+					model.ID, field.Name, field.EnumName)
 				return fmt.Errorf("创建枚举关联失败: %w", err)
 			}
 			log.Infof(ctx, "创建枚举关联成功: modelID=%s, fieldName=%s, enumName=%s",

@@ -51,7 +51,7 @@ func (d *HasPermissionDirective) HasPermission(
 
 	// Validate action format
 	if action == "" {
-		logger.Errorf(ctx, "@hasPermission directive: empty action parameter")
+		logger.Errorf(ctx, nil, "@hasPermission directive: empty action parameter")
 		return nil, newGQLError("Invalid permission directive configuration", "INVALID_DIRECTIVE")
 	}
 
@@ -110,7 +110,7 @@ func (d *HasPermissionDirective) validateContext(
 		userID, err = ctxutils.GetEndUserIDFromContext(ctx)
 	}
 	if err != nil || userID == "" {
-		logger.Errorf(ctx, "@hasPermission directive: missing user authentication: %v", err)
+		logger.Errorf(ctx, err, "@hasPermission directive: missing user authentication")
 		return "", "", &gqlerror.Error{
 			Message:    "Authentication required",
 			Extensions: map[string]interface{}{"code": "UNAUTHENTICATED"},
@@ -119,7 +119,7 @@ func (d *HasPermissionDirective) validateContext(
 
 	orgName, err = ctxutils.GetOrgNameFromContext(ctx)
 	if err != nil || orgName == "" {
-		logger.Errorf(ctx, "@hasPermission directive: missing organization context for user %s: %v", userID, err)
+		logger.Errorf(ctx, err, "@hasPermission directive: missing organization context for user %s", userID)
 		return "", "", &gqlerror.Error{
 			Message:    "Organization context required",
 			Extensions: map[string]interface{}{"code": "MISSING_ORGANIZATION"},
@@ -169,8 +169,8 @@ func (d *HasPermissionDirective) checkDatabasePermission(
 	allowed, err := d.userRoleService.CheckPermission(ctx, userID, orgName, action)
 	if err != nil {
 		logger.Errorf(
-			ctx, "@hasPermission directive: permission check failed for user %s, action %s: %v",
-			userID, action, err,
+			ctx, err, "@hasPermission directive: permission check failed for user %s, action %s",
+			userID, action,
 		)
 		return nil, newGQLError("Permission check failed", "PERMISSION_CHECK_ERROR")
 	}

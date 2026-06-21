@@ -94,10 +94,10 @@ func (l *sqlcLogger) QueryContext(ctx context.Context, query string, args ...int
 // without elapsed time or row count.
 func (l *sqlcLogger) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
 	if l.level == SqlcLogInfo {
-		logfacade.GetLogger(ctx).Info(ctx, "[SQLC] query row dispatched",
+		logfacade.GetLogger(ctx).With(
 			logfacade.String(logfacade.SQLKey, cleanSQL(query)),
 			logfacade.Any(logfacade.SQLArgsKey, args),
-		)
+		).Infof(ctx, "[SQLC] query row dispatched")
 	}
 	return l.db.QueryRowContext(ctx, query, args...)
 }
@@ -112,20 +112,20 @@ func (l *sqlcLogger) log(
 
 	switch {
 	case err != nil && l.level >= SqlcLogError:
-		logger.Error(ctx, "[SQLC] query error",
+		logger.With(
 			logfacade.Err(err),
 			logfacade.String(logfacade.SQLKey, cleanedSQL),
 			logfacade.Any(logfacade.SQLArgsKey, args),
 			logfacade.Duration(logfacade.ElapsedKey, elapsed),
-		)
+		).Errorf(ctx, nil, "[SQLC] query error")
 
 	case l.slowThreshold > 0 && elapsed > l.slowThreshold && l.level >= SqlcLogWarn:
-		logger.Warn(ctx, "[SQLC] slow query",
+		logger.With(
 			logfacade.String(logfacade.SQLKey, cleanedSQL),
 			logfacade.Any(logfacade.SQLArgsKey, args),
 			logfacade.Duration(logfacade.ElapsedKey, elapsed),
 			logfacade.Duration(logfacade.ThresholdKey, l.slowThreshold),
-		)
+		).Warnf(ctx, "[SQLC] slow query")
 
 	case l.level >= SqlcLogInfo:
 		fields := []logfacade.Field{
@@ -136,7 +136,7 @@ func (l *sqlcLogger) log(
 		if rows >= 0 {
 			fields = append(fields, logfacade.Int64(logfacade.RowsKey, rows))
 		}
-		logger.Info(ctx, "[SQLC] query ok", fields...)
+		logger.With(fields...).Infof(ctx, "[SQLC] query ok")
 	}
 }
 

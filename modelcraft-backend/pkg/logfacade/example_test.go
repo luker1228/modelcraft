@@ -196,11 +196,11 @@ func BenchmarkLogging(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-logger.With(
-			String("operation", "benchmark"),
-			Int("iteration", 1),
-			Duration("duration", time.Microsecond),
-		).Infof(context.Background(), "性能测试日志")
+			logger.With(
+				String("operation", "benchmark"),
+				Int("iteration", 1),
+				Duration("duration", time.Microsecond),
+			).Infof(context.Background(), "性能测试日志")
 		}
 	})
 }

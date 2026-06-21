@@ -13,7 +13,7 @@ func WithGraphqlErrorHandler(ctx context.Context, fn func() error) error {
 	err := fn()
 	if err != nil {
 		// 记录错误日志
-		logger.Errorf(ctx, "GraphQL operation error: %+v", err)
+		logger.Errorf(ctx, err, "GraphQL operation error")
 
 		// 如果是业务错误，转换为 GraphQL 错误格式
 		if bizErr, ok := err.(*BusinessError); ok {

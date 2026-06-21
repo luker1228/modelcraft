@@ -183,12 +183,10 @@ func (s *SyncModelsAppService) StartSync(
 
 	s.runner.Go(ctx, func(runCtx context.Context) {
 		if err := s.RunSyncJob(runCtx, job.ID); err != nil {
-			logfacade.GetLogger(runCtx).Error(
-				runCtx,
-				"model sync job failed",
+			logfacade.GetLogger(runCtx).With(
 				logfacade.String("job_id", job.ID),
 				logfacade.Err(err),
-			)
+			).Errorf(runCtx, nil, "model sync job failed")
 		}
 	})
 	return job, nil
@@ -268,12 +266,11 @@ func (s *SyncModelsAppService) StartModelSync(
 		if s.dbRepo != nil {
 			uerr := s.dbRepo.UpdateLatestSyncJobID(ctx, orgName, projectSlug, target.DatabaseID, job.ID)
 			if uerr != nil {
-				logfacade.GetLogger(ctx).Warn(
-					ctx, "failed to update latest_sync_job_id",
+				logfacade.GetLogger(ctx).With(
 					logfacade.String("database_id", target.DatabaseID),
 					logfacade.String("job_id", job.ID),
 					logfacade.Err(uerr),
-				)
+				).Warnf(ctx, "failed to update latest_sync_job_id")
 			}
 		}
 		jobs = append(jobs, job)
@@ -283,11 +280,10 @@ func (s *SyncModelsAppService) StartModelSync(
 		job := job
 		s.runner.Go(ctx, func(runCtx context.Context) {
 			if runErr := s.RunSyncJob(runCtx, job.ID); runErr != nil {
-				logfacade.GetLogger(runCtx).Error(
-					runCtx, "model sync job failed",
+				logfacade.GetLogger(runCtx).With(
 					logfacade.String("job_id", job.ID),
 					logfacade.Err(runErr),
-				)
+				).Errorf(runCtx, nil, "model sync job failed")
 			}
 		})
 	}
@@ -353,11 +349,10 @@ func (s *SyncModelsAppService) RunSyncJob(ctx context.Context, jobID string) err
 	if s.groupService != nil {
 		group, err = s.groupService.EnsureImportGroup(ctx, orgName, projectSlug)
 		if err != nil {
-			logger.Error(
-				ctx, "model sync job: EnsureImportGroup failed",
+			logger.With(
 				logfacade.String("job_id", jobID),
 				logfacade.Err(err),
-			)
+			).Errorf(ctx, nil, "model sync job: EnsureImportGroup failed")
 			return s.failJob(ctx, job, err)
 		}
 	}
@@ -369,12 +364,10 @@ func (s *SyncModelsAppService) RunSyncJob(ctx context.Context, jobID string) err
 	} else {
 		tableResult, err := s.reverseEngineer.ListTables(ctx, orgName, projectSlug, job.DatabaseName, false, 0, 0)
 		if err != nil {
-			logger.Error(
-				ctx,
-				"model sync job: ListTables failed",
+			logger.With(
 				logfacade.String("job_id", jobID),
 				logfacade.Err(err),
-			)
+			).Errorf(ctx, nil, "model sync job: ListTables failed")
 			return s.failJob(ctx, job, err)
 		}
 		tableNames = tableResult.Tables
@@ -388,13 +381,11 @@ func (s *SyncModelsAppService) RunSyncJob(ctx context.Context, jobID string) err
 
 	for _, tableName := range tableNames {
 		if err := s.processTable(ctx, job, tableName, group); err != nil {
-			logger.Error(
-				ctx,
-				"model sync job: processTable fatal",
+			logger.With(
 				logfacade.String("job_id", jobID),
 				logfacade.String("table", tableName),
 				logfacade.Err(err),
-			)
+			).Errorf(ctx, nil, "model sync job: processTable fatal")
 			return err
 		}
 	}
@@ -496,13 +487,11 @@ func (s *SyncModelsAppService) failJob(
 	job *domaindb.ModelSyncJob,
 	err error,
 ) error {
-	logfacade.GetLogger(ctx).Error(
-		ctx,
-		"model sync job failed",
+	logfacade.GetLogger(ctx).With(
 		logfacade.String("job_id", job.ID),
 		logfacade.String("database_name", job.DatabaseName),
 		logfacade.Err(err),
-	)
+	).Errorf(ctx, nil, "model sync job failed")
 	now := s.now()
 	job.Status = domaindb.ModelSyncJobStatusFailed
 	job.FinishedAt = &now

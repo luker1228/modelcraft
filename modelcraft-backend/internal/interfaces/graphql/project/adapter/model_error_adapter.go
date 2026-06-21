@@ -41,7 +41,7 @@ func (a *ModelErrorAdapter) ConvertToGetError(err *bizerrors.BusinessError) gene
 			ResourceType: generated.ResourceTypeProject,
 		}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for GetModel: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for GetModel: %s", err.Info().GetCode())
 		// Return as ResourceNotFound for unknown errors
 		return &generated.ResourceNotFound{
 			Message:      err.Msg(),
@@ -85,7 +85,7 @@ func (a *ModelErrorAdapter) ConvertToCreateError(err *bizerrors.BusinessError) g
 		}
 		return gqlErr
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for CreateModel: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for CreateModel: %s", err.Info().GetCode())
 		// Return as InvalidInput for unknown errors
 		msg := err.Msg()
 		return &generated.InvalidInput{
@@ -121,7 +121,7 @@ func (a *ModelErrorAdapter) ConvertToUpdateError(err *bizerrors.BusinessError) g
 		}
 		return gqlErr
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for UpdateModel: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for UpdateModel: %s", err.Info().GetCode())
 		return &generated.ResourceNotFound{
 			Message:      err.Msg(),
 			ResourceType: generated.ResourceTypeModel,
@@ -152,7 +152,7 @@ func (a *ModelErrorAdapter) ConvertToDeleteError(err *bizerrors.BusinessError) g
 			Message: err.Msg(),
 		}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for DeleteModel: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for DeleteModel: %s", err.Info().GetCode())
 		return &generated.ResourceNotFound{
 			Message:      err.Msg(),
 			ResourceType: generated.ResourceTypeModel,

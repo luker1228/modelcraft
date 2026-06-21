@@ -71,14 +71,14 @@ func ChiLoggerMiddleware(logger logfacade.Logger) func(http.Handler) http.Handle
 				}
 			}
 
-			requestLogger.Info(r.Context(), "request_start",
+			requestLogger.With(
 				logfacade.String("method", r.Method),
 				logfacade.String("url", r.URL.String()),
 				logfacade.String("path", r.URL.Path),
 				logfacade.String("remote_addr", r.RemoteAddr),
 				logfacade.String("user_agent", r.UserAgent()),
 				logfacade.String("request_body", requestBody),
-			)
+			).Infof(r.Context(), "request_start")
 
 			ww := chimw.NewWrapResponseWriter(w, r.ProtoMajor)
 			responseBuffer := &bytes.Buffer{}
@@ -95,14 +95,14 @@ func ChiLoggerMiddleware(logger logfacade.Logger) func(http.Handler) http.Handle
 					responseBody = responseBuffer.String()
 				}
 
-				requestLogger.Info(r.Context(), "request_end",
+				requestLogger.With(
 					logfacade.String("method", r.Method),
 					logfacade.String("path", r.URL.Path),
 					logfacade.Int("status", ww.Status()),
 					logfacade.Int("duration_ms", int(duration.Milliseconds())),
 					logfacade.Int("size", ww.BytesWritten()),
 					logfacade.String("response_body", responseBody),
-				)
+				).Infof(r.Context(), "request_end")
 			}()
 
 			next.ServeHTTP(wrappedWriter, r)

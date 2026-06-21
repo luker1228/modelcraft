@@ -25,12 +25,12 @@ func ChiRecoveryMiddleware(logger logfacade.Logger) func(http.Handler) http.Hand
 					requestID := resolveRequestID(r)
 
 					// Log panic with stack trace and duration
-					logger.Error(r.Context(), "request_panic",
+					logger.With(
 						logfacade.Any("panic", rec),
 						logfacade.String("stack", string(debug.Stack())),
 						logfacade.Duration("duration", time.Since(start)),
 						logfacade.String("request_id", requestID),
-					)
+					).Errorf(r.Context(), nil, "request_panic")
 
 					// Return JSON error response similar to Gin middleware
 					w.WriteHeader(http.StatusInternalServerError)

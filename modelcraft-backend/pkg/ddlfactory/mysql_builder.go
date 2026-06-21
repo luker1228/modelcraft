@@ -102,7 +102,7 @@ func (b *MySQLDDLBuilder) BuildCreateTable(table *TableEntity) (string, error) {
 	for _, field := range table.Fields {
 		fieldDef, err := b.buildFieldDefinition(field)
 		if err != nil {
-			logger.Errorf(b.ctx, "field=%#v", field)
+			logger.Errorf(b.ctx, err, "field=%#v", field)
 			return "", fmt.Errorf("构建字段 %v 定义失败: %w", field.Name, err)
 		}
 		fieldDefs = append(fieldDefs, "  "+fieldDef)

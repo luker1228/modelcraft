@@ -48,9 +48,8 @@ func (s *SystemRolePermissionsSyncer) Sync(ctx context.Context) error {
 		role, err := s.roleRepo.GetRoleByNameAndOrg(ctx, roleName, permission.SystemOrgName)
 		if err != nil {
 			if !shared.IsNotFoundError(err) {
-				logger.Error(
-					ctx, "Failed to fetch system role during sync",
-					logfacade.Err(err),
+				logger.With(logfacade.Err(err)).Errorf(
+					ctx, nil, "Failed to fetch system role during sync",
 				)
 				return bizerrors.Wrapf(err, "fetch system role: %s", roleName)
 			}
@@ -64,9 +63,8 @@ func (s *SystemRolePermissionsSyncer) Sync(ctx context.Context) error {
 				OrgName:  permission.SystemOrgName,
 			}
 			if err := s.roleRepo.CreateRole(ctx, role); err != nil {
-				logger.Error(
-					ctx, "Failed to create system role during sync",
-					logfacade.Err(err),
+				logger.With(logfacade.Err(err)).Errorf(
+					ctx, nil, "Failed to create system role during sync",
 				)
 				return bizerrors.Wrapf(err, "create system role: %s", roleName)
 			}
@@ -75,9 +73,8 @@ func (s *SystemRolePermissionsSyncer) Sync(ctx context.Context) error {
 
 		// 2. Delete all existing permissions for this role.
 		if err := s.permRepo.DeletePermissionsByRole(ctx, role.ID); err != nil {
-			logger.Error(
-				ctx, "Failed to delete system role permissions during sync",
-				logfacade.Err(err),
+			logger.With(logfacade.Err(err)).Errorf(
+				ctx, nil, "Failed to delete system role permissions during sync",
 			)
 			return bizerrors.Wrapf(err, "delete permissions for system role: %s", roleName)
 		}
@@ -85,9 +82,8 @@ func (s *SystemRolePermissionsSyncer) Sync(ctx context.Context) error {
 		// 3. Insert current permissions from in-memory definition.
 		for _, perm := range perms {
 			if err := s.permRepo.AddPermission(ctx, role.ID, permission.SystemOrgName, perm); err != nil {
-				logger.Error(
-					ctx, "Failed to insert system role permission during sync",
-					logfacade.Err(err),
+				logger.With(logfacade.Err(err)).Errorf(
+					ctx, nil, "Failed to insert system role permission during sync",
 				)
 				return bizerrors.Wrapf(
 					err,

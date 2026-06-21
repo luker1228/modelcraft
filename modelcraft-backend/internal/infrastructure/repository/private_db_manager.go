@@ -84,7 +84,7 @@ func (m *PrivateDBManager) getHealthyFromCache(ctx context.Context, key string) 
 
 	conn, ok := value.(*sql.DB)
 	if !ok {
-		m.logger.Warn(ctx, "private DB cache type invalid, evicting", logfacade.String("key", key))
+		m.logger.With(logfacade.String("key", key)).Warnf(ctx, "private DB cache type invalid, evicting")
 		m.connections.Delete(key)
 		return nil
 	}
@@ -96,9 +96,9 @@ func (m *PrivateDBManager) getHealthyFromCache(ctx context.Context, key string) 
 		return conn
 	}
 
-	m.logger.Warn(ctx, "private DB ping failed, rebuilding",
+	m.logger.With(
 		logfacade.String("key", key),
-		logfacade.Err(err))
+		logfacade.Err(err)).Warnf(ctx, "private DB ping failed, rebuilding")
 	m.evictByKey(key)
 	return nil
 }
@@ -119,9 +119,9 @@ func (m *PrivateDBManager) createAndCacheConnection(
 	}
 
 	m.connections.Store(key, privateDB)
-	m.logger.Info(ctx, "private DB connected",
+	m.logger.With(
 		logfacade.String("key", key),
-		logfacade.String("database", dbName))
+		logfacade.String("database", dbName)).Infof(ctx, "private DB connected")
 
 	return privateDB, nil
 }
@@ -240,9 +240,9 @@ func (m *PrivateDBManager) Provision(ctx context.Context, orgName, projectSlug s
 	}
 
 	m.connections.Store(key, privateDB)
-	m.logger.Info(ctx, "private DB provisioned",
+	m.logger.With(
 		logfacade.String("key", key),
-		logfacade.String("database", dbName))
+		logfacade.String("database", dbName)).Infof(ctx, "private DB provisioned")
 	return nil
 }
 

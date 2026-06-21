@@ -39,10 +39,10 @@ func (r *mutationResolver) UpdateMyProfile(ctx context.Context, input generated.
 	if err != nil {
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
 			logger := logfacade.GetLogger(ctx)
-			logger.Error(ctx, "failed to update my profile",
+			logger.With(
 				logfacade.Err(bizErr),
 				logfacade.Stack(bizErr),
-			)
+			).Errorf(ctx, nil, "failed to update my profile")
 
 			switch bizErr.Info().GetCode() {
 			case bizerrors.ProfileNotFound.GetCode():
@@ -95,10 +95,10 @@ func (r *queryResolver) MyUserProfile(ctx context.Context) (*generated.GetMyUser
 	if err != nil {
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
 			logger := logfacade.GetLogger(ctx)
-			logger.Error(ctx, "failed to query my user profile",
+			logger.With(
 				logfacade.Err(bizErr),
 				logfacade.Stack(bizErr),
-			)
+			).Errorf(ctx, nil, "failed to query my user profile")
 
 			switch bizErr.Info().GetCode() {
 			case bizerrors.UserNotFound.GetCode():

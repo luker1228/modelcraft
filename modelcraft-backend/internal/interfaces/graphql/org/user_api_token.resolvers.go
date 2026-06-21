@@ -51,7 +51,7 @@ func (r *mutationResolver) CreateUserAPIToken(ctx context.Context, name string, 
 	})
 	if err != nil {
 		logger := logfacade.GetLogger(ctx)
-		logger.Error(ctx, "failed to create API token", logfacade.Err(err))
+		logger.With(logfacade.Err(err)).Errorf(ctx, nil, "failed to create API token")
 		return nil, err
 	}
 
@@ -87,7 +87,7 @@ func (r *mutationResolver) RevokeUserAPIToken(ctx context.Context, id string) (*
 
 	if err := svc.RevokeAPIToken(ctx, id, orgName, userID); err != nil {
 		logger := logfacade.GetLogger(ctx)
-		logger.Error(ctx, "failed to revoke API token", logfacade.Err(err))
+		logger.With(logfacade.Err(err)).Errorf(ctx, nil, "failed to revoke API token")
 		return nil, err
 	}
 
@@ -115,7 +115,7 @@ func (r *queryResolver) UserAPITokens(ctx context.Context) ([]*generated.UserAPI
 	tokens, err := svc.ListAPITokens(ctx, orgName, userID)
 	if err != nil {
 		logger := logfacade.GetLogger(ctx)
-		logger.Error(ctx, "failed to list API tokens", logfacade.Err(err))
+		logger.With(logfacade.Err(err)).Errorf(ctx, nil, "failed to list API tokens")
 		return nil, err
 	}
 

@@ -143,10 +143,10 @@ func (s *ModelDatabaseSyncAppService) StartSync(
 	}
 	s.runner.Go(ctx, func(runCtx context.Context) {
 		if err := s.RunSyncJob(runCtx, job.ID); err != nil {
-			logfacade.GetLogger(runCtx).Error(runCtx, "sync job failed",
+			logfacade.GetLogger(runCtx).With(
 				logfacade.String("job_id", job.ID),
 				logfacade.Err(err),
-			)
+			).Errorf(runCtx, nil, "sync job failed")
 		}
 	})
 	return job, nil
@@ -190,7 +190,7 @@ func (s *ModelDatabaseSyncAppService) RunSyncJob(ctx context.Context, jobID stri
 
 	db, err := s.modelDatabaseRepo.GetByID(ctx, orgName, projectSlug, job.DatabaseID)
 	if err != nil {
-		logger.Errorf(ctx, "sync job: failed to get database, job_id=%s, err=%v", jobID, err)
+		logger.Errorf(ctx, err, "sync job: failed to get database, job_id=%s", jobID)
 		return s.failJob(ctx, job, err)
 	}
 
@@ -204,8 +204,8 @@ func (s *ModelDatabaseSyncAppService) RunSyncJob(ctx context.Context, jobID stri
 
 	tableResult, err := s.reverseEngineer.ListTables(ctx, orgName, projectSlug, db.Name, false, 0, 0)
 	if err != nil {
-		logger.Errorf(ctx, "sync job: ListTables failed, job_id=%s, database=%s, err=%v",
-			jobID, db.Name, err)
+		logger.Errorf(ctx, err, "sync job: ListTables failed, job_id=%s, database=%s",
+			jobID, db.Name)
 		return s.failJob(ctx, job, err)
 	}
 	job.TotalTables = tableResult.TotalCount
@@ -216,15 +216,15 @@ func (s *ModelDatabaseSyncAppService) RunSyncJob(ctx context.Context, jobID stri
 
 	group, err := s.groupService.EnsureImportGroup(ctx, orgName, projectSlug)
 	if err != nil {
-		logger.Errorf(ctx, "sync job: EnsureImportGroup failed, job_id=%s, err=%v",
-			jobID, err)
+		logger.Errorf(ctx, err, "sync job: EnsureImportGroup failed, job_id=%s",
+			jobID)
 		return s.failJob(ctx, job, err)
 	}
 
 	for _, tableName := range tableResult.Tables {
 		if err := s.processTable(ctx, job, db, group, tableName); err != nil {
-			logger.Errorf(ctx, "sync job: processTable failed, job_id=%s, table=%s, err=%v",
-				jobID, tableName, err)
+			logger.Errorf(ctx, err, "sync job: processTable failed, job_id=%s, table=%s",
+				jobID, tableName)
 			return err
 		}
 	}
@@ -325,8 +325,8 @@ func (s *ModelDatabaseSyncAppService) failJob(
 	job *domaindb.ModelDatabaseSyncJob,
 	err error,
 ) error {
-	logfacade.GetLogger(ctx).Errorf(ctx, "sync job failed, job_id=%s, database_id=%s, err=%v",
-		job.ID, job.DatabaseID, err)
+	logfacade.GetLogger(ctx).Errorf(ctx, err, "sync job failed, job_id=%s, database_id=%s",
+		job.ID, job.DatabaseID)
 	now := s.now()
 	job.Status = domaindb.ModelDatabaseSyncJobStatusFailed
 	job.FinishedAt = &now

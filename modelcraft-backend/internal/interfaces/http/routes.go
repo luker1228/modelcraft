@@ -210,7 +210,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	go func() {
 		ctx := context.Background()
 		if err := syncModelsAppService.RecoverStaleJobs(ctx); err != nil {
-			logfacade.GetLogger(ctx).Errorf(ctx, "failed to recover stale model sync jobs: %v", err)
+			logfacade.GetLogger(ctx).Errorf(ctx, err, "failed to recover stale model sync jobs")
 		}
 	}()
 
@@ -485,8 +485,8 @@ func loadRSAPublicKey(cfg *config.Config) (*rsa.PublicKey, error) {
 	if cfg.Auth.Design.JWTPublicKeyPath != "" {
 		data, err := os.ReadFile(cfg.Auth.Design.JWTPublicKeyPath)
 		if err != nil {
-			logger.Errorf(context.Background(),
-				"Failed to read JWT public key file %s: %v", cfg.Auth.Design.JWTPublicKeyPath, err)
+			logger.Errorf(context.Background(), err,
+				"Failed to read JWT public key file %s", cfg.Auth.Design.JWTPublicKeyPath)
 		} else {
 			pemData = data
 			logger.Infof(context.Background(), "Loading RSA public key from file: %s", cfg.Auth.Design.JWTPublicKeyPath)

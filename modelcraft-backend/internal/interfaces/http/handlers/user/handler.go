@@ -36,7 +36,7 @@ func (h *Handler) GetUserMemberships(
 
 	u, err := h.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		h.logger.Errorf(ctx, "Failed to query user: user_id=%s, error=%v", userID, err)
+		h.logger.Errorf(ctx, err, "Failed to query user: user_id=%s", userID)
 		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
 	if u == nil {

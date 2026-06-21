@@ -41,7 +41,7 @@ func (s *GraphqlAppService) GetSchema(ctx context.Context, orgName string, model
 
 	model, err := s.modelRepo.GetByName(ctx, modelLocator)
 	if err != nil {
-		logger.Errorf(ctx, "get model fail: %v", err)
+		logger.Errorf(ctx, err, "get model fail")
 		if shared.IsNotFoundError(err) {
 			return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
 		}
@@ -54,7 +54,7 @@ func (s *GraphqlAppService) GetSchema(ctx context.Context, orgName string, model
 	logger.Infof(ctx, "model=%s", bizutils.MarshalToStringIgnoreErr(model))
 	gschema, err = s.graphqlSchemaManager.NewSchemaFrom(ctx, model)
 	if err != nil {
-		logger.Errorf(ctx, "generate schema fail: %v", err)
+		logger.Errorf(ctx, err, "generate schema fail")
 		return nil, fmt.Errorf("生成schema失败 %s", modelLocator.GetFullPath())
 	}
 	s.graphqlSchemaManager.StoreSchema(ctx, modelLocator, gschema)
@@ -74,7 +74,7 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 	// Load model once — modelID needed by snapshot builder and permission resolution
 	model, err := s.modelRepo.GetByName(ctx, modelLocator)
 	if err != nil {
-		logger.Errorf(ctx, "get model fail: %v", err)
+		logger.Errorf(ctx, err, "get model fail")
 		if shared.IsNotFoundError(err) {
 			return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
 		}
@@ -108,7 +108,7 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 		ctx, orgName, modelLocator.ProjectSlug, modelLocator.DatabaseName,
 	)
 	if err != nil {
-		logger.Errorf(ctx, "get client sql db fail: %v", err)
+		logger.Errorf(ctx, err, "get client sql db fail")
 		return nil, fmt.Errorf("获取客户端数据库失败 %s", databaseName)
 	}
 	// Wrap with RLS intercept layer
