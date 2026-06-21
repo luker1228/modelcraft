@@ -201,80 +201,94 @@ func (p *celWhereParser) parseOperand() (celOperand, error) {
 	token := p.next()
 	switch token.kind {
 	case celTokenIdentifier:
-		switch {
-		case strings.HasPrefix(token.value, "row."):
-			rest := strings.TrimPrefix(token.value, "row.")
-			if rest == "" {
-				return celOperand{}, fmt.Errorf("unsupported row reference %q", token.value)
-			}
-			// row.field.method(args) — method call form
-			if dotIdx := strings.LastIndex(rest, "."); dotIdx >= 0 {
-				field, method := rest[:dotIdx], rest[dotIdx+1:]
-				if field == "" || strings.Contains(field, ".") || method == "" {
-					return celOperand{}, fmt.Errorf("unsupported row reference %q", token.value)
-				}
-				args, err := p.parseCallArgs()
-				if err != nil {
-					return celOperand{}, err
-				}
-				return celOperand{kind: celOperandMethodCall, field: field, methodName: method, list: args}, nil
-			}
-			// plain row.field
-			return celOperand{kind: celOperandField, field: rest}, nil
-		case strings.HasPrefix(token.value, "auth."):
-			ref := strings.TrimPrefix(token.value, "auth.")
-			if ref == "" || strings.Contains(ref, ".") {
-				return celOperand{}, fmt.Errorf("unsupported auth reference %q", token.value)
-			}
-			return celOperand{kind: celOperandValue, value: resolveAuthValue(p.userCtx, ref)}, nil
-		case strings.HasPrefix(token.value, "input."):
-			return celOperand{}, fmt.Errorf("input is not allowed in using expression")
-		default:
-			return celOperand{}, fmt.Errorf("unsupported identifier %q", token.value)
-		}
+		return p.parseIdentifierOperand(token)
 	case celTokenString:
 		return celOperand{kind: celOperandValue, value: token.value}, nil
 	case celTokenNumber:
-		n, err := strconv.ParseFloat(token.value, 64)
-		if err != nil {
-			return celOperand{}, err
-		}
-		if strings.Contains(token.value, ".") {
-			return celOperand{kind: celOperandValue, value: n}, nil
-		}
-		return celOperand{kind: celOperandValue, value: int64(n)}, nil
+		return parseNumberOperand(token), nil
 	case celTokenBool:
 		return celOperand{kind: celOperandValue, value: token.value == "true"}, nil
 	case celTokenNull:
 		return celOperand{kind: celOperandValue, value: nil}, nil
 	case celTokenLBracket:
-		var values []interface{}
-		if p.peek().kind == celTokenRBracket {
-			p.next()
-			return celOperand{kind: celOperandList, list: values}, nil
-		}
-		for {
-			item, err := p.parseOperand()
-			if err != nil {
-				return celOperand{}, err
-			}
-			if item.kind != celOperandValue {
-				return celOperand{}, fmt.Errorf("array literal supports only scalar values")
-			}
-			values = append(values, item.value)
-			if p.peek().kind == celTokenComma {
-				p.next()
-				continue
-			}
-			if _, err := p.expect(celTokenRBracket, "]"); err != nil {
-				return celOperand{}, err
-			}
-			break
-		}
-		return celOperand{kind: celOperandList, list: values}, nil
+		return p.parseArrayLiteral()
 	default:
 		return celOperand{}, fmt.Errorf("unexpected token %q", token.value)
 	}
+}
+
+func (p *celWhereParser) parseIdentifierOperand(token celToken) (celOperand, error) {
+	switch {
+	case strings.HasPrefix(token.value, "row."):
+		return p.parseRowOperand(token)
+	case strings.HasPrefix(token.value, "auth."):
+		ref := strings.TrimPrefix(token.value, "auth.")
+		if ref == "" || strings.Contains(ref, ".") {
+			return celOperand{}, fmt.Errorf("unsupported auth reference %q", token.value)
+		}
+		return celOperand{kind: celOperandValue, value: resolveAuthValue(p.userCtx, ref)}, nil
+	case strings.HasPrefix(token.value, "input."):
+		return celOperand{}, fmt.Errorf("input is not allowed in using expression")
+	default:
+		return celOperand{}, fmt.Errorf("unsupported identifier %q", token.value)
+	}
+}
+
+func (p *celWhereParser) parseRowOperand(token celToken) (celOperand, error) {
+	rest := strings.TrimPrefix(token.value, "row.")
+	if rest == "" {
+		return celOperand{}, fmt.Errorf("unsupported row reference %q", token.value)
+	}
+	if dotIdx := strings.LastIndex(rest, "."); dotIdx >= 0 {
+		field, method := rest[:dotIdx], rest[dotIdx+1:]
+		if field == "" || strings.Contains(field, ".") || method == "" {
+			return celOperand{}, fmt.Errorf("unsupported row reference %q", token.value)
+		}
+		args, err := p.parseCallArgs()
+		if err != nil {
+			return celOperand{}, err
+		}
+		return celOperand{kind: celOperandMethodCall, field: field, methodName: method, list: args}, nil
+	}
+	return celOperand{kind: celOperandField, field: rest}, nil
+}
+
+func (p *celWhereParser) parseArrayLiteral() (celOperand, error) {
+	if p.peek().kind == celTokenRBracket {
+		p.next()
+		return celOperand{kind: celOperandList, list: nil}, nil
+	}
+	var values []interface{}
+	for {
+		item, err := p.parseOperand()
+		if err != nil {
+			return celOperand{}, err
+		}
+		if item.kind != celOperandValue {
+			return celOperand{}, fmt.Errorf("array literal supports only scalar values")
+		}
+		values = append(values, item.value)
+		if p.peek().kind == celTokenComma {
+			p.next()
+			continue
+		}
+		if _, err := p.expect(celTokenRBracket, "]"); err != nil {
+			return celOperand{}, err
+		}
+		break
+	}
+	return celOperand{kind: celOperandList, list: values}, nil
+}
+
+func parseNumberOperand(token celToken) celOperand {
+	n, err := strconv.ParseFloat(token.value, 64)
+	if err != nil {
+		return celOperand{kind: celOperandValue, value: token.value}
+	}
+	if strings.Contains(token.value, ".") {
+		return celOperand{kind: celOperandValue, value: n}
+	}
+	return celOperand{kind: celOperandValue, value: int64(n)}
 }
 
 func buildComparisonSQL(left celOperand, op string, right celOperand) (string, []interface{}, error) {
@@ -386,106 +400,125 @@ func buildMethodCallSQL(op celOperand) (string, []interface{}, error) {
 func tokenizeCELWhere(expr string) []celToken {
 	tokens := make([]celToken, 0, len(expr))
 	for i := 0; i < len(expr); {
-		switch ch := expr[i]; {
-		case ch == ' ' || ch == '\n' || ch == '\t' || ch == '\r':
-			i++
-		case ch == '(':
-			tokens = append(tokens, celToken{kind: celTokenLParen, value: "("})
-			i++
-		case ch == ')':
-			tokens = append(tokens, celToken{kind: celTokenRParen, value: ")"})
-			i++
-		case ch == '[':
-			tokens = append(tokens, celToken{kind: celTokenLBracket, value: "["})
-			i++
-		case ch == ']':
-			tokens = append(tokens, celToken{kind: celTokenRBracket, value: "]"})
-			i++
-		case ch == ',':
-			tokens = append(tokens, celToken{kind: celTokenComma, value: ","})
-			i++
-		case ch == '"' || ch == '\'':
-			start := i
-			i++
-			for i < len(expr) {
-				if expr[i] == '\\' {
-					i += 2
-					continue
-				}
-				if expr[i] == ch {
-					break
-				}
-				i++
-			}
-			if i >= len(expr) {
-				tokens = append(tokens, celToken{kind: celTokenString, value: expr[start+1:]})
-				break
-			}
-			raw := expr[start : i+1]
-			value, err := strconv.Unquote(raw)
-			if err != nil {
-				value = expr[start+1 : i]
-			}
-			tokens = append(tokens, celToken{kind: celTokenString, value: value})
-			i++
-		case i+1 < len(expr) && expr[i:i+2] == "&&":
-			tokens = append(tokens, celToken{kind: celTokenOperator, value: "&&"})
-			i += 2
-		case i+1 < len(expr) && expr[i:i+2] == "||":
-			tokens = append(tokens, celToken{kind: celTokenOperator, value: "||"})
-			i += 2
-		case i+1 < len(expr) && expr[i:i+2] == "==":
-			tokens = append(tokens, celToken{kind: celTokenOperator, value: "=="})
-			i += 2
-		case i+1 < len(expr) && expr[i:i+2] == "!=":
-			tokens = append(tokens, celToken{kind: celTokenOperator, value: "!="})
-			i += 2
-		case i+1 < len(expr) && expr[i:i+2] == ">=":
-			tokens = append(tokens, celToken{kind: celTokenOperator, value: ">="})
-			i += 2
-		case i+1 < len(expr) && expr[i:i+2] == "<=":
-			tokens = append(tokens, celToken{kind: celTokenOperator, value: "<="})
-			i += 2
-		case ch == '!':
-			tokens = append(tokens, celToken{kind: celTokenOperator, value: "!"})
-			i++
-		case ch == '>':
-			tokens = append(tokens, celToken{kind: celTokenOperator, value: ">"})
-			i++
-		case ch == '<':
-			tokens = append(tokens, celToken{kind: celTokenOperator, value: "<"})
-			i++
-		case isIdentifierStart(ch):
-			start := i
-			i++
-			for i < len(expr) && isIdentifierPart(expr[i]) {
-				i++
-			}
-			value := expr[start:i]
-			switch value {
-			case "true", "false":
-				tokens = append(tokens, celToken{kind: celTokenBool, value: value})
-			case "null":
-				tokens = append(tokens, celToken{kind: celTokenNull, value: value})
-			case "in":
-				tokens = append(tokens, celToken{kind: celTokenOperator, value: value})
-			default:
-				tokens = append(tokens, celToken{kind: celTokenIdentifier, value: value})
-			}
-		case isDigit(ch):
-			start := i
-			i++
-			for i < len(expr) && (isDigit(expr[i]) || expr[i] == '.') {
-				i++
-			}
-			tokens = append(tokens, celToken{kind: celTokenNumber, value: expr[start:i]})
-		default:
-			tokens = append(tokens, celToken{kind: celTokenOperator, value: string(ch)})
-			i++
+		token, skip := scanToken(expr, i)
+		if token != nil {
+			tokens = append(tokens, *token)
 		}
+		i += skip
 	}
 	tokens = append(tokens, celToken{kind: celTokenEOF, value: ""})
 	return tokens
+}
+
+func scanToken(expr string, i int) (*celToken, int) {
+	ch := expr[i]
+	switch {
+	case ch == ' ' || ch == '\n' || ch == '\t' || ch == '\r':
+		return nil, 1
+	case ch == '(':
+		return &celToken{kind: celTokenLParen, value: "("}, 1
+	case ch == ')':
+		return &celToken{kind: celTokenRParen, value: ")"}, 1
+	case ch == '[':
+		return &celToken{kind: celTokenLBracket, value: "["}, 1
+	case ch == ']':
+		return &celToken{kind: celTokenRBracket, value: "]"}, 1
+	case ch == ',':
+		return &celToken{kind: celTokenComma, value: ","}, 1
+	case ch == '"' || ch == '\'':
+		token, skip := scanString(expr, i, ch)
+		return token, skip
+	case i+1 < len(expr):
+		if token, skip := scanTwoCharOperator(expr, i); token != nil {
+			return token, skip
+		}
+		return scanDefault(expr, i, ch)
+	default:
+		return scanDefault(expr, i, ch)
+	}
+}
+
+func scanString(expr string, i int, quote byte) (*celToken, int) {
+	start := i
+	i++
+	for i < len(expr) {
+		if expr[i] == '\\' {
+			i += 2
+			continue
+		}
+		if expr[i] == quote {
+			break
+		}
+		i++
+	}
+	if i >= len(expr) {
+		return &celToken{kind: celTokenString, value: expr[start+1:]}, 1
+	}
+	raw := expr[start : i+1]
+	value, err := strconv.Unquote(raw)
+	if err != nil {
+		value = expr[start+1 : i]
+	}
+	return &celToken{kind: celTokenString, value: value}, i - start + 1
+}
+
+func scanTwoCharOperator(expr string, i int) (*celToken, int) {
+	pair := expr[i : i+2]
+	switch pair {
+	case "&&":
+		return &celToken{kind: celTokenOperator, value: "&&"}, 2
+	case "||":
+		return &celToken{kind: celTokenOperator, value: "||"}, 2
+	case "==":
+		return &celToken{kind: celTokenOperator, value: "=="}, 2
+	case "!=":
+		return &celToken{kind: celTokenOperator, value: "!="}, 2
+	case ">=":
+		return &celToken{kind: celTokenOperator, value: ">="}, 2
+	case "<=":
+		return &celToken{kind: celTokenOperator, value: "<="}, 2
+	}
+	return nil, 0
+}
+
+func scanDefault(expr string, i int, ch byte) (*celToken, int) {
+	switch {
+	case ch == '!':
+		return &celToken{kind: celTokenOperator, value: "!"}, 1
+	case ch == '>':
+		return &celToken{kind: celTokenOperator, value: ">"}, 1
+	case ch == '<':
+		return &celToken{kind: celTokenOperator, value: "<"}, 1
+	case isIdentifierStart(ch):
+		start := i
+		i++
+		for i < len(expr) && isIdentifierPart(expr[i]) {
+			i++
+		}
+		return makeIdentifierToken(expr[start:i]), i - start
+	case isDigit(ch):
+		start := i
+		i++
+		for i < len(expr) && (isDigit(expr[i]) || expr[i] == '.') {
+			i++
+		}
+		return &celToken{kind: celTokenNumber, value: expr[start:i]}, i - start
+	default:
+		return &celToken{kind: celTokenOperator, value: string(ch)}, 1
+	}
+}
+
+func makeIdentifierToken(value string) *celToken {
+	switch value {
+	case "true", "false":
+		return &celToken{kind: celTokenBool, value: value}
+	case "null":
+		return &celToken{kind: celTokenNull, value: value}
+	case "in":
+		return &celToken{kind: celTokenOperator, value: value}
+	default:
+		return &celToken{kind: celTokenIdentifier, value: value}
+	}
 }
 
 func isComparisonOperator(op string) bool {
