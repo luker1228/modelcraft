@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -123,9 +122,6 @@ func (z *ZapLogger) extractErrFields(err error) []zap.Field {
 		return nil
 	}
 	fields := []zap.Field{zap.String(ErrorFieldKey, err.Error())}
-	if _, ok := err.(interface{ StackTrace() errors.StackTrace }); ok {
-		fields = append(fields, zap.Any(StackFieldKey, fmt.Sprintf("%+v", err)))
-	}
 	return fields
 }
 

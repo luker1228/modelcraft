@@ -1,24 +1,45 @@
 package bizerrors
 
 import (
-	stderrors "errors" // 标准库重命名
-
-	pkgerrors "github.com/pkg/errors"
+	"errors"
+	"fmt"
 )
 
-// 完全替换标准库 errors
-// 对外暴露的接口保持与标准库一致
 var (
-	New       = pkgerrors.New
-	Errorf    = pkgerrors.Errorf
-	Wrap      = pkgerrors.Wrap
-	Wrapf     = pkgerrors.Wrapf
-	WithStack = pkgerrors.WithStack
-	Cause     = pkgerrors.Cause
-	Is        = pkgerrors.Is
-	As        = pkgerrors.As
-	Unwrap    = pkgerrors.Unwrap
+	New    = fmt.Errorf
+	Errorf = fmt.Errorf
 )
 
-// 禁止使用标准库
-var _ = stderrors.New // 仅用于类型检查
+func Wrap(err error, message string) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%s: %w", message, err)
+}
+
+func Wrapf(err error, format string, args ...any) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%s: %w", fmt.Sprintf(format, args...), err)
+}
+
+func WithStack(err error) error {
+	return err
+}
+
+func Cause(err error) error {
+	for {
+		unwrapped := errors.Unwrap(err)
+		if unwrapped == nil {
+			return err
+		}
+		err = unwrapped
+	}
+}
+
+var (
+	Is      = errors.Is
+	As      = errors.As
+	Unwrap  = errors.Unwrap
+)

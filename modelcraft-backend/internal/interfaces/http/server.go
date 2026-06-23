@@ -72,8 +72,7 @@ func (s *Server) GetUserMemberships(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := ctxutils.GetUserIDFromContext(r.Context())
 	if err != nil {
-		logger.With(logfacade.Err(err), logfacade.Stack(err)).
-			Errorf(r.Context(), nil, "User ID not found in request context")
+		logger.Errorf(r.Context(), err, "User ID not found in request context")
 		writeJSON(w, http.StatusUnauthorized, generated.UnauthorizedError{
 			Error: struct {
 				Code    generated.UnauthorizedErrorErrorCode `json:"code"`
@@ -88,7 +87,7 @@ func (s *Server) GetUserMemberships(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.userHandler.GetUserMemberships(r.Context(), userID)
 	if err != nil {
-		logger.With(logfacade.Err(err), logfacade.Stack(err)).Errorf(r.Context(), nil, "Failed to get user memberships")
+		logger.Errorf(r.Context(), err, "Failed to get user memberships")
 		writeJSON(w, http.StatusInternalServerError, generated.SystemError{
 			Error: struct {
 				Code    generated.SystemErrorErrorCode `json:"code"`

@@ -136,8 +136,7 @@ func (h *ModelRuntimeHandler) HandleQuery(w http.ResponseWriter, r *http.Request
 			statusCode = bizErr.GetHTTPStatusCode()
 		}
 		if statusCode >= 500 {
-			logger.With(logfacade.Err(err), logfacade.Stack(err)).
-				Errorf(r.Context(), nil, "Runtime GraphQL execution failed")
+			logger.Errorf(r.Context(), err, "Runtime GraphQL execution failed")
 		}
 		requestID := ctxutils.GetRequestID(r.Context())
 		w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)

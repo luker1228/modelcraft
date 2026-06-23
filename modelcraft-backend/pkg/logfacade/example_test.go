@@ -2,11 +2,10 @@ package logfacade
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
-
-	pkgerrors "github.com/pkg/errors"
 )
 
 // TestWriteToFile 测试将日志写入文件
@@ -150,8 +149,8 @@ func TestContextualLogging(t *testing.T) {
 	logger.With(String("module", "auth")).Infof(ctx, "认证模块日志")
 }
 
-// TestErrorLoggingWithStack 测试错误日志与堆栈跟踪
-func TestErrorLoggingWithStack(t *testing.T) {
+// TestErrorLogging 测试错误日志
+func TestErrorLogging(t *testing.T) {
 	config := Config{
 		Level:      ErrorLevel,
 		OutputPath: "stdout",
@@ -162,19 +161,18 @@ func TestErrorLoggingWithStack(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 
-	// Example 1: Log with error message only (no stack)
-	simpleErr := pkgerrors.New("simple error")
+	// Example 1: Log with error message
+	simpleErr := fmt.Errorf("simple error")
 	logger.Errorf(context.Background(), simpleErr, "Operation failed")
 
-	// Example 2: Log with stack trace
-	dbErr := pkgerrors.New("database connection timeout")
-	wrappedErr := pkgerrors.Wrap(dbErr, "failed to initialize database pool")
+	// Example 2: Log with wrapped error
+	dbErr := fmt.Errorf("database connection timeout")
+	wrappedErr := fmt.Errorf("failed to initialize database pool: %w", dbErr)
 	logger.Errorf(context.Background(), wrappedErr, "Database initialization failed")
 
-	// Example 3: Log with both error message and stack trace
-	// Errorf 自动注入 error 和 stack 结构化字段；With 可追加任意额外字段
-	apiErr := pkgerrors.New("API endpoint not found")
-	contextErr := pkgerrors.Wrap(apiErr, "failed to process request")
+	// Example 3: Log with additional fields
+	apiErr := fmt.Errorf("API endpoint not found")
+	contextErr := fmt.Errorf("failed to process request: %w", apiErr)
 	logger.With(
 		String("endpoint", "/api/v1/users"),
 		Int("status", 404),

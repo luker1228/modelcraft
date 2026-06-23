@@ -634,7 +634,7 @@ func (r *queryResolver) Model(ctx context.Context, id string, withActualSchema *
 		}
 		actualResult, err = r.ActualSchemaQueryUseCase.Query(ctx, modelEntity, orgName)
 		if err != nil {
-			logfacade.GetLogger(ctx).With(logfacade.Err(err), logfacade.Stack(err)).Errorf(ctx, nil, "Failed to query actual schema")
+			logfacade.GetLogger(ctx).Errorf(ctx, err, "Failed to query actual schema")
 			return nil, fmt.Errorf("failed to query actual schema: %w", err)
 		}
 	}
@@ -650,7 +650,7 @@ func (r *queryResolver) Model(ctx context.Context, id string, withActualSchema *
 		generator := modeldesign.NewJSONSchemaGenerator()
 		schemaJSON, err := generator.GenerateSchema(modelEntity)
 		if err != nil {
-			logfacade.GetLogger(ctx).With(logfacade.Err(err), logfacade.Stack(err)).Errorf(ctx, nil, "failed to generate jsonSchema")
+			logfacade.GetLogger(ctx).Errorf(ctx, err, "failed to generate jsonSchema")
 			return nil, fmt.Errorf("failed to generate JSON Schema: %w", err)
 		}
 		graphqlModel.JSONSchema = &schemaJSON

@@ -25,6 +25,7 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
+	github.com/alitto/pond v1.9.2
 	github.com/bmatcuk/doublestar/v4 v4.6.1
 	github.com/casbin/casbin/v2 v2.135.0
 	github.com/getkin/kin-openapi v0.133.0
@@ -45,7 +46,6 @@ require (
 
 require (
 	cel.dev/expr v0.25.1 // indirect
-	github.com/alitto/pond v1.9.2 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/bytedance/sonic v1.10.0-rc3 // indirect
 	github.com/casbin/govaluate v1.3.0 // indirect
@@ -106,7 +106,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
-	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
 	github.com/spf13/afero v1.8.2 // indirect

@@ -3,11 +3,10 @@ package logfacade
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
-
-	pkgerrors "github.com/pkg/errors"
 )
 
 // 用临时文件承载日志输出，返回文件内容字符串
@@ -40,20 +39,13 @@ func captureLog(t *testing.T, fn func(l Logger)) string {
 	return string(content)
 }
 
-// makeStackErr 用 pkg/errors 构造带堆栈的 error
-func makeStackErr() error {
-	return pkgerrors.Wrap(pkgerrors.New("db connection timeout"), "failed to init db")
-}
-
-// makePlainErr 构造不带堆栈的标准库 error（不是 pkg/errors）
 func makePlainErr() error {
 	return errors.New("plain std error")
 }
 
-// TestErrorfAutoStackWithStackErr 验证：传入 pkg/errors 包装的 err，
-// 即使用 %v 也自动输出 "error" 结构化字段和 "stack" 字段（含堆栈帧）
-func TestErrorfAutoStackWithStackErr(t *testing.T) {
-	err := makeStackErr()
+// TestErrorfWithErr 验证：传入 err 时输出 "error" 结构化字段
+func TestErrorfWithErr(t *testing.T) {
+	err := fmt.Errorf("db connection timeout: failed to init db")
 
 	content := captureLog(t, func(l Logger) {
 		l.Errorf(context.Background(), err, "op failed: %v", err)
@@ -66,22 +58,11 @@ func TestErrorfAutoStackWithStackErr(t *testing.T) {
 	if !strings.Contains(content, `"error"`) {
 		t.Errorf("expected structured 'error' field, got:\n%s", content)
 	}
-
-	if !strings.Contains(content, `"stack"`) {
-		t.Errorf("expected structured 'stack' field, got:\n%s", content)
-	}
-
-	// stack 字段应包含多个 .go: 堆栈帧
-	stackLineCount := strings.Count(content, ".go:")
-	if stackLineCount < 3 {
-		t.Errorf("expected >=3 stack frames (.go:), got %d:\n%s", stackLineCount, content)
-	}
 }
 
-// TestErrorfAutoStackOnlyErrorField 验证：传入带堆栈的 err，
-// msg 里不写任何 %v，堆栈仍能输出
+// TestErrorfAutoStackOnlyErrorField 验证：err 只输出 error 字段
 func TestErrorfAutoStackOnlyErrorField(t *testing.T) {
-	err := makeStackErr()
+	err := fmt.Errorf("db connection timeout: failed to init db")
 
 	content := captureLog(t, func(l Logger) {
 		l.Errorf(context.Background(), err, "op failed")
@@ -90,13 +71,9 @@ func TestErrorfAutoStackOnlyErrorField(t *testing.T) {
 	if !strings.Contains(content, `"error"`) {
 		t.Errorf("expected 'error' field, got:\n%s", content)
 	}
-	if !strings.Contains(content, `"stack"`) {
-		t.Errorf("expected 'stack' field, got:\n%s", content)
-	}
 }
 
-// TestErrorfAutoStackPlainErr 验证：传入标准库 error（无 StackTrace），
-// 只输出 error 字段，不输出 stack 字段
+// TestErrorfAutoStackPlainErr 验证：传入标准库 error，只输出 error 字段，不输出 stack 字段
 func TestErrorfAutoStackPlainErr(t *testing.T) {
 	err := makePlainErr()
 

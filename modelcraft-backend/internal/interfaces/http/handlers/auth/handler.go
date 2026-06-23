@@ -299,13 +299,13 @@ func (h *Handler) handleBusinessError(
 	bizErr, ok := err.(*bizerrors.BusinessError)
 	if !ok {
 		// Not a BusinessError — unexpected system error
-		logfacade.GetLogger(r.Context()).With(logfacade.Err(err), logfacade.Stack(err)).Errorf(r.Context(), nil, logMsg)
+		logfacade.GetLogger(r.Context()).Errorf(r.Context(), err, logMsg)
 		writeAuthError(w, http.StatusInternalServerError, requestID, "SYSTEM_ERROR", "Internal server error")
 		return
 	}
 
 	// Log with stack at the Interfaces layer error conversion point
-	logfacade.GetLogger(r.Context()).With(logfacade.Err(err), logfacade.Stack(err)).Errorf(r.Context(), nil, logMsg)
+	logfacade.GetLogger(r.Context()).Errorf(r.Context(), err, logMsg)
 
 	statusCode := bizErr.GetHTTPStatusCode()
 	code := bizErr.Info().GetCode()

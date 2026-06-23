@@ -122,15 +122,8 @@ package logfacade
 //	}
 //
 // ------------------------------------------------------------------
-// 9. 与旧代码（显式 Err/Stack）的对比
+// 9. Errorf 使用方式
 // ------------------------------------------------------------------
 //
-// 旧：
-//	logger.With(logfacade.Err(err), logfacade.Stack(err)).Errorf(ctx, "msg: %v", err)
-//	// 调用方要记得 With Err+Stack，还要在 format 里写 %v 或 %+v
-//
-// 新：
 //	logger.Errorf(ctx, err, "msg")
-//	// 自动注入 error + stack，且不依赖 format 写法
-//
-// Err / Stack 作为 Field helper 仍保留，但业务代码无需再手动 With（Errorf 内部已等价做这件事）。
+//	// 自动注入 error 结构化字段

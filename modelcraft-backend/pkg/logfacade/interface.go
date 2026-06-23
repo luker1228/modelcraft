@@ -2,10 +2,7 @@ package logfacade
 
 import (
 	"context"
-	"fmt"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // Logger 定义了日志记录接口，隐藏底层实现细节，支持多种日志库的无缝切换。
@@ -199,47 +196,10 @@ func Duration(key string, val time.Duration) Field {
 //
 //	logger.With(logfacade.Err(err)).Errorf(ctx, "操作失败")
 func Err(err error) Field {
-	// 如果有堆栈信息
-	if _, ok := err.(interface{ StackTrace() errors.StackTrace }); ok {
-		return Field{Key: "error", Value: fmt.Sprintf("%+v", err)}
-	}
-
-	// 普通错误
 	return Field{Key: "error", Value: err}
 }
 
-// Stack 创建一个堆栈跟踪类型的日志字段。
-// 该函数自动使用 "stack" 作为字段名，将错误的堆栈跟踪信息作为值。
-// 用于打印"错误产生点的栈"，使用 fmt.Sprintf("%+v", err) 把 pkg/errors 的 stack 打出来。
-//
-// 参数：
-//   - err: 错误对象（需要是 pkg/errors 包装的错误才有堆栈信息）
-//
-// 返回：
-//   - Field: 包含键值对的日志字段，其中 Key 为 "stack"
-//
-// 示例：
-//
-//	// 带有堆栈跟踪的错误
-//	err := pkgerrors.Wrap(originalErr, "context")
-//	logger.With(logfacade.Stack(err)).Errorf(ctx, "operation failed")
-//
-//	// 将同时打印错误信息和堆栈跟踪
-//	logger.With(logfacade.Err(err), logfacade.Stack(err)).Errorf(ctx, "operation failed")
-func Stack(err error) Field {
-	if err == nil {
-		return Field{Key: "stack", Value: nil}
-	}
 
-	// 检查错误是否实现了 StackTrace 接口（pkg/errors 提供的接口）
-	if _, ok := err.(interface{ StackTrace() errors.StackTrace }); ok {
-		// 使用 %+v 格式化，打印完整的堆栈跟踪信息
-		return Field{Key: "stack", Value: fmt.Sprintf("%+v", err)}
-	}
-
-	// 如果没有堆栈信息，直接返回错误本身
-	return Field{Key: "stack", Value: err}
-}
 
 // Any 创建一个任意类型的日志字段。
 // 该函数用于记录不属于上述任何预定义类型的值。
