@@ -196,7 +196,7 @@ func Duration(key string, val time.Duration) Field {
 //
 //	logger.With(logfacade.Err(err)).Errorf(ctx, "操作失败")
 func Err(err error) Field {
-	return Field{Key: "error", Value: err}
+	return Field{Key: ErrorFieldKey, Value: err}
 }
 
 

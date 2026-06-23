@@ -65,12 +65,13 @@ func TestWrapf(t *testing.T) {
 }
 
 func TestWithStack(t *testing.T) {
-	t.Run("不添加堆栈跟踪（当前实现为 no-op）", func(t *testing.T) {
+	t.Run("添加堆栈跟踪", func(t *testing.T) {
 		baseErr := errors.New("标准库错误")
 		stackErr := WithStack(baseErr)
 
 		assert.Error(t, stackErr)
-		assert.Equal(t, baseErr, stackErr)
+		assert.Equal(t, baseErr.Error(), stackErr.Error())
+		assert.NotEqual(t, baseErr, stackErr) // wrapped with stack frames
 	})
 
 	t.Run("nil 错误处理", func(t *testing.T) {
@@ -172,8 +173,16 @@ func TestUnwrap(t *testing.T) {
 		baseErr := New("基础错误")
 		wrappedErr := Wrap(baseErr, "包装消息")
 
-		unwrapped := Unwrap(wrappedErr)
-		assert.Equal(t, baseErr, unwrapped)
+		// Wrap → withStack{wrapError{baseErr}}
+		// Unwrap(withStack) → wrapError
+		u1 := Unwrap(wrappedErr)
+		assert.NotNil(t, u1)
+		assert.Contains(t, u1.Error(), "包装消息")
+		assert.Contains(t, u1.Error(), "基础错误")
+
+		// Unwrap(wrapError) → baseErr
+		u2 := Unwrap(u1)
+		assert.Equal(t, baseErr, u2)
 	})
 
 	t.Run("解包未包装错误", func(t *testing.T) {
@@ -187,14 +196,26 @@ func TestUnwrap(t *testing.T) {
 		middleErr := Wrap(rootErr, "中间层")
 		topErr := Wrap(middleErr, "顶层")
 
-		u1 := Unwrap(topErr)
-		assert.Equal(t, middleErr, u1)
+		// topErr = withStack{wrapError{msg:"顶层: 中间层: 根错误", err:middleErr}}
+		// middleErr = withStack{wrapError{msg:"中间层: 根错误", err:rootErr}}
 
-		u2 := Unwrap(u1)
-		assert.Equal(t, rootErr, u2)
+		u1 := Unwrap(topErr) // wrapError{msg:"顶层:...", err:middleErr}
+		assert.NotNil(t, u1)
+		assert.Contains(t, u1.Error(), "顶层")
 
-		u3 := Unwrap(u2)
-		assert.Nil(t, u3)
+		u2 := Unwrap(u1) // middleErr (withStack)
+		assert.NotNil(t, u2)
+		assert.Contains(t, u2.Error(), "中间层")
+
+		u3 := Unwrap(u2) // wrapError{msg:"中间层:...", err:rootErr}
+		assert.NotNil(t, u3)
+		assert.Contains(t, u3.Error(), "中间层")
+
+		u4 := Unwrap(u3) // rootErr
+		assert.Equal(t, rootErr, u4)
+
+		u5 := Unwrap(u4)
+		assert.Nil(t, u5)
 	})
 }
 

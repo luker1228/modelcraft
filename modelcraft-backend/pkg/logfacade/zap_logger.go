@@ -2,6 +2,7 @@ package logfacade
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -116,12 +117,21 @@ func (z *ZapLogger) Fatalf(ctx context.Context, err error, format string, args .
 
 // extractErrFields produces structured fields from an error:
 // always an "error" field; additionally a "stack" field when the error
-// carries a stack trace (e.g. pkg/errors).
+// carries a stack trace (via StackTrace() []uintptr interface).
 func (z *ZapLogger) extractErrFields(err error) []zap.Field {
 	if err == nil {
 		return nil
 	}
-	fields := []zap.Field{zap.String(ErrorFieldKey, err.Error())}
+	fields := []zap.Field{
+		zap.String(ErrorFieldKey, err.Error()),
+	}
+	// walk error chain to find stack tracer
+	for e := err; e != nil; e = errors.Unwrap(e) {
+		if st, ok := e.(interface{ StackTrace() []uintptr }); ok {
+			fields = append(fields, zap.String(StackFieldKey, fmt.Sprintf("%+v", st)))
+			break
+		}
+	}
 	return fields
 }
 
