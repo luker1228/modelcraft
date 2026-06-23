@@ -22,6 +22,7 @@ const (
 	XProjectSlug     = "X-Project-Slug"
 	XRequestID       = "X-Request-Id"
 	XClientRequestID = "X-Client-Request-Id"
+	XTcAction        = "X-TC-Action"
 	Traceparent      = "Traceparent"
 
 	// XMCAuthUserID is injected by the gateway for RLS context propagation.

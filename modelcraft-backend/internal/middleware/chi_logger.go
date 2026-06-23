@@ -3,6 +3,8 @@ package middleware
 import (
 	"bytes"
 	"io"
+	"modelcraft/pkg/bizerrors"
+	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
@@ -10,6 +12,7 @@ import (
 	"time"
 
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 )
 
 // chiResponseWriter wraps Chi's response writer to capture response body
@@ -26,39 +29,52 @@ func (w *chiResponseWriter) Write(b []byte) (int, error) {
 // ChiLoggerMiddleware returns a Chi-compatible structured logging middleware.
 // It logs request start/end with duration, status code, and all tracing identifiers:
 // request_id, client_request_id, trace_id, span_id (parsed from W3C traceparent header).
-// A request-scoped logger carrying these fields is stored in context so downstream
-// handlers can retrieve it via logfacade.GetLogger(ctx).
+//
+// It is also the single source of request_id: Chi ctx → X-Request-ID header → UUID fallback.
+// The resolved request_id is written into the HttpRequestContext (for downstream business code)
+// and into a request-scoped logger (stored via logfacade.WithLogger) so both share one id.
 func ChiLoggerMiddleware(logger logfacade.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 
-			// request_id — forwarded by the Gateway (always present in production)
+			// request_id — single source: Chi ctx → X-Request-ID header → UUID fallback
 			requestID := chimw.GetReqID(r.Context())
 			if requestID == "" {
 				requestID = r.Header.Get(httpheader.XRequestID)
+			}
+			if requestID == "" {
+				requestID = uuid.NewString()
 			}
 
 			// Set X-Request-ID response header
 			w.Header().Set(httpheader.XRequestID, requestID)
 
+			// Parse language from Accept-Language header; default to English.
+			lang := bizerrors.ParseLanguage(r.Header.Get(httpheader.AcceptLanguage))
+			if lang == "" {
+				lang = bizerrors.LangEN
+			}
+
 			// Build scoped logger fields: always include request_id; add
 			// client_request_id, trace_id, span_id when present.
-			logFields := []logfacade.Field{logfacade.String("request_id", requestID)}
+			logFields := []logfacade.Field{logfacade.String(logfacade.RequestIDKey, requestID)}
 
 			if clientReqID := r.Header.Get(httpheader.XClientRequestID); clientReqID != "" {
-				logFields = append(logFields, logfacade.String("client_request_id", clientReqID))
+				logFields = append(logFields, logfacade.String(logfacade.ClientRequestIDKey, clientReqID))
 			}
 
 			if traceID, spanID, ok := parseTraceparent(r.Header.Get(httpheader.Traceparent)); ok {
 				logFields = append(logFields,
-					logfacade.String("trace_id", traceID),
-					logfacade.String("span_id", spanID),
+					logfacade.String(logfacade.TraceIDKey, traceID),
+					logfacade.String(logfacade.SpanIDKey, spanID),
 				)
 			}
 
 			requestLogger := logger.With(logFields...)
 			ctx := logfacade.WithLogger(r.Context(), requestLogger)
+			ctx = ctxutils.SetRequestID(ctx, requestID)
+			ctx = ctxutils.SetLang(ctx, lang)
 			r = r.WithContext(ctx)
 
 			// Read and capture request body
@@ -72,12 +88,13 @@ func ChiLoggerMiddleware(logger logfacade.Logger) func(http.Handler) http.Handle
 			}
 
 			requestLogger.With(
-				logfacade.String("method", r.Method),
-				logfacade.String("url", r.URL.String()),
-				logfacade.String("path", r.URL.Path),
-				logfacade.String("remote_addr", r.RemoteAddr),
-				logfacade.String("user_agent", r.UserAgent()),
-				logfacade.String("request_body", requestBody),
+				logfacade.String(logfacade.MethodKey, r.Method),
+				logfacade.String(logfacade.URLKey, r.URL.String()),
+				logfacade.String(logfacade.PathKey, r.URL.Path),
+				logfacade.String(logfacade.RemoteAddrKey, r.RemoteAddr),
+				logfacade.String(logfacade.UserAgentKey, r.UserAgent()),
+				logfacade.String(logfacade.ActionKey, r.Header.Get(httpheader.XTcAction)),
+				logfacade.String(logfacade.RequestBodyKey, requestBody),
 			).Infof(r.Context(), "request_start")
 
 			ww := chimw.NewWrapResponseWriter(w, r.ProtoMajor)
@@ -96,12 +113,12 @@ func ChiLoggerMiddleware(logger logfacade.Logger) func(http.Handler) http.Handle
 				}
 
 				requestLogger.With(
-					logfacade.String("method", r.Method),
-					logfacade.String("path", r.URL.Path),
-					logfacade.Int("status", ww.Status()),
-					logfacade.Int("duration_ms", int(duration.Milliseconds())),
-					logfacade.Int("size", ww.BytesWritten()),
-					logfacade.String("response_body", responseBody),
+					logfacade.String(logfacade.MethodKey, r.Method),
+					logfacade.String(logfacade.PathKey, r.URL.Path),
+					logfacade.Int(logfacade.StatusKey, ww.Status()),
+					logfacade.Int(logfacade.DurationKey, int(duration.Milliseconds())),
+					logfacade.Int(logfacade.NetOutKey, ww.BytesWritten()),
+					logfacade.String(logfacade.ResponseBodyKey, responseBody),
 				).Infof(r.Context(), "request_end")
 			}()
 

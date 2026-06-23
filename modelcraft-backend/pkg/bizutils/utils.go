@@ -23,7 +23,7 @@ func GoWithCtx(ctx context.Context, fn func(context.Context)) {
 
 			logger.With(
 				logfacade.Any("panic_value", recovered.Value),
-				logfacade.String(logfacade.StackTraceKey, string(recovered.Stack)),
+				logfacade.String(logfacade.StackFieldKey, string(recovered.Stack)),
 				logfacade.Int(logfacade.GoroutineCountKey, runtime.NumGoroutine()),
 				logfacade.String(logfacade.PanicTimeKey, time.Now().Format(time.RFC3339Nano)),
 			).Errorf(ctx, nil, "协程发生 panic")

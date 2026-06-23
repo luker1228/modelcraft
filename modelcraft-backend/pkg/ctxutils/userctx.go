@@ -9,8 +9,10 @@ import (
 type contextKey string
 
 const (
-	// HttpRequestContextKey is the key for storing HTTP request context
-	HttpRequestContextKey contextKey = "http_request_context"
+	// RequestIDKey is the context key for the request ID (set by ChiLoggerMiddleware).
+	RequestIDKey contextKey = "request_id"
+	// LangKey is the context key for the client language preference (set by ChiLoggerMiddleware).
+	LangKey contextKey = "lang"
 
 	// User context keys - these are the standard keys for storing user data in context
 	// Use the typed Set*/Get* functions below rather than these constants directly.
@@ -25,42 +27,30 @@ const (
 
 	// ContextKeyProjectSlug is the key for storing the project slug in context.
 	ContextKeyProjectSlug contextKey = "project_slug"
-
-	// ContextKeyIsAdmin stores whether the end-user is an org admin, derived from the
-	// is_admin JWT claim injected by APISIX as X-Is-Admin header.
-	ContextKeyIsAdmin contextKey = "is_admin"
 )
 
-// HttpRequestContext encapsulates HTTP request-related data
-// This is for HTTP layer concerns, not business logic
-type HttpRequestContext struct {
-	RequestId string // Unique request identifier for tracing
-	Method    string // HTTP method (GET, POST, etc.)
-	Path      string // Request path
-	ClientIP  string // Client IP address
-	Lang      string // Client language preference
+// SetRequestID stores the request ID in context.
+func SetRequestID(ctx context.Context, requestID string) context.Context {
+	return context.WithValue(ctx, RequestIDKey, requestID)
 }
 
-// NewHttpContext creates a new context with HttpRequestContext
-func NewHttpContext(parent context.Context, hrc *HttpRequestContext) context.Context {
-	return context.WithValue(parent, HttpRequestContextKey, hrc)
-}
-
-// FromContext extracts HttpRequestContext from context
-func FromContext(ctx context.Context) *HttpRequestContext {
-	val, ok := ctx.Value(HttpRequestContextKey).(*HttpRequestContext)
-	if !ok {
-		return nil
-	}
+// GetRequestID extracts the request ID from context.
+// Returns empty string if not set.
+func GetRequestID(ctx context.Context) string {
+	val, _ := ctx.Value(RequestIDKey).(string)
 	return val
 }
 
-// GetRequestID extracts request ID from context
-func GetRequestID(ctx context.Context) string {
-	if hrc := FromContext(ctx); hrc != nil {
-		return hrc.RequestId
-	}
-	return ""
+// SetLang stores the client language preference in context.
+func SetLang(ctx context.Context, lang string) context.Context {
+	return context.WithValue(ctx, LangKey, lang)
+}
+
+// GetLang extracts the client language preference from context.
+// Returns empty string if not set (callers should default to English).
+func GetLang(ctx context.Context) string {
+	val, _ := ctx.Value(LangKey).(string)
+	return val
 }
 
 // SetContextValue sets a value in context using the standard context key
@@ -162,26 +152,6 @@ func GetPermissionsFromContext(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("permissions not found in context")
 	}
 	return permissions, nil
-}
-
-// SetIsAdmin stores the end-user admin flag in context.
-// This is populated from the X-Is-Admin header injected by APISIX.
-func SetIsAdmin(ctx context.Context, isAdmin bool) context.Context {
-	return context.WithValue(ctx, ContextKeyIsAdmin, isAdmin)
-}
-
-// GetIsAdminFromContext returns whether the current end-user is an org admin.
-// Returns false if the flag is not set in context.
-func GetIsAdminFromContext(ctx context.Context) bool {
-	val, _ := ctx.Value(ContextKeyIsAdmin).(bool)
-	return val
-}
-
-// IsEndUser returns true if the request is from an EndUser caller.
-// End-user callers have EndUserID set in context; tenant callers do not.
-func IsEndUser(ctx context.Context) bool {
-	id, err := GetEndUserIDFromContext(ctx)
-	return err == nil && id != ""
 }
 
 // SetUseCache stores the useCache flag in context.

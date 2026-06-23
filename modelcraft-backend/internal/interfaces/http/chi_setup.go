@@ -79,18 +79,17 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	// ============================================================
 	// Global Middleware (applies to ALL routes)
 	// ============================================================
+	// Recovery must run first (outermost) so panics in any downstream
+	// middleware (Logger, CORS, JSONContentType, Timeout, handlers) are caught.
+	r.Use(middleware.ChiRecoveryMiddleware(cfg.Logger))
 	r.Use(chimw.RealIP)
 	r.Use(chimw.StripSlashes)
 	r.Use(middleware.ChiCORS())
 	// Auto-set Content-Type: application/json (must be before other middleware that write responses)
 	r.Use(middleware.JSONContentTypeMiddleware())
 	r.Use(middleware.ChiLoggerMiddleware(cfg.Logger))
-	// Initialize HttpRequestContext for all requests
-	r.Use(middleware.ChiHttpContextMiddleware())
 	// Request timeout: 60 seconds
 	r.Use(chimw.Timeout(60 * time.Second))
-	// Custom recovery with structured logging
-	r.Use(middleware.ChiRecoveryMiddleware(cfg.Logger))
 
 	// ============================================================
 	// Health & Debug Endpoints (no auth, pure net/http)
