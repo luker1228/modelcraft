@@ -2,6 +2,7 @@ package modeldatabase
 
 import (
 	"context"
+	"errors"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
@@ -79,7 +80,7 @@ type SyncModelsAppServiceDeps struct {
 	ModelRepo       syncModelsModelRepo
 	FieldSyncer     syncModelsFieldSyncer
 	GroupService    syncModelsGroupService // may be nil
-	Runner          modelDatabaseSyncRunner
+	Runner          taskRunner
 	Now             func() time.Time
 }
 
@@ -91,15 +92,14 @@ type SyncModelsAppService struct {
 	modelRepo       syncModelsModelRepo
 	fieldSyncer     syncModelsFieldSyncer
 	groupService    syncModelsGroupService
-	runner          modelDatabaseSyncRunner
+	runner          taskRunner
 	now             func() time.Time
 }
 
 // NewSyncModelsAppService creates a SyncModelsAppService with defaults applied.
 func NewSyncModelsAppService(deps SyncModelsAppServiceDeps) *SyncModelsAppService {
-	runner := deps.Runner
-	if runner == nil {
-		runner = backgroundRunner{}
+	if deps.Runner == nil {
+		panic("SyncModelsAppServiceDeps.Runner must not be nil; inject *taskpool.TaskPool")
 	}
 	nowFn := deps.Now
 	if nowFn == nil {
@@ -112,9 +112,33 @@ func NewSyncModelsAppService(deps SyncModelsAppServiceDeps) *SyncModelsAppServic
 		modelRepo:       deps.ModelRepo,
 		fieldSyncer:     deps.FieldSyncer,
 		groupService:    deps.GroupService,
-		runner:          runner,
+		runner:          deps.Runner,
 		now:             nowFn,
 	}
+}
+
+// submitJob enqueues the sync job with a syncJobTimeout deadline. When the
+// deadline fires, the job is marked as failed using a non-cancelled context
+// so the status update is not itself killed by the expired context.
+func (s *SyncModelsAppService) submitJob(ctx context.Context, name string, job *domaindb.ModelSyncJob) error {
+	return s.runner.Submit(name, func() error {
+		// Detach from the request context so the job survives after the HTTP
+		// handler returns and its context is cancelled, while still carrying
+		// the request-scoped values (org, project, logger, etc.).
+		detached := context.WithoutCancel(ctx)
+		runCtx, cancel := context.WithTimeout(detached, syncJobTimeout)
+		defer cancel()
+
+		err := s.RunSyncJob(runCtx, job.ID)
+		if runCtx.Err() == context.DeadlineExceeded {
+			// The deadline fired: RunSyncJob's internal failJob (if any) used
+			// the expired context and likely failed to persist. Retry with a
+			// fresh context that preserves request-scoped values.
+			failCtx := context.WithoutCancel(runCtx)
+			return s.failJob(failCtx, job, errors.New("sync job timed out after 30 minutes"))
+		}
+		return err
+	})
 }
 
 // StartSync validates input, checks for active jobs, creates the job, and fires the background runner.
@@ -181,14 +205,14 @@ func (s *SyncModelsAppService) StartSync(
 		return nil, err
 	}
 
-	s.runner.Go(ctx, func(runCtx context.Context) {
-		if err := s.RunSyncJob(runCtx, job.ID); err != nil {
-			logfacade.GetLogger(runCtx).With(
-				logfacade.String("job_id", job.ID),
-				logfacade.Err(err),
-			).Errorf(runCtx, nil, "model sync job failed")
+	if err := s.submitJob(ctx, "sync_models_from_db", job); err != nil {
+		// Queue full: mark the already-persisted job as failed so it does not
+		// linger as a zombie pending job.
+		if failErr := s.failJob(ctx, job, err); failErr != nil {
+			return nil, failErr
 		}
-	})
+		return nil, err
+	}
 	return job, nil
 }
 
@@ -278,14 +302,14 @@ func (s *SyncModelsAppService) StartModelSync(
 
 	for _, job := range jobs {
 		job := job
-		s.runner.Go(ctx, func(runCtx context.Context) {
-			if runErr := s.RunSyncJob(runCtx, job.ID); runErr != nil {
-				logfacade.GetLogger(runCtx).With(
-					logfacade.String("job_id", job.ID),
-					logfacade.Err(runErr),
-				).Errorf(runCtx, nil, "model sync job failed")
+		if err := s.submitJob(ctx, "sync_models_batch", job); err != nil {
+			// Queue full: mark the already-persisted job as failed so it does
+			// not linger as a zombie pending job.
+			if failErr := s.failJob(ctx, job, err); failErr != nil {
+				return "", nil, failErr
 			}
-		})
+			return "", nil, err
+		}
 	}
 	return batchID, jobs, nil
 }

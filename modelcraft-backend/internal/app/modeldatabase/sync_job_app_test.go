@@ -116,14 +116,15 @@ func (f *fakeSyncJobRepo) Update(ctx context.Context, job *domaindb.ModelDatabas
 	return nil
 }
 
-type fakeBackgroundRunner struct {
-	run func(context.Context, func(context.Context))
+type fakeTaskRunner struct {
+	run func(name string, fn func() error) error
 }
 
-func (f *fakeBackgroundRunner) Go(ctx context.Context, fn func(context.Context)) {
+func (f *fakeTaskRunner) Submit(name string, fn func() error) error {
 	if f.run != nil {
-		f.run(ctx, fn)
+		return f.run(name, fn)
 	}
+	return nil
 }
 
 type fakeReverseEngineerService struct {
@@ -330,7 +331,7 @@ func TestStartModelDatabaseSync_RejectsExistingActiveJob(t *testing.T) {
 	svc := NewModelDatabaseSyncAppService(ModelDatabaseSyncAppServiceDeps{
 		ModelDatabaseRepo: dbRepo,
 		SyncJobRepo:       jobRepo,
-		Runner:            &fakeBackgroundRunner{},
+		Runner:            &fakeTaskRunner{},
 	})
 
 	_, err := svc.StartSync(ctx, "db-1")
@@ -384,7 +385,7 @@ func TestRunSyncJob_ContinuesAfterPerTableFailures(t *testing.T) {
 		ModelRepo:         modelRepo,
 		SchemaSync:        syncSvc,
 		GroupService:      groupSvc,
-		Runner:            &fakeBackgroundRunner{},
+		Runner:            &fakeTaskRunner{},
 		Now:               func() time.Time { return now },
 	})
 

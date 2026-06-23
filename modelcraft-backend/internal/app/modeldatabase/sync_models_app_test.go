@@ -216,8 +216,8 @@ func syncNow() time.Time {
 }
 
 // syncRunner runs the background func synchronously in tests.
-func syncRunner() *fakeBackgroundRunner {
-	return &fakeBackgroundRunner{run: func(ctx context.Context, fn func(context.Context)) { fn(ctx) }}
+func syncRunner() *fakeTaskRunner {
+	return &fakeTaskRunner{run: func(name string, fn func() error) error { return fn() }}
 }
 
 func newSyncModelsService(

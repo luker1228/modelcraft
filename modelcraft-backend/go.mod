@@ -38,12 +38,14 @@ require (
 	github.com/pingcap/errors v0.11.5-0.20250523034308-74f78ae071ee
 	github.com/pingcap/tidb/pkg/parser v0.0.0-20260104141550-76cbd72ef905
 	github.com/redis/go-redis/v9 v9.18.0
+	github.com/sourcegraph/conc v0.3.0
 	github.com/vektah/gqlparser/v2 v2.5.31
 	golang.org/x/sync v0.20.0
 )
 
 require (
 	cel.dev/expr v0.25.1 // indirect
+	github.com/alitto/pond v1.9.2 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/bytedance/sonic v1.10.0-rc3 // indirect
 	github.com/casbin/govaluate v1.3.0 // indirect

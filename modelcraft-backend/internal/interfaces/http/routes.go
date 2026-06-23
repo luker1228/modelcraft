@@ -22,6 +22,7 @@ import (
 	"modelcraft/pkg/config"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
+	"modelcraft/pkg/taskpool"
 	"net/http"
 	"os"
 	"sync"
@@ -98,6 +99,10 @@ type DesignHandlers struct {
 	ModelDatabaseAppService     *appmodeldatabase.ModelDatabaseAppService
 	ModelDatabaseSyncAppService *appmodeldatabase.ModelDatabaseSyncAppService
 	SyncModelsAppService        *appmodeldatabase.SyncModelsAppService
+
+	// TaskPool backs the sync services above. Callers should Close it during
+	// graceful shutdown so in-flight sync jobs do not get abruptly cancelled.
+	TaskPool *taskpool.TaskPool
 
 	// SystemDB is the system main database connection (stores end_user_users etc.)
 	SystemDB *sql.DB
@@ -185,6 +190,10 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	groupAppService := modeldesign.NewModelGroupAppService(groupRepository, modelRepository, txManager)
 	modelDatabaseSyncJobRepo := repository.NewSqlModelDatabaseSyncJobRepository(dbgen.New(loggingDB))
 	importGroupService := appmodeldatabase.NewImportGroupService(groupRepository, groupAppService)
+	// Shared bounded pool for background sync jobs. Capacity is conservative
+	// because sync jobs are heavy (full DB introspection) and concurrent runs
+	// per database are already deduplicated at the app-service layer.
+	syncTaskPool := taskpool.NewTaskPool(8, 128)
 	modelDatabaseSyncAppService := appmodeldatabase.NewModelDatabaseSyncAppService(
 		appmodeldatabase.ModelDatabaseSyncAppServiceDeps{
 			ModelDatabaseRepo: modelDatabaseRepo,
@@ -193,6 +202,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 			ModelRepo:         modelRepository,
 			SchemaSync:        appService,
 			GroupService:      importGroupService,
+			Runner:            syncTaskPool,
 		},
 	)
 
@@ -204,6 +214,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		ModelRepo:       modelRepository,
 		FieldSyncer:     appService,
 		GroupService:    importGroupService,
+		Runner:          syncTaskPool,
 	})
 
 	// Recover stale model sync jobs on startup (non-blocking)
@@ -328,6 +339,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		ModelDatabaseAppService:     modelDatabaseAppService,
 		ModelDatabaseSyncAppService: modelDatabaseSyncAppService,
 		SyncModelsAppService:        syncModelsAppService,
+		TaskPool:                    syncTaskPool,
 		IsOrgAdminFn:                nil,
 	}, nil
 }
