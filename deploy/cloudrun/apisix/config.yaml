@@ -1,0 +1,37 @@
+#
+# APISIX startup configuration — standalone mode.
+# Routes are loaded directly from apisix.yaml (no etcd needed).
+# Restart the container after any change to apisix.yaml.
+#
+apisix:
+  node_listen: 9080
+  enable_ipv6: false
+
+nginx_config:
+  error_log: /dev/stderr
+  error_log_level: warn
+  http:
+    access_log_format_escape: json
+    access_log_format: |
+      {"time":"$time_iso8601","remote_addr":"$remote_addr","request":"$request","uri":"$uri","status":$status,"request_time":$request_time,"upstream_response_time":"$upstream_response_time","upstream_addr":"$upstream_addr","request_id":"$http_x_request_id","client_request_id":"$http_x_client_request_id","traceparent":"$http_traceparent","tracestate":"$http_tracestate"}
+
+deployment:
+  role: data_plane
+  role_data_plane:
+    config_provider: yaml
+
+plugin_attr:
+  opentelemetry:
+    resource:
+      service.name: modelcraft-apisix
+    collector:
+      address: ""  # set OTEL endpoint here if needed
+
+plugins:
+  - cors
+  - request-id
+  - opentelemetry
+  - jwt-auth
+  - serverless-pre-function
+  - proxy-rewrite
+  - response-rewrite

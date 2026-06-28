@@ -23,5 +23,10 @@ else
     fi
 fi
 
+# Preserve the base image default command when this image overrides ENTRYPOINT.
+if [ "$#" -eq 0 ]; then
+    set -- docker-start
+fi
+
 # 将控制权交还给 APISIX 原始入口脚本
 exec /docker-entrypoint.sh "$@"

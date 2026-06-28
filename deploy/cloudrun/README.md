@@ -123,11 +123,11 @@ atlas schema apply \
 
 ```bash
 # Backend
-docker build -t ccr.ccs.tencentyun.com/<namespace>/modelcraft-backend:latest \
+docker build -t ccr.ccs.tencentyun.com/tcb-100021144463-xnqx/backend:latest \
   -f modelcraft-backend/Dockerfile modelcraft-backend/
 
 # APISIX
-docker build -t ccr.ccs.tencentyun.com/<namespace>/modelcraft-apisix:latest \
+docker build -t ccr.ccs.tencentyun.com/tcb-100021144463-xnqx/apisix:latest \
   -f deploy/cloudrun/apisix/Dockerfile deploy/cloudrun/apisix/
 
 # Frontend

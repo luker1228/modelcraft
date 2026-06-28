@@ -21,4 +21,3 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
 
 # 使用自定义入口脚本，将原始 CMD 作为参数传递
 ENTRYPOINT ["/docker-entrypoint-override.sh"]
-CMD ["docker-entrypoint.sh"]
