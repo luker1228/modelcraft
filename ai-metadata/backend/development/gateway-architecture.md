@@ -12,7 +12,7 @@
 1. **认证编排**：
    - Developer 通道：校验后端签发的 ES256 Access Token
    - EndUser 通道：校验 HMAC-SHA256 Access Token（`JWT_SECRET`）
-2. **反向代理**：将请求转发到后端，并注入后端信任头（如 `X-User-ID`、`X-Internal-Token`）
+2. **反向代理**：将请求转发到后端，并注入/透传后端信任头（如 `X-User-ID`、`X-Internal-Token`）
 3. **会话安全**：托管 refreshToken 的 httpOnly Cookie（浏览器不可读）
 4. **可观测性**：统一请求 ID、结构化日志、OpenTelemetry Trace 透传
 
@@ -83,9 +83,15 @@ GraphQL/REST 代理都会执行以下策略：
 
 - 删除外部 `Authorization` 后再转发（后端不再直接信任客户端 token）
 - 注入 `X-User-ID`（来自已验证 JWT claims）
+- 当下游仍需继续消费 access token 时，透传 `X-Internal-Token`
 - 透传 `X-Request-Id` 与 `X-Client-Request-Id`
 - 注入 W3C `traceparent` / `tracestate`
-- EndUser GraphQL 额外注入 `X-Internal-Token`
+
+补充约束：
+
+- **后端经 Gateway 调用其他下游服务接口时，必须透传 `X-Internal-Token`。**
+- `X-Internal-Token` 承载的是当前请求链路中的 access token，不是固定 shared secret。
+- 当前已知主要消费者是 `modelcraft-agent`；后续若新增下游服务，默认沿用同一透传规则。
 
 实现位置：
 - GraphQL 代理：`modelcraft-gateway/internal/proxy/handler.go`
@@ -113,7 +119,6 @@ GraphQL/REST 代理都会执行以下策略：
 |---|---|---|---|
 | `GATEWAY_PORT` | 否 | `8090` | 网关监听端口 |
 | `BACKEND_URL` | 否 | `http://localhost:8080` | 后端地址 |
-| `INTERNAL_TOKEN` | **是** | - | 后端内部鉴权令牌（缺失会 panic） |
 | `JWT_PUBLIC_KEY` | 建议是 | 空 | ES256 公钥 |
 | `FRONTEND_URL` | 否 | `http://localhost:3000` | CORS 白名单来源 |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | 否 | 空 | OTLP gRPC 上报端点（空则关闭导出） |
@@ -134,9 +139,9 @@ GraphQL/REST 代理都会执行以下策略：
 ## 8. 与下游系统的边界约定
 
 1. **前端（强制）**：所有浏览器侧与前端服务侧业务请求必须先到 Gateway，再由 Gateway 转发到 Backend；禁止任何直连 Backend 的 GraphQL/REST 调用。
-2. **后端**：通过 `X-User-ID` / `X-Internal-Token` 识别调用方，网关负责外层 token 校验。
+2. **后端**：通过 `X-User-ID` 识别调用方，网关负责外层 token 校验；当后端继续经 Gateway 调用下游服务时，必须透传 `X-Internal-Token`。
    - **Developer 认证（design-time）**：Gateway 是唯一的 developer JWT 验签者。Gateway 验证 Bearer token 后删除 Authorization 头，并注入 `X-User-ID`；Backend 只信任该 header，不再直接校验 developer bearer token。
-   - **Open Data API 认证（runtime）**：仅支持 PAT。Gateway 验证 PAT，注入 `X-User-ID` + `X-Internal-Token`。`X-MC-Auth-Userid-Str/Int`（RLS 上下文中的业务 end-user ID）由调用方在请求头中自行传入，Gateway 透传不修改。
+   - **Open Data API 认证（runtime）**：仅支持 PAT。Gateway 验证 PAT，并注入 `X-User-ID`；若下游链路仍需 access token，可通过 `X-Internal-Token` 继续透传。当前已知主要下游消费者是 `modelcraft-agent`。`X-MC-Auth-Userid-Str/Int`（RLS 上下文中的业务 end-user ID）由调用方在请求头中自行传入，Gateway 透传不修改。
 3. **CLI**：CLI 必须走 `cli -> gateway -> backend` 路径，不得直接访问 Backend design-time 端点。
 4. **可观测性**：后端日志应保留 `X-Request-Id` 与 `traceparent`，保证跨服务串联排障。
 

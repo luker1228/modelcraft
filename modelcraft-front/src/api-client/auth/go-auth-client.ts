@@ -1,7 +1,6 @@
 // src/api-client/auth/go-auth-client.ts
 // 调用 modelcraft-gateway 的 /auth/* 端点
 // Gateway 负责：认证、JWT 签发、httpOnly Cookie 管理
-// 本文件运行在浏览器侧，不持有 INTERNAL_TOKEN
 import type {
   GoAuthError,
 } from '@/types/auth'

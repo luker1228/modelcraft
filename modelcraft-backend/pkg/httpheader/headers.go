@@ -16,6 +16,8 @@ const (
 	XRequestedWith = "X-Requested-With"
 
 	XAction          = "X-Action"
+	// XInternalToken forwards an access token to downstream services.
+	// It is a transit header, not a static shared secret.
 	XInternalToken   = "X-Internal-Token"
 	XUserID          = "X-User-ID"
 	XOrgName         = "X-Org-Name"
