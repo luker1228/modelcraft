@@ -8,7 +8,6 @@ import (
 	playgroundpkg "modelcraft/pkg/graphql"
 
 	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/gin-gonic/gin"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -49,12 +48,10 @@ func ProjectPlaygroundHandler() http.HandlerFunc {
 			projectSlug = "default"
 		}
 		endpoint := "/org/" + orgName + "/project/" + projectSlug + "/graphql"
-		ginHandler := playgroundpkg.Handler(playgroundpkg.PlaygroundConfig{
+		httpHandler := playgroundpkg.HTTPHandler(playgroundpkg.PlaygroundConfig{
 			Endpoint: endpoint,
 			Title:    "GraphQL Playground - Project API (" + orgName + "/" + projectSlug + ")",
 		})
-		c, _ := gin.CreateTestContext(w)
-		c.Request = r
-		ginHandler(c)
+		httpHandler(w, r)
 	}
 }

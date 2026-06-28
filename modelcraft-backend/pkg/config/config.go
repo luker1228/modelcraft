@@ -85,7 +85,6 @@ type AuthConfig struct {
 
 // DesignAuthConfig 设计时API认证配置
 type DesignAuthConfig struct {
-	Enabled             bool   `mapstructure:"enabled"`               // 是否启用认证
 	JWTPublicKeyPath    string `mapstructure:"jwt_public_key_path"`   // JWT 公钥路径
 	JWTPublicKey        string `mapstructure:"jwt_public_key"`        // JWT 公钥内容
 	AcceptModelcraftJWT bool   `mapstructure:"accept_modelcraft_jwt"` // 是否接受 ModelCraft JWT (migration flag)
@@ -93,7 +92,6 @@ type DesignAuthConfig struct {
 
 // RuntimeAuthConfig 运行态认证配置
 type RuntimeAuthConfig struct {
-	Enabled             bool     `mapstructure:"enabled"`
 	OptionalForProjects []string `mapstructure:"optional_for_projects"`
 }
 
@@ -190,16 +188,13 @@ func setupEnvBindings(v *viper.Viper) {
 	_ = v.BindEnv("logger.compress", "LOG_COMPRESS")
 
 	// 认证配置环境变量绑定
-	_ = v.BindEnv("auth.internal_token", "INTERNAL_TOKEN")
 	_ = v.BindEnv("auth.cookie.domain", "AUTH_COOKIE_DOMAIN")
 	_ = v.BindEnv("auth.cookie.secure", "AUTH_COOKIE_SECURE")
 	_ = v.BindEnv("auth.cookie.same_site", "AUTH_COOKIE_SAME_SITE")
-	_ = v.BindEnv("auth.design.enabled", "AUTH_DESIGN_ENABLED")
 	_ = v.BindEnv("auth.design.jwt_public_key_path", "AUTH_JWT_PUBLIC_KEY_PATH")
 	_ = v.BindEnv("auth.design.jwt_public_key", "AUTH_JWT_PUBLIC_KEY")
 	_ = v.BindEnv("auth.design.skip_jwt_validation", "AUTH_SKIP_JWT_VALIDATION")
 	_ = v.BindEnv("auth.design.accept_modelcraft_jwt", "AUTH_ACCEPT_MODELCRAFT_JWT")
-	_ = v.BindEnv("auth.runtime.enabled", "AUTH_RUNTIME_ENABLED")
 }
 
 // loadEnvFile 使用 godotenv 加载环境变量文件
