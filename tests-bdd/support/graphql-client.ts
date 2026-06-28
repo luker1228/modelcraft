@@ -65,16 +65,6 @@ export class OrgGraphQLClient extends BaseGraphQLClient {
     this.orgName = orgName
     this.setURL(`${API_BASE_URL}/graphql/org/${orgName}/`)
   }
-
-  /** Use X-Internal-Token header instead of JWT Bearer token.
-   * Optionally pass a userId to set X-User-ID header for permission directive checks.
-   */
-  setInternalTokenAuth(internalToken: string, userId?: string): void {
-    this.client.setHeader('X-Internal-Token', internalToken)
-    if (userId) {
-      this.client.setHeader('X-User-ID', userId)
-    }
-  }
 }
 
 // End-user scoped project GraphQL client

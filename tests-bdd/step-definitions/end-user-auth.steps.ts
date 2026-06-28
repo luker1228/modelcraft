@@ -83,15 +83,6 @@ function getOrgGraphQLClient(world: ModelCraftWorld): OrgGraphQLClient {
   const orgName = world.endUserOrgName || process.env.TEST_ORG_NAME || 'testorg'
   const client = new OrgGraphQLClient(orgName)
 
-  // Prefer internal token (does not expire, works for BDD tests)
-  const internalToken = world.internalToken || process.env.INTERNAL_TOKEN
-  if (internalToken) {
-    // Internal token grants superuser permissions server-side; no X-User-ID needed
-    client.setInternalTokenAuth(internalToken)
-    return client
-  }
-
-  // Fall back to developer JWT token
   const token = world.token || process.env.TEST_ACCESS_TOKEN
   if (!token) throw new Error('No developer token available for Org GraphQL client')
   client.setAuth(token)
@@ -271,9 +262,6 @@ Given('我以开发者身份登录', function (this: ModelCraftWorld) {
   // 开发者 token 从 world.token 或环境变量获取，已在 getOrgGraphQLClient 中使用
   if (!this.token && process.env.TEST_ACCESS_TOKEN) {
     this.token = process.env.TEST_ACCESS_TOKEN
-  }
-  if (!this.internalToken && process.env.INTERNAL_TOKEN) {
-    this.internalToken = process.env.INTERNAL_TOKEN
   }
 })
 

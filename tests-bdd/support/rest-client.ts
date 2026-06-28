@@ -195,20 +195,14 @@ export class RestClient {
     accessToken: string,
     displayName: string,
     organizationName?: string,
-    endUserAdminPassword?: string,
-    /** If provided, use X-Internal-Token + X-User-ID instead of Bearer token */
-    internalAuth?: { internalToken: string; userId: string }
+    endUserAdminPassword?: string
   ): Promise<RestResult<InitOrgResponse>> {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (internalAuth) {
-      headers['X-Internal-Token'] = internalAuth.internalToken
-      headers['X-User-ID'] = internalAuth.userId
-    } else {
-      headers['Authorization'] = `Bearer ${accessToken}`
-    }
     const res = await fetch(`${API_BASE_URL}/api/org/init`, {
       method: 'POST',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({
         displayName,
         ...(organizationName ? { organizationName } : {}),

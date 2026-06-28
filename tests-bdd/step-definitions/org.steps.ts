@@ -22,13 +22,8 @@ Given('我已登录并持有 access token', async function (this: ModelCraftWorl
   this.currentUserId = regResult.data.userId
   this.currentOrgName = regResult.data.orgName
 
-  // Store internal token for subsequent calls (backend uses X-Internal-Token + X-User-ID auth)
-  if (!this.internalToken && process.env.INTERNAL_TOKEN) {
-    this.internalToken = process.env.INTERNAL_TOKEN
-  }
-
   this.orgClient.setOrgName(this.currentOrgName)
-  // Use a signed JWT for GraphQL calls (orgClient), internal token for REST
+  // Use a signed JWT for GraphQL calls.
   this.token = signJWT(regResult.data.userId, 3600)
   this.projectClient.setAuth(this.token)
   this.orgClient.setAuth(this.token)
