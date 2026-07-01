@@ -1,0 +1,112 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/images/backend.Dockerfile
+      args:
+        APP_ENV: ${APP_ENV:-dev}
+        SERVICE_PORT: ${BACKEND_CONTAINER_PORT:-8080}
+    image: modelcraft-backend:${APP_ENV:-dev}
+    ports:
+      - "${BACKEND_HOST_PORT:-8080}:${BACKEND_CONTAINER_PORT:-8080}"
+    volumes:
+      - ../modelcraft-backend/data:/app/data
+      - backend_logs:/app/logs
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+
+  apisix:
+    build:
+      context: ..
+      dockerfile: deploy/images/apisix.Dockerfile
+      args:
+        APP_ENV: ${APP_ENV:-dev}
+        SERVICE_PORT: ${APISIX_CONTAINER_PORT:-9080}
+    image: modelcraft-apisix:${APP_ENV:-dev}
+    ports:
+      - "${APISIX_HOST_PORT:-9080}:${APISIX_CONTAINER_PORT:-9080}"
+      - "9180:9180"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+
+  agent:
+    build:
+      context: ..
+      dockerfile: deploy/images/agent.Dockerfile
+      args:
+        APP_ENV: ${APP_ENV:-dev}
+        SERVICE_PORT: ${AGENT_CONTAINER_PORT:-8000}
+    image: modelcraft-agent:${APP_ENV:-dev}
+    ports:
+      - "${AGENT_HOST_PORT:-8000}:${AGENT_CONTAINER_PORT:-8000}"
+    depends_on:
+      apisix:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/images/frontend.Dockerfile
+      args:
+        APP_ENV: ${APP_ENV:-dev}
+        SERVICE_PORT: ${FRONTEND_CONTAINER_PORT:-3000}
+    image: modelcraft-frontend:${APP_ENV:-dev}
+    ports:
+      - "${FRONTEND_HOST_PORT:-3100}:${FRONTEND_CONTAINER_PORT:-3000}"
+    depends_on:
+      apisix:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+
+  mysql:
+    profiles:
+      - dev
+    build:
+      context: ..
+      dockerfile: deploy/images/mysql.Dockerfile
+      args:
+        APP_ENV: ${APP_ENV:-dev}
+    image: modelcraft-mysql:${APP_ENV:-dev}
+    ports:
+      - "${MYSQL_HOST_PORT:-6033}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ../modelcraft-backend/db/schema/mysql:/docker-entrypoint-initdb.d:ro
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+
+  phpmyadmin:
+    profiles:
+      - tools
+    build:
+      context: ..
+      dockerfile: deploy/images/phpmyadmin.Dockerfile
+      args:
+        APP_ENV: ${APP_ENV:-dev}
+    image: modelcraft-phpmyadmin:${APP_ENV:-dev}
+    ports:
+      - "${PHPMYADMIN_HOST_PORT:-8081}:80"
+    depends_on:
+      - mysql
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  backend_logs:
+
+networks:
+  modelcraft-network:
+    driver: bridge

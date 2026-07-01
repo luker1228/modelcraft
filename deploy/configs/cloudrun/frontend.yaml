@@ -1,0 +1,5 @@
+NODE_ENV: "production"
+TZ: "Asia/Shanghai"
+PORT: "80"
+HOSTNAME: "0.0.0.0"
+BACKEND_URL: "http://apisix:80"

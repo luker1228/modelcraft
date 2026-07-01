@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# ──────────────────────────────────────────────────────────────────
-# 云托管 APISIX 入口脚本
-# 1. 用 $PORT 环境变量替换 config.yaml 中的 node_listen 端口
-# 2. 将控制权交还给原始 APISIX 入口脚本
-# ──────────────────────────────────────────────────────────────────
 set -euo pipefail
 
 PORT="${PORT:-9080}"
 CONFIG_FILE="/usr/local/apisix/conf/config.yaml"
 TEMPLATE_FILE="/usr/local/apisix/conf/config-template.yaml"
+APISIX_TEMPLATE_FILE="/usr/local/apisix/conf/apisix-template.yaml"
+APISIX_FILE="/usr/local/apisix/conf/apisix.yaml"
+FRONTEND_URL="${FRONTEND_URL:-http://localhost:3100}"
+BACKEND_UPSTREAM="${BACKEND_UPSTREAM:-backend:8080}"
+AGENT_UPSTREAM="${AGENT_UPSTREAM:-agent:8000}"
+JWT_PUBLIC_KEY="${JWT_PUBLIC_KEY:-}"
 
 echo "[cloudrun-entrypoint] PORT=${PORT}"
 
@@ -16,17 +17,32 @@ if [ -f "${TEMPLATE_FILE}" ]; then
     sed "s/node_listen: 9080/node_listen: ${PORT}/g" "${TEMPLATE_FILE}" > "${CONFIG_FILE}"
     echo "[cloudrun-entrypoint] Generated config.yaml with node_listen: ${PORT}"
 else
-    # fallback: 原地替换
     if [ -f "${CONFIG_FILE}" ]; then
         sed -i "s/node_listen: 9080/node_listen: ${PORT}/g" "${CONFIG_FILE}"
-        echo "[cloudrun-entrypoint] Patched config.yaml node_listen → ${PORT}"
+        echo "[cloudrun-entrypoint] Patched config.yaml node_listen -> ${PORT}"
     fi
 fi
 
-# Preserve the base image default command when this image overrides ENTRYPOINT.
+if [ -f "${APISIX_TEMPLATE_FILE}" ]; then
+    python3 - <<'PY'
+import os
+from pathlib import Path
+
+template = Path("/usr/local/apisix/conf/apisix-template.yaml").read_text()
+rendered = (
+    template
+    .replace("__FRONTEND_URL__", os.environ["FRONTEND_URL"])
+    .replace("__BACKEND_UPSTREAM__", os.environ["BACKEND_UPSTREAM"])
+    .replace("__AGENT_UPSTREAM__", os.environ["AGENT_UPSTREAM"])
+    .replace("__JWT_PUBLIC_KEY__", os.environ["JWT_PUBLIC_KEY"])
+)
+Path("/usr/local/apisix/conf/apisix.yaml").write_text(rendered)
+PY
+    echo "[cloudrun-entrypoint] Rendered apisix.yaml for ${BACKEND_UPSTREAM} and ${AGENT_UPSTREAM}"
+fi
+
 if [ "$#" -eq 0 ]; then
     set -- docker-start
 fi
 
-# 将控制权交还给 APISIX 原始入口脚本
 exec /docker-entrypoint.sh "$@"
