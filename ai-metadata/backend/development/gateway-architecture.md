@@ -1,7 +1,7 @@
 # ModelCraft Gateway 架构说明
 
 > ⚠️ **已迁移（2026-05-16）**：`modelcraft-gateway` 已被 APISIX 替代。
-> 本文档保留作历史参考，当前架构见 `apisix/apisix.yaml`。
+> 本文档保留作历史参考，当前架构见 `apisix/apisix.template.yaml`。
 
 > 适用范围：`modelcraft-gateway/`。本文档用于同步网关当前实现（以代码现状为准）。
 

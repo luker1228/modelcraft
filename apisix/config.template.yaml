@@ -1,0 +1,31 @@
+# APISIX static bootstrap config template.
+# Runtime port is patched by apisix/docker-entrypoint.sh before startup.
+
+deployment:
+  role: traditional
+  role_traditional:
+    config_provider: yaml
+
+apisix:
+  node_listen: 9080
+  enable_admin: false
+  proxy_mode: http&stream
+
+nginx_config:
+  error_log_level: warn
+
+plugins:
+  - request-id
+  - proxy-rewrite
+  - response-rewrite
+  - cors
+  - opentelemetry
+  - modelcraft-auth
+
+plugin_attr:
+  opentelemetry:
+    resource:
+      service.name: modelcraft-apisix
+
+ext-plugin:
+  path_for_test: /app/apisix/lua/?.lua

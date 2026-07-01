@@ -7,18 +7,23 @@ USER root
 
 ENV PORT=${SERVICE_PORT}
 
-COPY deploy/cloudrun/apisix/docker-entrypoint.sh /docker-entrypoint-override.sh
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl python3 && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY apisix/docker-entrypoint.sh /docker-entrypoint-override.sh
 COPY deploy/scripts/load-flat-yaml-env.sh /usr/local/bin/load-flat-yaml-env.sh
-COPY apisix/config.yaml /usr/local/apisix/conf/config-template.yaml
-COPY apisix/apisix.yaml /usr/local/apisix/conf/apisix-template.yaml
-COPY apisix/lua /opt/modelcraft-apisix/lua
-COPY deploy/configs/${APP_ENV}/apisix.yaml /etc/modelcraft/runtime.yaml
+RUN mkdir -p /app/apisix/lua /etc/apisix
+COPY apisix/config.template.yaml /app/apisix/config.template.yaml
+COPY apisix/apisix.template.yaml /app/apisix/apisix.template.yaml
+COPY apisix/lua /app/apisix/lua
+COPY deploy/configs/${APP_ENV}/apisix.yaml /app/apisix/runtime.yaml
 
 RUN chmod +x /docker-entrypoint-override.sh /usr/local/bin/load-flat-yaml-env.sh
 
 EXPOSE ${SERVICE_PORT}
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
-    CMD ["sh", "-c", "curl -sf http://localhost:${PORT}/apisix/prometheus/metrics || curl -sf http://localhost:${PORT}/"]
+    CMD ["sh", "-c", "curl -sf http://localhost:${PORT}/health >/dev/null"]
 
-ENTRYPOINT ["/usr/local/bin/load-flat-yaml-env.sh", "/etc/modelcraft/runtime.yaml", "/docker-entrypoint-override.sh"]
+ENTRYPOINT ["/usr/local/bin/load-flat-yaml-env.sh", "/app/apisix/runtime.yaml", "/docker-entrypoint-override.sh"]

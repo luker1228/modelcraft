@@ -1,7 +1,6 @@
 #
-# APISIX standalone declarative configuration.
-# Loaded directly — no Admin API calls needed.
-# Restart the APISIX container after any change to this file.
+# APISIX standalone declarative configuration template.
+# Environment-specific values are injected by apisix/docker-entrypoint.sh.
 #
 # JWT and PAT business auth is implemented in the custom Lua plugin
 # `apisix/lua/apisix/plugins/modelcraft-auth.lua`.
@@ -14,6 +13,14 @@ global_rules:
 
 routes:
   # ── Public routes: auth endpoints, no JWT required ──────────────────────────
+  - id: gateway-health
+    uri: /health
+    upstream_id: backend
+    plugins:
+      request-id:
+        header_name: X-Request-Id
+        include_in_response: true
+
   - id: tenant-auth
     uri: /api/tenant/auth/*
     upstream_id: backend

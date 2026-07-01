@@ -2,9 +2,10 @@
 set -euo pipefail
 
 PORT="${PORT:-9080}"
+APP_APISIX_DIR="/app/apisix"
 CONFIG_FILE="/usr/local/apisix/conf/config.yaml"
-TEMPLATE_FILE="/usr/local/apisix/conf/config-template.yaml"
-APISIX_TEMPLATE_FILE="/usr/local/apisix/conf/apisix-template.yaml"
+TEMPLATE_FILE="${APP_APISIX_DIR}/config.template.yaml"
+APISIX_TEMPLATE_FILE="${APP_APISIX_DIR}/apisix.template.yaml"
 APISIX_FILE="/usr/local/apisix/conf/apisix.yaml"
 FRONTEND_URL="${FRONTEND_URL:-http://localhost:3100}"
 BACKEND_UPSTREAM="${BACKEND_UPSTREAM:-backend:8080}"
@@ -28,7 +29,7 @@ if [ -f "${APISIX_TEMPLATE_FILE}" ]; then
 import os
 from pathlib import Path
 
-template = Path("/usr/local/apisix/conf/apisix-template.yaml").read_text()
+template = Path("/app/apisix/apisix.template.yaml").read_text()
 rendered = (
     template
     .replace("__FRONTEND_URL__", os.environ["FRONTEND_URL"])

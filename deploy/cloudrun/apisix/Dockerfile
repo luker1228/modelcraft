@@ -5,13 +5,14 @@ FROM apache/apisix:3.9.0-debian
 USER root
 
 # 复制启动脚本（在 APISIX 启动前用环境变量渲染配置并替换端口）
-COPY deploy/cloudrun/apisix/docker-entrypoint.sh /docker-entrypoint-override.sh
+COPY apisix/docker-entrypoint.sh /docker-entrypoint-override.sh
 RUN chmod +x /docker-entrypoint-override.sh
 
 # 复制共享模板
-COPY apisix/config.yaml /usr/local/apisix/conf/config-template.yaml
-COPY apisix/apisix.yaml /usr/local/apisix/conf/apisix-template.yaml
-COPY apisix/lua /opt/modelcraft-apisix/lua
+RUN mkdir -p /app/apisix/lua
+COPY apisix/config.template.yaml /app/apisix/config.template.yaml
+COPY apisix/apisix.template.yaml /app/apisix/apisix.template.yaml
+COPY apisix/lua /app/apisix/lua
 
 # 端口通过环境变量 PORT 指定（默认 9080，云托管注入 80）
 ARG PORT=9080
