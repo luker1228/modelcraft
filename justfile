@@ -27,22 +27,6 @@ deploy-logs:
 deploy-restart:
     just --justfile deploy/justfile --working-directory deploy restart
 
-# Stop containers and remove volumes. This clears MySQL data.
-deploy-clean:
-    just --justfile deploy/justfile --working-directory deploy clean
-
-# Build and restart backend service
-deploy-backend:
-    just --justfile deploy/justfile --working-directory deploy backend
-
-# Build and restart frontend service
-deploy-frontend:
-    just --justfile deploy/justfile --working-directory deploy frontend
-
-# Build and restart agent service
-deploy-agent:
-    just --justfile deploy/justfile --working-directory deploy agent
-
 # Start tools profile services
 deploy-tools:
     just --justfile deploy/justfile --working-directory deploy tools
@@ -70,18 +54,6 @@ docker-logs: deploy-logs
 
 # Compatibility: restart docker services
 docker-restart: deploy-restart
-
-# Compatibility: stop docker services and remove volumes. This clears MySQL data.
-docker-clean: deploy-clean
-
-# Compatibility: build and restart backend service
-docker-backend: deploy-backend
-
-# Compatibility: build and restart frontend service
-docker-frontend: deploy-frontend
-
-# Compatibility: build and restart agent service
-docker-agent: deploy-agent
 
 # Compatibility: start tools profile services
 docker-tools: deploy-tools
