@@ -2,14 +2,14 @@
 # Runtime port is patched by apisix/docker-entrypoint.sh before startup.
 
 deployment:
-  role: traditional
-  role_traditional:
+  role: data_plane
+  role_data_plane:
     config_provider: yaml
 
 apisix:
   node_listen: 9080
   enable_admin: false
-  proxy_mode: http&stream
+  proxy_mode: http
 
 nginx_config:
   error_log_level: warn
