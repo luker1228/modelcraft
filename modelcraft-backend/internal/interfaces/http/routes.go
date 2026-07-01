@@ -260,8 +260,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	// ============================================================
 	// Create TokenService for Authentication
 	// ============================================================
-	logger := logfacade.GetLogger(context.Background())
-
 	refreshTokenRepo := repository.NewSqlRefreshTokenRepository(dbgen.New(loggingDB))
 	auditLogRepo := repository.NewSqlSecurityAuditLogRepository(dbgen.New(loggingDB))
 

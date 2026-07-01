@@ -17,10 +17,7 @@ func TestRequestIDInjectorMiddleware(t *testing.T) {
 
 	newRequest := func() *http.Request {
 		r := httptest.NewRequest(http.MethodGet, "/api/test", nil)
-		ctx := ctxutils.NewHttpContext(r.Context(), &ctxutils.HttpRequestContext{
-			RequestId: testRequestID,
-		})
-		return r.WithContext(ctx)
+		return r.WithContext(ctxutils.SetRequestID(r.Context(), testRequestID))
 	}
 
 	t.Run("injects requestId when absent", func(t *testing.T) {
