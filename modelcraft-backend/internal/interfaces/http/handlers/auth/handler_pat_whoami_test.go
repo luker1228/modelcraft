@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"encoding/json"
-	"modelcraft/pkg/ctxutils"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -72,7 +71,6 @@ func TestHandlePATWhoamiReturnsIdentity(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/api/tenant/auth/whoami", nil)
 	req.Header.Set("Authorization", "Bearer mc_pat_"+raw)
-	req = req.WithContext(ctxutils.NewHttpContext(req.Context(), &ctxutils.HttpRequestContext{RequestId: "req-1"}))
 
 	rr := httptest.NewRecorder()
 	h.HandlePATWhoami(rr, req)
@@ -107,7 +105,6 @@ func TestHandlePATWhoamiRejectsInvalidToken(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/api/tenant/auth/whoami", nil)
 	req.Header.Set("Authorization", "Bearer mc_pat_invalid")
-	req = req.WithContext(ctxutils.NewHttpContext(req.Context(), &ctxutils.HttpRequestContext{RequestId: "req-2"}))
 
 	rr := httptest.NewRecorder()
 	h.HandlePATWhoami(rr, req)

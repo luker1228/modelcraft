@@ -8,6 +8,10 @@ DEV_MYSQL_CONFIG := "configs/dev/mysql.yaml"
 _default:
     @just --list
 
+# Build images and start the default service set in the background
+deploy env="dev":
+    {{COMPOSE_RUNNER}} {{env}} up -d --build
+
 # Validate the unified compose file for a target environment
 check env="dev":
     {{COMPOSE_RUNNER}} {{env}} config >/dev/null
@@ -20,6 +24,36 @@ build env="dev":
 # Build one service for a target environment
 build-service service env="dev":
     {{COMPOSE_RUNNER}} {{env}} build {{service}}
+
+# Build, tag, and push one service image to a remote registry
+publish-service service image_ref env="cloudrun":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [ -z "{{service}}" ] || [ -z "{{image_ref}}" ]; then
+        echo "usage: just publish-service <service> <image_ref> [env]"
+        exit 1
+    fi
+
+    local_image="modelcraft-{{service}}:{{env}}"
+
+    {{COMPOSE_RUNNER}} {{env}} build {{service}}
+
+    if ! docker image inspect "${local_image}" >/dev/null 2>&1; then
+        echo "构建完成后未找到本地镜像: ${local_image}"
+        exit 1
+    fi
+
+    docker tag "${local_image}" "{{image_ref}}"
+    docker push "{{image_ref}}"
+
+    echo "pushed {{service}} -> {{image_ref}}"
+
+# Build and push the backend image in one command
+publish-backend image_ref env="cloudrun":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just publish-service backend "{{image_ref}}" "{{env}}"
 
 # Start the default service set for a target environment
 up env="dev":

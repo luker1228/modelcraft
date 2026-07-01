@@ -1,5 +1,6 @@
 services:
   backend:
+    container_name: modelcraft-backend
     build:
       context: ..
       dockerfile: deploy/images/backend.Dockerfile
@@ -17,6 +18,7 @@ services:
     restart: unless-stopped
 
   apisix:
+    container_name: modelcraft-apisix
     build:
       context: ..
       dockerfile: deploy/images/apisix.Dockerfile
@@ -35,6 +37,7 @@ services:
     restart: unless-stopped
 
   agent:
+    container_name: modelcraft-agent
     build:
       context: ..
       dockerfile: deploy/images/agent.Dockerfile
@@ -52,6 +55,7 @@ services:
     restart: unless-stopped
 
   frontend:
+    container_name: modelcraft-frontend
     build:
       context: ..
       dockerfile: deploy/images/frontend.Dockerfile
@@ -69,6 +73,7 @@ services:
     restart: unless-stopped
 
   mysql:
+    container_name: modelcraft-mysql
     profiles:
       - dev
     build:
@@ -87,6 +92,7 @@ services:
     restart: unless-stopped
 
   phpmyadmin:
+    container_name: modelcraft-phpmyadmin
     profiles:
       - tools
     build:

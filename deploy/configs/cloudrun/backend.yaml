@@ -40,7 +40,7 @@ auth:
     optional_for_projects: []
 
 crypto:
-  aes_key: "f60bd580d4196e40094c8a561366ef30cdbdf34146c95708108008e25cbb1ab4"
+  aes_key: "m7Qx2Nf9Lp4Vt8Kc1Hs6Zd3Rw5By0JgA"
 
 logger:
   level: "info"
