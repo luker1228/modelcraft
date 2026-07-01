@@ -4,11 +4,11 @@ server:
 
 database:
   type: "mysql"
-  host: "db.internal"
+  host: "10.12.107.131"
   port: 3306
-  username: "admin"
-  password: "Modelcraft123"
-  database: "modelcraft"
+  username: "root"
+  password: "Jmx931228"
+  database: "mc_meta"
   charset: "utf8mb4"
   max_open_conns: 100
   max_idle_conns: 10
