@@ -934,6 +934,10 @@ db action="up" env_file=".env" print_sql="0":
             ;;
     esac
 
+[doc("Merge db/schema/mysql/*.sql into a single file")]
+db-merge-schema output="db/schema/merged/mysql_schema.sql":
+    ./scripts/merge-schema-sql.sh "{{output}}"
+
 # EndUser v2 数据回填（tasks 1.4）
 [doc("Backfill enduser-v2 data (merge duplicate usernames and generate project access)")]
 enduser-v2-backfill env_file=".env" run_id="":

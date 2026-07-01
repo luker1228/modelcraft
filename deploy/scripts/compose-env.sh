@@ -40,9 +40,9 @@ case "$DEPLOY_ENV" in
     default_services=(backend apisix agent frontend)
     ;;
   cloudrun)
-    export BACKEND_CONTAINER_PORT=80
-    export APISIX_CONTAINER_PORT=80
-    export AGENT_CONTAINER_PORT=80
+    export BACKEND_CONTAINER_PORT=8080
+    export APISIX_CONTAINER_PORT=9080
+    export AGENT_CONTAINER_PORT=8085
     export FRONTEND_CONTAINER_PORT=80
     profiles=()
     default_services=(backend apisix agent frontend)

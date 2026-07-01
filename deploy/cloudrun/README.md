@@ -39,8 +39,8 @@ just up cloudrun
 
 - `APP_ENV=cloudrun`
 - `BACKEND_CONTAINER_PORT=80`
-- `APISIX_CONTAINER_PORT=80`
-- `AGENT_CONTAINER_PORT=80`
+- `APISIX_CONTAINER_PORT=9080`
+- `AGENT_CONTAINER_PORT=8085`
 - `FRONTEND_CONTAINER_PORT=80`
 
 ## 配置来源
@@ -62,4 +62,4 @@ just up cloudrun
 
 - Cloud Run 前端域名需要填入 [configs/cloudrun/apisix.yaml](/data/home/lukemxjia/modelcraft/deploy/configs/cloudrun/apisix.yaml)
 - `LLM_API_KEY` 等敏感字段当前仍在 YAML 中，后续应迁移到安全密钥管理方案
-- Cloud Run 镜像的内网互访地址约定为 `backend:80`、`apisix:80`、`agent:80`
+- Cloud Run 镜像的内网互访地址约定为 `backend:8080`、`apisix:9080`、`agent:8085`
