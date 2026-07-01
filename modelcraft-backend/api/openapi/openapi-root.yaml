@@ -31,13 +31,6 @@ paths:
   /api/tenant/auth/whoami:
     $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1whoami"
 
-  # ========================
-  # User Endpoints
-  # ========================
-  /api/user/memberships:
-    $ref: "user.yaml#/paths/~1api~1user~1memberships"
-
-
 components:
   securitySchemes:
     BearerAuth:
@@ -73,11 +66,7 @@ components:
       $ref: "auth.yaml#/schemas/RefreshResponse"
     WhoamiResponse:
       $ref: "auth.yaml#/schemas/WhoamiResponse"
+    WhoamiMembershipInfo:
+      $ref: "auth.yaml#/schemas/WhoamiMembershipInfo"
     WhoamiUnauthorizedError:
       $ref: "auth.yaml#/schemas/WhoamiUnauthorizedError"
-
-    # -- User --
-    GetMembershipsResponse:
-      $ref: "user.yaml#/components/schemas/GetMembershipsResponse"
-    MembershipInfo:
-      $ref: "user.yaml#/components/schemas/MembershipInfo"

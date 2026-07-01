@@ -73,6 +73,14 @@ type TokenService struct {
 	systemDB           *sql.DB
 }
 
+type UserMembershipSnapshot struct {
+	OrgID       string
+	OrgName     string
+	DisplayName string
+	Role        string
+	JoinedAt    time.Time
+}
+
 // NewTokenService 创建新的 TokenService。
 func NewTokenService(
 	refreshTokenRepo domainauth.RefreshTokenRepository,
@@ -116,6 +124,33 @@ func (s *TokenService) WithEndUserSupport(factory EndUserRepositoryFactory, syst
 // 再转发给后端 GraphQL endpoint，从而避免 raw PAT 在内部链路中传播。
 func (s *TokenService) IssueToken(userID, orgName string, isAdmin bool) (string, error) {
 	return s.jwtSigner.IssueAccessToken(userID, orgName, isAdmin)
+}
+
+// ParsePlatformToken validates a tenant/end-user platform JWT and returns its claims.
+func (s *TokenService) ParsePlatformToken(token string) (*domainauth.PlatformClaims, error) {
+	return s.jwtSigner.ParsePlatformClaims(token)
+}
+
+// GetUserMembershipSnapshots returns the organizations available to the given user.
+// Current behavior matches the legacy /api/user/memberships endpoint: one primary org.
+func (s *TokenService) GetUserMembershipSnapshots(ctx context.Context, userID string) ([]UserMembershipSnapshot, error) {
+	u, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query user: %w", err)
+	}
+	if u == nil {
+		return []UserMembershipSnapshot{}, nil
+	}
+
+	return []UserMembershipSnapshot{
+		{
+			OrgID:       u.OrgName,
+			OrgName:     u.OrgName,
+			DisplayName: "",
+			Role:        "",
+			JoinedAt:    u.CreatedAt,
+		},
+	}, nil
 }
 
 // Register 手机号+密码注册新用户。

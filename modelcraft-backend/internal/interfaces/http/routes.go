@@ -51,7 +51,6 @@ import (
 
 	appAuth "modelcraft/internal/app/auth"
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
-	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
 	httpmiddleware "modelcraft/internal/interfaces/http/middleware"
 
 	"github.com/go-chi/chi/v5"
@@ -63,7 +62,6 @@ import (
 // This struct provides the AuthHandler for Chi and app services for GraphQL.
 type DesignHandlers struct {
 	AuthHandler *authHandlers.Handler
-	UserHandler *userHandlers.Handler
 
 	// Services needed for GraphQL setup
 	ModelAppService           *modeldesign.ModelDesignAppService
@@ -316,7 +314,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 
 	return &DesignHandlers{
 		AuthHandler:                 authHandler,
-		UserHandler:                 userHandlers.NewHandler(userRepo, logger),
 		ModelAppService:             appService,
 		ClusterAppService:           clusterAppService,
 		ReverseEngineerAppService:   reverseEngineerApp,

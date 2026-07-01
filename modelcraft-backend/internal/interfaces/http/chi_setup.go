@@ -16,7 +16,6 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
-	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
 )
 
 // ChiRouterConfig holds all dependencies needed to set up the Chi router.
@@ -27,7 +26,6 @@ type ChiRouterConfig struct {
 
 	// Handlers for OpenAPI routes (tenant-management only)
 	AuthHandler *authHandlers.Handler
-	UserHandler *userHandlers.Handler
 
 	// Design handlers for GraphQL routes
 	DesignHandlers *DesignHandlers
@@ -53,7 +51,6 @@ func NewChiRouterConfig(
 		Config:          cfg,
 		DB:              db,
 		AuthHandler:     designHandlers.AuthHandler,
-		UserHandler:     designHandlers.UserHandler,
 		DesignHandlers:  designHandlers,
 		RuntimeHandlers: runtimeHandlers,
 
@@ -126,7 +123,6 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	// Business domain APIs are served via GraphQL.
 	server := NewServer(
 		cfg.AuthHandler,
-		cfg.UserHandler,
 	)
 
 	// Create generated Chi handler with NO built-in middleware.

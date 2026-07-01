@@ -100,10 +100,10 @@ function saveToLocalStorage(data: MembershipInfo[]): void {
 }
 
 /**
- * Fetch memberships from API
+ * Fetch memberships from whoami API
  */
 async function fetchMembershipsFromAPI(token: string): Promise<MembershipInfo[]> {
-  const response = await fetch(`/api/user/memberships`, {
+  const response = await fetch(`/api/auth/whoami`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -113,8 +113,9 @@ async function fetchMembershipsFromAPI(token: string): Promise<MembershipInfo[]>
     throw new Error(`Failed to fetch memberships: ${response.status} ${response.statusText}`)
   }
 
-  const data = (await response.json()) as { memberships: Array<Record<string, unknown>> }
-  const memberships: MembershipInfo[] = data.memberships.map((m) => ({
+  const data = (await response.json()) as { memberships?: Array<Record<string, unknown>> }
+  const rawMemberships = data.memberships ?? []
+  const memberships: MembershipInfo[] = rawMemberships.map((m) => ({
     orgId: String(m.orgId),
     orgName: String(m.orgName),
     displayName: String(m.displayName),

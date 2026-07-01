@@ -6,7 +6,6 @@ package generated
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -16,10 +15,6 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
-)
-
-const (
-	BearerAuthScopes = "BearerAuth.Scopes"
 )
 
 // Defines values for AuthInvalidInputErrorErrorCode.
@@ -76,21 +71,6 @@ const (
 func (e SystemErrorErrorCode) Valid() bool {
 	switch e {
 	case SYSTEMERROR:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for UnauthorizedErrorErrorCode.
-const (
-	UNAUTHORIZED UnauthorizedErrorErrorCode = "UNAUTHORIZED"
-)
-
-// Valid indicates whether the value is a known member of the UnauthorizedErrorErrorCode enum.
-func (e UnauthorizedErrorErrorCode) Valid() bool {
-	switch e {
-	case UNAUTHORIZED:
 		return true
 	default:
 		return false
@@ -157,15 +137,6 @@ type BaseResponse struct {
 	RequestId string `json:"requestId"`
 }
 
-// GetMembershipsResponse defines model for GetMembershipsResponse.
-type GetMembershipsResponse struct {
-	// Memberships List of organization memberships
-	Memberships []MembershipInfo `json:"memberships"`
-
-	// RequestId Unique request identifier
-	RequestId string `json:"requestId"`
-}
-
 // LoginRequest defines model for LoginRequest.
 type LoginRequest struct {
 	// Password User password
@@ -194,24 +165,6 @@ type LoginResponse struct {
 
 	// UserName User display name
 	UserName *string `json:"userName,omitempty"`
-}
-
-// MembershipInfo defines model for MembershipInfo.
-type MembershipInfo struct {
-	// DisplayName Organization display name
-	DisplayName string `json:"displayName"`
-
-	// JoinedAt Join timestamp in milliseconds (Unix epoch)
-	JoinedAt int64 `json:"joinedAt"`
-
-	// OrgId Organization UUID
-	OrgId string `json:"orgId"`
-
-	// OrgName Organization slug (unique identifier)
-	OrgName string `json:"orgName"`
-
-	// Role User's role in the organization
-	Role string `json:"role"`
 }
 
 // PhoneAlreadyRegisteredError defines model for PhoneAlreadyRegisteredError.
@@ -293,18 +246,6 @@ type SystemError struct {
 // SystemErrorErrorCode defines model for SystemError.Error.Code.
 type SystemErrorErrorCode string
 
-// UnauthorizedError defines model for UnauthorizedError.
-type UnauthorizedError struct {
-	Error struct {
-		Code    UnauthorizedErrorErrorCode `json:"code"`
-		Message string                     `json:"message"`
-	} `json:"error"`
-	RequestId string `json:"requestId"`
-}
-
-// UnauthorizedErrorErrorCode defines model for UnauthorizedError.Error.Code.
-type UnauthorizedErrorErrorCode string
-
 // UserNameAlreadyRegisteredError defines model for UserNameAlreadyRegisteredError.
 type UserNameAlreadyRegisteredError struct {
 	Error struct {
@@ -317,10 +258,21 @@ type UserNameAlreadyRegisteredError struct {
 // UserNameAlreadyRegisteredErrorErrorCode defines model for UserNameAlreadyRegisteredError.Error.Code.
 type UserNameAlreadyRegisteredErrorErrorCode string
 
+// WhoamiMembershipInfo defines model for WhoamiMembershipInfo.
+type WhoamiMembershipInfo struct {
+	DisplayName string `json:"displayName"`
+	JoinedAt    int64  `json:"joinedAt"`
+	OrgId       string `json:"orgId"`
+	OrgName     string `json:"orgName"`
+	Role        string `json:"role"`
+}
+
 // WhoamiResponse defines model for WhoamiResponse.
 type WhoamiResponse struct {
-	IsAdmin bool   `json:"isAdmin"`
-	OrgName string `json:"orgName"`
+	AccessToken *string                `json:"accessToken,omitempty"`
+	IsAdmin     bool                   `json:"isAdmin"`
+	Memberships []WhoamiMembershipInfo `json:"memberships"`
+	OrgName     string                 `json:"orgName"`
 
 	// RequestId Unique request trace ID
 	RequestId string `json:"requestId"`
@@ -359,12 +311,9 @@ type ServerInterface interface {
 	// Register user and initialize profile atomically
 	// (POST /api/tenant/auth/register)
 	Register(w http.ResponseWriter, r *http.Request)
-	// Resolve current identity from a PAT token
+	// Resolve current identity from a bearer token
 	// (GET /api/tenant/auth/whoami)
 	Whoami(w http.ResponseWriter, r *http.Request)
-	// Get current user's organization memberships
-	// (GET /api/user/memberships)
-	GetUserMemberships(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -395,15 +344,9 @@ func (_ Unimplemented) Register(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Resolve current identity from a PAT token
+// Resolve current identity from a bearer token
 // (GET /api/tenant/auth/whoami)
 func (_ Unimplemented) Whoami(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get current user's organization memberships
-// (GET /api/user/memberships)
-func (_ Unimplemented) GetUserMemberships(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -477,26 +420,6 @@ func (siw *ServerInterfaceWrapper) Whoami(w http.ResponseWriter, r *http.Request
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Whoami(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// GetUserMemberships operation middleware
-func (siw *ServerInterfaceWrapper) GetUserMemberships(w http.ResponseWriter, r *http.Request) {
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetUserMemberships(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -634,9 +557,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/tenant/auth/whoami", wrapper.Whoami)
 	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/user/memberships", wrapper.GetUserMemberships)
-	})
 
 	return r
 }
@@ -644,48 +564,42 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"/67+X35RKgAA",
+	"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",
+	"UaPBDF0slD46bB42DaT/FwAA//9+gbxzDCQAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

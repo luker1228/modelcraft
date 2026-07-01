@@ -11,6 +11,7 @@ COPY deploy/cloudrun/apisix/docker-entrypoint.sh /docker-entrypoint-override.sh
 COPY deploy/scripts/load-flat-yaml-env.sh /usr/local/bin/load-flat-yaml-env.sh
 COPY apisix/config.yaml /usr/local/apisix/conf/config-template.yaml
 COPY apisix/apisix.yaml /usr/local/apisix/conf/apisix-template.yaml
+COPY apisix/lua /opt/modelcraft-apisix/lua
 COPY deploy/configs/${APP_ENV}/apisix.yaml /etc/modelcraft/runtime.yaml
 
 RUN chmod +x /docker-entrypoint-override.sh /usr/local/bin/load-flat-yaml-env.sh

@@ -118,18 +118,18 @@ paths:
   /api/tenant/auth/whoami:
     get:
       operationId: whoami
-      summary: Resolve current identity from a PAT token
+      summary: Resolve current identity from a bearer token
       tags: [Auth]
       security: []
       responses:
         "200":
-          description: PAT identity resolved
+          description: Identity resolved
           content:
             application/json:
               schema:
                 $ref: "auth.yaml#/schemas/WhoamiResponse"
         "401":
-          description: Invalid or expired PAT token
+          description: Invalid or expired bearer token
           content:
             application/json:
               schema:
@@ -390,6 +390,7 @@ schemas:
           - userId
           - orgName
           - isAdmin
+          - memberships
         properties:
           userId:
             type: string
@@ -397,3 +398,30 @@ schemas:
             type: string
           isAdmin:
             type: boolean
+          accessToken:
+            type: string
+          memberships:
+            type: array
+            items:
+              $ref: "auth.yaml#/schemas/WhoamiMembershipInfo"
+
+  WhoamiMembershipInfo:
+    type: object
+    required:
+      - orgId
+      - orgName
+      - displayName
+      - role
+      - joinedAt
+    properties:
+      orgId:
+        type: string
+      orgName:
+        type: string
+      displayName:
+        type: string
+      role:
+        type: string
+      joinedAt:
+        type: integer
+        format: int64

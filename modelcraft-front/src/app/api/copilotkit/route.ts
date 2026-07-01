@@ -1,9 +1,8 @@
 /**
  * CopilotKit Runtime endpoint — Next.js App Router
  *
- * Two agents, each pointing to its own Python endpoint via APISIX:
- *   modelcraft_admin_agent   → APISIX /copilotkit/admin
- *   modelcraft_enduser_agent → APISIX /copilotkit/enduser
+ * One agent, pointing to the Python endpoint via APISIX:
+ *   modelcraft_admin_agent → APISIX /copilotkit/admin
  *
  * NOTE: Do NOT pass Authorization in LangGraphHttpAgent.headers.
  * CopilotKit's handle-run already calls extractForwardableHeaders() which
@@ -35,10 +34,6 @@ export const POST = async (req: NextRequest) => {
     agents: {
       modelcraft_admin_agent: new LangGraphHttpAgent({
         url: `${APISIX_URL}/copilotkit/admin`,
-        // No headers — CopilotKit's handle-run forwards Authorization automatically.
-      }),
-      modelcraft_enduser_agent: new LangGraphHttpAgent({
-        url: `${APISIX_URL}/copilotkit/enduser`,
         // No headers — CopilotKit's handle-run forwards Authorization automatically.
       }),
     },

@@ -120,11 +120,6 @@ const nextConfig = {
         source: '/api/end-user/:path*',
         destination: `${backendUrl}/api/end-user/:path*`,
       },
-      // 用户信息 API
-      {
-        source: '/api/user/:path*',
-        destination: `${backendUrl}/api/user/:path*`,
-      },
     ]
   },
 }

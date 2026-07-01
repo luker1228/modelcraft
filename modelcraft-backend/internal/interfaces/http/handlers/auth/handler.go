@@ -224,13 +224,22 @@ func (h *Handler) HandlePATWhoami(w http.ResponseWriter, r *http.Request) {
 	requestID := ctxutils.GetRequestID(r.Context())
 
 	authHeader := r.Header.Get(httpheader.Authorization)
-	if !strings.HasPrefix(authHeader, "Bearer mc_pat_") {
-		logfacade.GetLogger(r.Context()).
-			Warnf(r.Context(), "PAT whoami rejected: invalid auth header requestId=%s", requestID)
-		writeAuthError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", "valid PAT token required")
+	if strings.HasPrefix(authHeader, "Bearer mc_pat_") {
+		h.handlePATWhoami(w, r, requestID, authHeader)
 		return
 	}
 
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		h.handlePlatformWhoami(w, r, requestID, strings.TrimPrefix(authHeader, "Bearer "))
+		return
+	}
+
+	logfacade.GetLogger(r.Context()).
+		Warnf(r.Context(), "whoami rejected: invalid auth header requestId=%s", requestID)
+	writeAuthError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", "valid bearer token required")
+}
+
+func (h *Handler) handlePATWhoami(w http.ResponseWriter, r *http.Request, requestID, authHeader string) {
 	if h.apiTokenSvc == nil {
 		logfacade.GetLogger(r.Context()).Errorf(r.Context(), nil, "PAT whoami unavailable: api token service is nil")
 		writeAuthError(w, http.StatusInternalServerError, requestID, "SYSTEM_ERROR", "Internal server error")
@@ -275,16 +284,61 @@ func (h *Handler) HandlePATWhoami(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	memberships, membershipsErr := h.tokenService.GetUserMembershipSnapshots(r.Context(), token.EndUserID)
+	if membershipsErr != nil {
+		logfacade.GetLogger(r.Context()).Warnf(r.Context(), "PAT whoami memberships load failed requestId=%s err=%v", requestID, membershipsErr)
+	}
+
 	resp := map[string]any{
 		"requestId": requestID,
 		"userId":    token.EndUserID,
 		"orgName":   token.OrgName,
 		"isAdmin":   isAdmin,
+		"memberships": buildWhoamiMemberships(memberships),
 	}
 	if accessToken != "" {
 		resp["accessToken"] = accessToken
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *Handler) handlePlatformWhoami(w http.ResponseWriter, r *http.Request, requestID, token string) {
+	claims, err := h.tokenService.ParsePlatformToken(token)
+	if err != nil {
+		logfacade.GetLogger(r.Context()).
+			Warnf(r.Context(), "platform whoami validation failed requestId=%s err=%v", requestID, err)
+		writeAuthError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", "valid bearer token required")
+		return
+	}
+
+	memberships, membershipsErr := h.tokenService.GetUserMembershipSnapshots(r.Context(), claims.UserID)
+	if membershipsErr != nil {
+		logfacade.GetLogger(r.Context()).
+			Warnf(r.Context(), "platform whoami memberships load failed requestId=%s err=%v", requestID, membershipsErr)
+	}
+
+	resp := map[string]any{
+		"requestId":   requestID,
+		"userId":      claims.UserID,
+		"orgName":     claims.OrgName,
+		"isAdmin":     claims.IsAdmin,
+		"memberships": buildWhoamiMemberships(memberships),
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func buildWhoamiMemberships(items []appAuth.UserMembershipSnapshot) []map[string]any {
+	memberships := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		memberships = append(memberships, map[string]any{
+			"orgId":       item.OrgID,
+			"orgName":     item.OrgName,
+			"displayName": item.DisplayName,
+			"role":        item.Role,
+			"joinedAt":    item.JoinedAt.UnixMilli(),
+		})
+	}
+	return memberships
 }
 
 // handleBusinessError maps a BusinessError to the appropriate HTTP error response.

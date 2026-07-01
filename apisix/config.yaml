@@ -6,6 +6,7 @@
 apisix:
   node_listen: 9080
   enable_ipv6: false
+  extra_lua_path: /opt/modelcraft-apisix/lua/?.lua;;
 
 nginx_config:
   error_log: /dev/stderr
@@ -31,7 +32,6 @@ plugins:
   - cors
   - request-id
   - opentelemetry
-  - jwt-auth
-  - serverless-pre-function
+  - modelcraft-auth
   - proxy-rewrite
   - response-rewrite

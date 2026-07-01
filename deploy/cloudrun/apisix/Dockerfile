@@ -11,6 +11,7 @@ RUN chmod +x /docker-entrypoint-override.sh
 # 复制共享模板
 COPY apisix/config.yaml /usr/local/apisix/conf/config-template.yaml
 COPY apisix/apisix.yaml /usr/local/apisix/conf/apisix-template.yaml
+COPY apisix/lua /opt/modelcraft-apisix/lua
 
 # 端口通过环境变量 PORT 指定（默认 9080，云托管注入 80）
 ARG PORT=9080
