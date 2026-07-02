@@ -10,6 +10,7 @@ apisix:
   node_listen: 9080
   enable_admin: false
   proxy_mode: http
+  extra_lua_path: "/app/apisix/lua/?.lua;/app/apisix/lua/?/init.lua"
 
 nginx_config:
   error_log_level: warn

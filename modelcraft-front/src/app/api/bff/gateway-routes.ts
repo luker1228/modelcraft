@@ -14,7 +14,8 @@ function gatewayUrl(): string {
 }
 
 // ── Tenant GraphQL ──────────────────────────────────────────────────────────
-// Only tenant (developer/admin) tokens may call these endpoints.
+// Developer/tenant GraphQL endpoints proxied through the gateway.
+// These routes are valid external entry points and rely on gateway-injected identity headers.
 
 export const tenantOrgGraphQL = (orgName: string) =>
   `${gatewayUrl()}/graphql/org/${orgName}/`
@@ -35,7 +36,7 @@ export const tenantAuthPath = (path: string) =>
   `${gatewayUrl()}/api/tenant/auth/${path}`
 
 // ── End-User GraphQL ───────────────────────────────────────────────────────
-// PAT Bearer token or gateway-injected JWT.  Used by the CLI (mc).
+// End-user GraphQL endpoints for PAT-based flows and other end-user clients.
 
 export const endUserOrgGraphQL = (orgName: string) =>
   `${gatewayUrl()}/end-user/graphql/org/${orgName}`

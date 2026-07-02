@@ -66,7 +66,7 @@ func NewChiRouterConfig(
 //	  ├── Global: RequestID, RealIP, CORS, Logger, Recoverer
 //	  ├── /health, /test                               → net/http (no auth)
 //	  ├── /api/openapi.json                            → net/http (no auth)
-//	  ├── /graphql/org/*                               → tenant-only GraphQL (X-User-ID)
+//	  ├── /graphql/org/*                               → tenant/developer GraphQL via gateway (X-User-ID)
 //	  ├── /end-user/graphql/org/*                      → end-user GraphQL (X-User-ID + RLS headers)
 //	  ├── /graphql/org/*/project/*/db/*/model/*        → runtime GraphQL
 //	  └── /api/* (generated OpenAPI handler)           → Chi with conditional auth
