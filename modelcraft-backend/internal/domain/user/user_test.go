@@ -45,11 +45,11 @@ func TestNewUser(t *testing.T) {
 		assert.Contains(t, err.Error(), "reserved")
 	})
 
-	t.Run("should return error when phone is zero", func(t *testing.T) {
+	t.Run("should create user with empty phone (phone is optional)", func(t *testing.T) {
 		user, err := NewUser("uuid-123", "john_doe", PhoneNumber{}, "$2a$10$hashedpassword", "test-org")
-		assert.Error(t, err)
-		assert.Nil(t, user)
-		assert.Contains(t, err.Error(), "phone number is required")
+		require.NoError(t, err)
+		assert.NotNil(t, user)
+		assert.True(t, user.Phone.IsZero())
 	})
 
 	t.Run("should return error when password hash is empty", func(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 )
@@ -56,10 +57,8 @@ func ValidateUserName(name string) error {
 		"modelcraft", "support", "help", "api", "www",
 		"null", "undefined", "anonymous",
 	}
-	for _, reserved := range reservedWords {
-		if lowerName == reserved {
-			return fmt.Errorf("userName '%s' is reserved", name)
-		}
+	if slices.Contains(reservedWords, lowerName) {
+		return fmt.Errorf("userName '%s' is reserved", name)
 	}
 
 	return nil
@@ -77,12 +76,8 @@ var registerNameNouns = [...]string{
 	"island", "jungle", "kitten", "legend", "meteor", "nebula", "orchid", "phoenix",
 }
 
-// NewUser 通过手机号+密码创建用户实体
-// userName 为用户自定义的用户名，在注册时由用户提供
+// NewUser 通过用户名+密码创建用户实体（phone 可为空，demo org owner 场景下无手机号）
 func NewUser(id, userName string, phone PhoneNumber, passwordHash, orgName string) (*User, error) {
-	if phone.IsZero() {
-		return nil, fmt.Errorf("phone number is required")
-	}
 	if passwordHash == "" {
 		return nil, fmt.Errorf("password hash is required")
 	}
@@ -99,7 +94,7 @@ func NewUser(id, userName string, phone PhoneNumber, passwordHash, orgName strin
 		Phone:        phone,
 		PasswordHash: passwordHash,
 		OrgName:      orgName,
-		IsAdmin:      true, // 通过 Register 创建的用户都是管理员
+		IsAdmin:      true,
 		Status:       "active",
 		CreatedAt:    now,
 		UpdatedAt:    now,
