@@ -38,6 +38,7 @@ import (
 	appOrg "modelcraft/internal/app/organization"
 	appPermission "modelcraft/internal/app/permission"
 	appProfile "modelcraft/internal/app/profile"
+	appSeed "modelcraft/internal/app/seed"
 
 	appEnduser "modelcraft/internal/app/enduser"
 	appRbac "modelcraft/internal/app/rbac"
@@ -337,6 +338,12 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 
 	// Create auth handler with token service
 	authHandler := authHandlers.NewHandler(tokenService, cfg.Auth.Cookie)
+
+	// Run demo seeder (no-op unless DEMO_ENABLED=true)
+	demoSeeder := appSeed.NewDemoSeeder(orgRepo, userRepo, casbinRoleRepo, casbinUserRoleRepo, passwordHasher)
+	if err := demoSeeder.Seed(context.Background()); err != nil {
+		logger.Warnf(context.Background(), "Demo seed failed (non-fatal): %v", err)
+	}
 
 	// Attach end-user repository support to TokenService (unified auth service).
 	endUserTxMgr := &endUserTxManager{}
