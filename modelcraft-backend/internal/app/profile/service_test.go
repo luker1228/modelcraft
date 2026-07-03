@@ -45,6 +45,10 @@ func (m *mockUserRepository) GetByName(_ context.Context, _, _ string) (*domainU
 	return nil, nil
 }
 
+func (m *mockUserRepository) GetByNameGlobal(_ context.Context, _ string) (*domainUser.User, error) {
+	return nil, nil
+}
+
 func (m *mockUserRepository) ExistsByPhone(_ context.Context, _, _ string) (bool, error) {
 	return false, nil
 }

@@ -621,6 +621,11 @@ func (s *SafeQuerier) GetUserByNameInOrg(ctx context.Context, arg _sourceDbgen.G
 	WrapSQLErrorInPlace(&err)
 	return
 }
+func (s *SafeQuerier) GetUserByNameGlobal(ctx context.Context, name string) (g1 _sourceDbgen.GetUserByNameGlobalRow, err error) {
+	g1, err = s.delegate.GetUserByNameGlobal(ctx, name)
+	WrapSQLErrorInPlace(&err)
+	return
+}
 func (s *SafeQuerier) GetUserByPhoneInOrg(ctx context.Context, arg _sourceDbgen.GetUserByPhoneInOrgParams) (g1 _sourceDbgen.GetUserByPhoneInOrgRow, err error) {
 	g1, err = s.delegate.GetUserByPhoneInOrg(ctx, arg)
 	WrapSQLErrorInPlace(&err)

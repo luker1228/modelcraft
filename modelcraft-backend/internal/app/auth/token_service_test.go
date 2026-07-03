@@ -200,6 +200,14 @@ func (m *mockUserRepo) ExistsByName(_ context.Context, _, name string) (bool, er
 	return ok, nil
 }
 
+func (m *mockUserRepo) GetByNameGlobal(_ context.Context, name string) (*domainUser.User, error) {
+	u, ok := m.usersByName[name]
+	if !ok {
+		return nil, shared.NewNotFoundError("user not found by name: " + name)
+	}
+	return u, nil
+}
+
 func (m *mockUserRepo) ListByOrg(_ context.Context, _ string) ([]*domainUser.User, error) {
 	return nil, nil
 }
@@ -415,7 +423,7 @@ func TestTokenService_Login_Success(t *testing.T) {
 
 	// Login
 	result, err := svc.Login(ctx, LoginCommand{
-		Phone:    "13800138000",
+		UserName: "testuser_8000",
 		Password: "securePassword1",
 	})
 
@@ -430,7 +438,7 @@ func TestTokenService_Login_PhoneNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := svc.Login(ctx, LoginCommand{
-		Phone:    "13900139000",
+		UserName: "nonexistent_user",
 		Password: "securePassword1",
 	})
 	assert.Error(t, err)
@@ -444,7 +452,7 @@ func TestTokenService_Login_WrongPassword(t *testing.T) {
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 
 	_, err := svc.Login(ctx, LoginCommand{
-		Phone:    "13800138000",
+		UserName: "testuser_8000",
 		Password: "wrongPassword",
 	})
 	assert.Error(t, err)
@@ -460,7 +468,7 @@ func TestTokenService_Refresh_Rotation(t *testing.T) {
 	// Register and login to get a refresh token
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 	loginResult, err := svc.Login(ctx, LoginCommand{
-		Phone:    "13800138000",
+		UserName: "testuser_8000",
 		Password: "securePassword1",
 	})
 	require.NoError(t, err)
@@ -480,7 +488,7 @@ func TestTokenService_Refresh_ReuseDetection(t *testing.T) {
 
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 	loginResult, err := svc.Login(ctx, LoginCommand{
-		Phone:    "13800138000",
+		UserName: "testuser_8000",
 		Password: "securePassword1",
 	})
 	require.NoError(t, err)
@@ -511,7 +519,7 @@ func TestTokenService_Refresh_ExpiredToken(t *testing.T) {
 
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 	loginResult, err := svc.Login(ctx, LoginCommand{
-		Phone:    "13800138000",
+		UserName: "testuser_8000",
 		Password: "securePassword1",
 	})
 	require.NoError(t, err)
@@ -541,7 +549,7 @@ func TestTokenService_Logout(t *testing.T) {
 
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 	loginResult, err := svc.Login(ctx, LoginCommand{
-		Phone:    "13800138000",
+		UserName: "testuser_8000",
 		Password: "securePassword1",
 	})
 	require.NoError(t, err)

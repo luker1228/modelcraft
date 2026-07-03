@@ -8,6 +8,11 @@ SELECT id, phone, password_hash, name, external_id, org_name, is_admin, status, 
 FROM users
 WHERE org_name = ? AND name = ? AND `users`.`deleted_at` = 0 LIMIT 1;
 
+-- name: GetUserByNameGlobal :one
+SELECT id, phone, password_hash, name, external_id, org_name, is_admin, status, created_at, updated_at
+FROM users
+WHERE name = ? AND `users`.`deleted_at` = 0 LIMIT 1;
+
 -- name: ExistsByPhoneInOrg :one
 SELECT EXISTS(SELECT 1 FROM users WHERE org_name = ? AND phone = ?) AS phone_exists;
 

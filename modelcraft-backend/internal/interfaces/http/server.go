@@ -51,6 +51,10 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	s.authHandler.HandleLogin(w, r)
 }
 
+func (s *Server) DemoLogin(w http.ResponseWriter, r *http.Request) {
+	s.authHandler.HandleDemoLogin(w, r)
+}
+
 func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 	s.authHandler.HandleRegister(w, r)
 }

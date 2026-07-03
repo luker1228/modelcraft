@@ -12,6 +12,7 @@ import (
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/logfacade"
+	"os"
 	"time"
 
 	domainauth "modelcraft/internal/domain/auth"
@@ -383,25 +384,16 @@ func (s *TokenService) classifyCreateUserError(
 	return bizerrors.NewErrorFromContext(ctx, bizerrors.Conflict, "duplicate user record")
 }
 
-// Login 管理员手机号登录：先用 org.phone 定位 org，再在 org 内查找 user。
+// Login 管理员用户名登录：全局按 userName 查找用户。
 func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResult, error) {
 	logger := logfacade.GetLogger(ctx)
 
-	if cmd.Phone == "" {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, "phone is required")
+	if cmd.UserName == "" {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, "userName is required")
 	}
 
-	// Step 1: 用手机号定位 org（全局唯一）
-	org, err := s.orgRepo.GetByPhone(ctx, cmd.Phone)
-	if err != nil {
-		if shared.IsNotFoundError(err) {
-			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "phone not registered")
-		}
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-
-	// Step 2: 在 org 内查找 user
-	u, err := s.userRepo.GetByPhone(ctx, org.Name, cmd.Phone)
+	// Step 1: 全局按用户名查找用户
+	u, err := s.userRepo.GetByNameGlobal(ctx, cmd.UserName)
 	if err != nil {
 		if shared.IsNotFoundError(err) {
 			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "user not found")
@@ -409,7 +401,7 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	// Step 3: 验证密码
+	// Step 2: 验证密码
 	if u.PasswordHash == "" {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "incorrect password")
 	}
@@ -592,4 +584,25 @@ func (s *TokenService) resolveOrgNameForFallback(
 func mustGenerateID() string {
 	id, _ := bizutils.GenerateUUIDV7()
 	return id
+}
+
+// DemoLogin issues a guest JWT for anonymous demo access. No authentication required.
+// Returns NotFound if DEMO_ENABLED is not set to "true".
+func (s *TokenService) DemoLogin(ctx context.Context) (*LoginResult, error) {
+	if os.Getenv("DEMO_ENABLED") != "true" {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.NotFound, "demo mode not enabled")
+	}
+
+	accessToken, err := s.jwtSigner.IssueAccessToken("guest", "demo", false)
+	if err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "failed to issue guest token")
+	}
+
+	return &LoginResult{
+		UserID:      "guest",
+		UserName:    "guest",
+		OrgName:     "demo",
+		AccessToken: accessToken,
+		ExpiresIn:   s.jwtSigner.TTLSeconds(),
+	}, nil
 }

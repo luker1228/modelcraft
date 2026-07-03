@@ -89,6 +89,10 @@ func (m *mockUserRepo) ExistsByName(ctx context.Context, orgName, name string) (
 	return args.Bool(0), args.Error(1)
 }
 
+func (m *mockUserRepo) GetByNameGlobal(_ context.Context, _ string) (*user.User, error) {
+	return nil, nil
+}
+
 func (m *mockUserRepo) ListByOrg(ctx context.Context, orgName string) ([]*user.User, error) {
 	args := m.Called(ctx, orgName)
 	if args.Get(0) == nil {
