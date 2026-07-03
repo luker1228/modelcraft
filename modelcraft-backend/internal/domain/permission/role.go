@@ -2,6 +2,7 @@ package permission
 
 import (
 	"modelcraft/pkg/bizerrors"
+	"slices"
 	"time"
 )
 
@@ -27,10 +28,11 @@ const (
 	RoleAdmin  = "admin"
 	RoleEditor = "editor"
 	RoleViewer = "viewer"
+	RoleGuest  = "guest" // anonymous demo access: read-only + create temporary API keys
 )
 
 // SystemRoles contains all system role names
-var SystemRoles = []string{RoleOwner, RoleAdmin, RoleEditor, RoleViewer}
+var SystemRoles = []string{RoleOwner, RoleAdmin, RoleEditor, RoleViewer, RoleGuest}
 
 // NewRole creates a new custom role
 func NewRole(name, description, orgName string) *Role {
@@ -73,12 +75,7 @@ func (r *Role) CanDelete() bool {
 
 // IsSystemRoleName checks if a given name is a system role name
 func IsSystemRoleName(name string) bool {
-	for _, sysRole := range SystemRoles {
-		if sysRole == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(SystemRoles, name)
 }
 
 // Validate validates the role entity
@@ -115,8 +112,7 @@ func (r *Role) validateSystemRole() error {
 	if !IsSystemRoleName(r.Name) {
 		return bizerrors.NewError(
 			bizerrors.ParamInvalid,
-			"system role name must be one of: "+
-				"owner, admin, editor, viewer",
+		"system role name must be one of: owner, admin, editor, viewer, guest",
 		)
 	}
 	return nil
