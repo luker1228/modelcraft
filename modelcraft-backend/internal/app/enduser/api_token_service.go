@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"modelcraft/internal/app/auth"
+	"modelcraft/internal/domain/permission"
 	"modelcraft/pkg/bizutils"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 )
 
 const maxTokensPerUser = 20
+const guestMaxTokenTTL = 30 * time.Minute
 
 // APITokenService handles CRUD and validation for EndUser Personal Access Tokens.
 type APITokenService struct {
@@ -28,6 +30,7 @@ type CreateAPITokenCommand struct {
 	EndUserID string
 	Name      string
 	ExpiresAt *time.Time
+	RoleName  string // used to enforce TTL caps per role
 }
 
 // CreateAPITokenResult holds the created token and the one-time plaintext.
@@ -41,6 +44,14 @@ type CreateAPITokenResult struct {
 func (s *APITokenService) CreateAPIToken(
 	ctx context.Context, cmd CreateAPITokenCommand,
 ) (*CreateAPITokenResult, error) {
+	// Guest role: enforce 30-minute TTL cap
+	if cmd.RoleName == permission.RoleGuest && cmd.ExpiresAt != nil {
+		maxExpiry := time.Now().Add(guestMaxTokenTTL)
+		if cmd.ExpiresAt.After(maxExpiry) {
+			return nil, fmt.Errorf("guest API token TTL cannot exceed 30 minutes")
+		}
+	}
+
 	existing, err := s.repo.ListByUser(ctx, cmd.OrgName, cmd.EndUserID)
 	if err != nil {
 		return nil, fmt.Errorf("check token count: %w", err)
