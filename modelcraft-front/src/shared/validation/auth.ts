@@ -45,9 +45,9 @@ export const orgDisplayNameSchema = z
   .min(1, '请输入组织名称')
   .max(64, '组织名称最多 64 个字符')
 
-/** 登录表单 — 仅手机号 */
+/** 登录表单 — 用户名 */
 export const loginFormSchema = z.object({
-  phone: phoneNumberSchema,
+  userName: userNameSchema,
   password: z.string().min(1, '请输入密码'),
 })
 

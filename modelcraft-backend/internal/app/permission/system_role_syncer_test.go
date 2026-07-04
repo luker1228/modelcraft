@@ -37,12 +37,13 @@ func TestSystemRolePermissionsSyncer_Sync_DeleteThenInsert(t *testing.T) {
 	syncer, mockRoleRepo, mockPermRepo := systemRoleSyncerTestSetup()
 	ctx := testContext()
 
-	// Stub role lookups for all four system roles.
+	// Stub role lookups for all five system roles.
 	roles := map[string]*permission.Role{
 		permission.RoleOwner:  stubSystemRole(1, permission.RoleOwner),
 		permission.RoleAdmin:  stubSystemRole(2, permission.RoleAdmin),
 		permission.RoleEditor: stubSystemRole(3, permission.RoleEditor),
 		permission.RoleViewer: stubSystemRole(4, permission.RoleViewer),
+		permission.RoleGuest:  stubSystemRole(5, permission.RoleGuest),
 	}
 	for name, role := range roles {
 		mockRoleRepo.On(
@@ -80,6 +81,7 @@ func TestSystemRolePermissionsSyncer_Sync_Idempotent(t *testing.T) {
 		permission.RoleAdmin:  stubSystemRole(2, permission.RoleAdmin),
 		permission.RoleEditor: stubSystemRole(3, permission.RoleEditor),
 		permission.RoleViewer: stubSystemRole(4, permission.RoleViewer),
+		permission.RoleGuest:  stubSystemRole(5, permission.RoleGuest),
 	}
 	for name, role := range roles {
 		mockRoleRepo.On(

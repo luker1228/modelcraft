@@ -43,6 +43,43 @@ func (q *Queries) ExistsByUserNameInOrg(ctx context.Context, arg ExistsByUserNam
 	return name_exists, err
 }
 
+const getUserByNameGlobal = `-- name: GetUserByNameGlobal :one
+SELECT id, phone, password_hash, name, external_id, org_name, is_admin, status, created_at, updated_at
+FROM users
+WHERE name = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
+`
+
+type GetUserByNameGlobalRow struct {
+	ID           string
+	Phone        string
+	PasswordHash string
+	Name         string
+	ExternalID   sql.NullString
+	OrgName      string
+	IsAdmin      bool
+	Status       string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+func (q *Queries) GetUserByNameGlobal(ctx context.Context, name string) (GetUserByNameGlobalRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByNameGlobal, name)
+	var i GetUserByNameGlobalRow
+	err := row.Scan(
+		&i.ID,
+		&i.Phone,
+		&i.PasswordHash,
+		&i.Name,
+		&i.ExternalID,
+		&i.OrgName,
+		&i.IsAdmin,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserByNameInOrg = `-- name: GetUserByNameInOrg :one
 SELECT id, phone, password_hash, name, external_id, org_name, is_admin, status, created_at, updated_at
 FROM users

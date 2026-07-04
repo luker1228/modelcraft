@@ -37,11 +37,9 @@ type RegisterResult struct {
 	Profile RegisterProfileSnapshot
 }
 
-// LoginCommand 管理员登录命令 — 仅手机号
+// LoginCommand 管理员登录命令 — 用户名 + 密码
 type LoginCommand struct {
-	// Phone 手机号（唯一登录标识符）
-	Phone string
-	// Password 密码
+	UserName string
 	Password string
 }
 

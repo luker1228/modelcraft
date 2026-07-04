@@ -35,7 +35,7 @@ export function useLogin(): UseLoginReturn {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
         body: JSON.stringify({
-          phone: values.phone,
+          userName: values.userName,
           password: values.password,
         }),
       })
@@ -131,7 +131,7 @@ export function useRegister(): UseRegisterReturn {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
         body: JSON.stringify({
-          phone: values.phone,
+          userName: values.userName,
           password: values.password,
         }),
       })

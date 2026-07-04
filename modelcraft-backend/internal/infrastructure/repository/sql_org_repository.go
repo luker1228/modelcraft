@@ -352,6 +352,39 @@ func (r *SqlUserRepository) ExistsByName(ctx context.Context, orgName, name stri
 	return exists, nil
 }
 
+// GetByNameGlobal retrieves a user by username across all orgs (used for admin login).
+func (r *SqlUserRepository) GetByNameGlobal(ctx context.Context, name string) (*user.User, error) {
+	row, err := r.q.GetUserByNameGlobal(ctx, name)
+	if err != nil {
+		if sqlerr.IsNotFoundError(err) {
+			return nil, shared.NewNotFoundError("user not found by name: " + name)
+		}
+		return nil, bizerrors.Wrapf(err, "failed to get user by name globally")
+	}
+	var externalID string
+	if row.ExternalID.Valid {
+		externalID = row.ExternalID.String
+	}
+	var phone user.PhoneNumber
+	if row.Phone != "" {
+		if p, err := user.NewPhoneNumber(row.Phone); err == nil {
+			phone = p
+		}
+	}
+	return &user.User{
+		ID:           row.ID,
+		ExternalID:   externalID,
+		Name:         row.Name,
+		Phone:        phone,
+		PasswordHash: row.PasswordHash,
+		OrgName:      row.OrgName,
+		IsAdmin:      row.IsAdmin,
+		Status:       row.Status,
+		CreatedAt:    row.CreatedAt,
+		UpdatedAt:    row.UpdatedAt,
+	}, nil
+}
+
 // ListByOrg returns all active users belonging to the given org.
 func (r *SqlUserRepository) ListByOrg(ctx context.Context, orgName string) ([]*user.User, error) {
 	rows, err := r.q.ListUsersByOrgWithName(ctx, orgName)

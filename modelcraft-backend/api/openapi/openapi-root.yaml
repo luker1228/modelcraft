@@ -28,6 +28,8 @@ paths:
     $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1logout"
   /api/tenant/auth/refresh:
     $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1refresh"
+  /api/tenant/auth/demo:
+    $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1demo"
 
   # ========================
   # End-User Auth Endpoints

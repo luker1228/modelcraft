@@ -125,9 +125,9 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build LoginCommand — phone only
+	// Build LoginCommand — userName + password
 	cmd := appAuth.LoginCommand{
-		Phone:    req.Phone,
+		UserName: req.UserName,
 		Password: req.Password,
 	}
 
@@ -256,4 +256,35 @@ func derefString(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+// HandleDemoLogin handles POST /api/tenant/auth/demo — issues a guest JWT.
+func (h *Handler) HandleDemoLogin(w http.ResponseWriter, r *http.Request) {
+	requestID := ctxutils.GetRequestID(r.Context())
+
+	result, err := h.tokenService.DemoLogin(r.Context())
+	if err != nil {
+		h.handleBusinessError(w, r, requestID, err, "Demo login failed")
+		return
+	}
+
+	var userName *string
+	if result.UserName != "" {
+		s := result.UserName
+		userName = &s
+	}
+	var orgName *string
+	if result.OrgName != "" {
+		s := result.OrgName
+		orgName = &s
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"requestId":   requestID,
+		"userId":      result.UserID,
+		"userName":    userName,
+		"orgName":     orgName,
+		"accessToken": result.AccessToken,
+		"expiresIn":   result.ExpiresIn,
+	})
 }

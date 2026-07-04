@@ -32,6 +32,12 @@ var SystemRolePermissions = map[string][]*permission.Permission{
 	permission.RoleViewer: {
 		{Obj: "*", Act: "read"},
 	},
+
+	// Guest: Read-only access + create temporary API keys (demo mode)
+	permission.RoleGuest: {
+		{Obj: "*", Act: "read"},
+		{Obj: "apitoken", Act: "create"},
+	},
 }
 
 // GetSystemRolePermissions returns permissions for a given system role name.

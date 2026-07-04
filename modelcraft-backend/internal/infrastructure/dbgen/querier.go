@@ -144,6 +144,7 @@ type Querier interface {
 	GetTailModelGroupDisplayOrder(ctx context.Context, arg GetTailModelGroupDisplayOrderParams) (string, error)
 	GetUserByExternalID(ctx context.Context, externalID sql.NullString) (User, error)
 	GetUserByID(ctx context.Context, id string) (User, error)
+	GetUserByNameGlobal(ctx context.Context, name string) (GetUserByNameGlobalRow, error)
 	GetUserByNameInOrg(ctx context.Context, arg GetUserByNameInOrgParams) (GetUserByNameInOrgRow, error)
 	GetUserByPhoneInOrg(ctx context.Context, arg GetUserByPhoneInOrgParams) (GetUserByPhoneInOrgRow, error)
 	GetUserRole(ctx context.Context, arg GetUserRoleParams) (UserRole, error)

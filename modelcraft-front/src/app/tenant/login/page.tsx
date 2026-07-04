@@ -28,7 +28,7 @@ export default function TenantLoginPage() {
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
-    defaultValues: { phone: '', password: '' },
+    defaultValues: { userName: '', password: '' },
   })
 
   const handleSubmit = form.handleSubmit(async (values) => {
