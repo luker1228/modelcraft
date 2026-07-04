@@ -1,0 +1,101 @@
+#
+# APISIX standalone declarative configuration template.
+# Environment-specific values are injected by apisix/docker-entrypoint.sh.
+#
+# JWT and PAT business auth is implemented in the custom Lua plugin
+# `apisix/lua/apisix/plugins/modelcraft-auth.lua`.
+#
+
+global_rules:
+  - id: observability-tracing
+    plugins:
+      opentelemetry: {}
+
+routes:
+  # ── Public routes: auth endpoints, no JWT required ──────────────────────────
+  - id: gateway-health
+    uri: /health
+    upstream_id: backend
+    plugins:
+      request-id:
+        header_name: X-Request-Id
+        include_in_response: true
+
+  - id: tenant-auth
+    uri: /api/tenant/auth/*
+    upstream_id: backend
+    plugins:
+      cors:
+        allow_origins: "__FRONTEND_URL__"
+        allow_methods: "GET,POST,PUT,DELETE,OPTIONS"
+        allow_headers: "Authorization,Content-Type,X-Request-Id,X-Client-Request-Id"
+        expose_headers: "X-Request-Id"
+        allow_credential: true
+      request-id:
+        header_name: X-Request-Id
+        include_in_response: true
+
+  # ── Protected routes: ES256 JWT verification + X-User-ID injection ──────────
+  - id: enduser-graphql
+    uri: /end-user/graphql/*
+    upstream_id: backend
+    plugins:
+      cors:
+        allow_origins: "__FRONTEND_URL__"
+        allow_methods: "POST,OPTIONS"
+        allow_headers: "Authorization,Content-Type,X-Request-Id,X-Client-Request-Id,X-Action"
+        expose_headers: "X-Request-Id"
+        allow_credential: true
+      request-id:
+        header_name: X-Request-Id
+        include_in_response: true
+      modelcraft-auth:
+        public_key: "__JWT_PUBLIC_KEY__"
+        allow_pat: true
+        whoami_url: "http://__BACKEND_UPSTREAM__/api/tenant/auth/whoami"
+
+  - id: graphql-all
+    uri: /graphql/*
+    upstream_id: backend
+    plugins:
+      cors:
+        allow_origins: "__FRONTEND_URL__"
+        allow_methods: "POST,OPTIONS"
+        allow_headers: "Authorization,Content-Type,X-Request-Id,X-Client-Request-Id,X-Action"
+        expose_headers: "X-Request-Id"
+        allow_credential: true
+      request-id:
+        header_name: X-Request-Id
+        include_in_response: true
+      modelcraft-auth:
+        public_key: "__JWT_PUBLIC_KEY__"
+
+  # ── Agent routes: CopilotKit AI agent endpoints ─────────────────────────────
+  - id: agent-admin
+    uri: /copilotkit/admin
+    upstream_id: agent
+    plugins:
+      cors:
+        allow_origins: "__FRONTEND_URL__"
+        allow_methods: "POST,OPTIONS"
+        allow_headers: "Authorization,Content-Type,X-Request-Id,X-Client-Request-Id,Accept"
+        expose_headers: "X-Request-Id"
+        allow_credential: true
+      request-id:
+        header_name: X-Request-Id
+        include_in_response: true
+      modelcraft-auth:
+        public_key: "__JWT_PUBLIC_KEY__"
+
+upstreams:
+  - id: backend
+    type: roundrobin
+    nodes:
+      "__BACKEND_UPSTREAM__": 1
+
+  - id: agent
+    type: roundrobin
+    nodes:
+      "__AGENT_UPSTREAM__": 1
+
+#END

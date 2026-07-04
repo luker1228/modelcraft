@@ -60,7 +60,8 @@ type Model implements Node {
   description: String!
   databaseName: String!
   storageType: String!
-  createdVia: String!  # 模型创建来源：NEW=自建，IMPORTED=导入(托管)
+  createdVia: String!  # 模型创建来源：NEW=自建，IMPORTED=导入（纯统计用途）
+  isReadOnly: Boolean!  # 是否只读（禁止结构修改），由数据库 mode 决定
   displayField: String  # 用于 runtime _label 解析的字段名
   insertionOrderField: String  # 用于 listPage cursor 分页的插入序字段名（未配置时 listPage 稳定性无法保证）
   fields: [Field!]!
@@ -70,10 +71,6 @@ type Model implements Node {
   createdAt: String!
   updatedAt: String!
 
-  """
-  RLS 策略配置（无 owner 字段时返回 null）
-  """
-  rlsPolicy: ModelRLSPolicy
 }
 
 # DbTableStatus - 实际表状态
@@ -282,6 +279,66 @@ input MoveModelToGroupInput {
   groupId: ID
 }
 
+# ============================================
+# syncModelsFromDB Job Types
+# ============================================
+
+enum ModelSyncJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+type ModelSyncFailedTable {
+  tableName: String!
+  message:   String!
+}
+
+type ModelSyncJob {
+  id:               ID!
+  batchId:          ID!
+  databaseId:       ID!
+  databaseName:     String!
+  tableNames:       [String!]!
+  status:           ModelSyncJobStatus!
+  totalTables:      Int!
+  processedTables:  Int!
+  createdModels:    Int!
+  syncedModels:     Int!
+  failedCount:      Int!
+  failedTables:     [ModelSyncFailedTable!]!
+  startedAt:        Time
+  finishedAt:       Time
+  createdAt:        Time!
+  updatedAt:        Time!
+}
+
+type SyncModelsFromDBPayload {
+  jobId: ID!
+}
+
+input SyncModelsFromDBInput {
+  databaseName: String!
+  tableNames:   [String!]
+  syncAll:      Boolean
+}
+
+type ModelSyncJobRef {
+  databaseId: ID!
+  jobId:      ID!
+}
+
+type StartModelSyncPayload {
+  batchId: ID!
+  jobs:    [ModelSyncJobRef!]!
+}
+
+input ModelSyncTargetInput {
+  databaseId: ID!
+  tableNames: [String!]
+}
+
 # Model queries
 extend type Query {
   model(id: ID!, withActualSchema: Boolean): GetModelPayload! @hasPermission(action: "model:read", allowEndUser: true)
@@ -289,6 +346,8 @@ extend type Query {
   modelByName(name: String!, databaseName: String!): GetModelPayload! @hasPermission(action: "model:read")
   modelJsonSchema(id: ID!): ModelJsonSchema @hasPermission(action: "model:read")
   modelGroups: [ModelGroup!]! @hasPermission(action: "model:read")
+  modelSyncJobs(jobIds: [ID!], batchId: ID): [ModelSyncJob!]! @hasPermission(action: "model:read")
+  modelSyncJob(jobId: ID!): ModelSyncJob @deprecated(reason: "Use modelSyncJobs") @hasPermission(action: "model:read")
 }
 
 # Model mutations
@@ -305,4 +364,6 @@ extend type Mutation {
   deleteGroup(groupId: ID!): DeleteGroupPayload! @hasPermission(action: "model:delete")
   reorderGroup(input: ReorderGroupInput!): ReorderGroupPayload! @hasPermission(action: "model:update")
   moveModelToGroup(input: MoveModelToGroupInput!): MoveModelToGroupPayload! @hasPermission(action: "model:update")
+  startModelSync(targets: [ModelSyncTargetInput!]!): StartModelSyncPayload! @hasPermission(action: "model:create")
+  syncModelsFromDB(input: SyncModelsFromDBInput!): SyncModelsFromDBPayload! @deprecated(reason: "Use startModelSync") @hasPermission(action: "model:create")
 }

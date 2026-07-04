@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // SchemaIntrospector Schema内省器接口
@@ -44,7 +42,7 @@ func (i *MySQLIntrospector) IntrospectTable(
 	// 获取当前数据库名
 	var dbName string
 	if err := db.QueryRowContext(ctx, "SELECT DATABASE()").Scan(&dbName); err != nil {
-		return nil, errors.Wrap(err, "failed to get current database name")
+		return nil, fmt.Errorf("failed to get current database name: %w", err)
 	}
 
 	if dbName == "" {
@@ -115,7 +113,7 @@ func (i *MySQLIntrospector) queryColumns(
 
 	rows, err := db.QueryContext(ctx, query, dbName, tableName)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to query column information")
+		return nil, fmt.Errorf("failed to query column information: %w", err)
 	}
 	defer rows.Close()
 
@@ -133,13 +131,13 @@ func (i *MySQLIntrospector) queryColumns(
 			&col.Extra,
 			&col.ColumnComment,
 		); err != nil {
-			return nil, errors.Wrap(err, "failed to scan column information")
+			return nil, fmt.Errorf("failed to scan column information: %w", err)
 		}
 		columns = append(columns, col)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "failed to iterate column information")
+		return nil, fmt.Errorf("failed to iterate column information: %w", err)
 	}
 
 	return columns, nil
@@ -162,7 +160,7 @@ func (i *MySQLIntrospector) queryPrimaryKeys(
 
 	rows, err := db.QueryContext(ctx, query, dbName, tableName)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to query primary key information")
+		return nil, fmt.Errorf("failed to query primary key information: %w", err)
 	}
 	defer rows.Close()
 
@@ -170,13 +168,13 @@ func (i *MySQLIntrospector) queryPrimaryKeys(
 	for rows.Next() {
 		var pk string
 		if err := rows.Scan(&pk); err != nil {
-			return nil, errors.Wrap(err, "failed to scan primary key")
+			return nil, fmt.Errorf("failed to scan primary key: %w", err)
 		}
 		primaryKeys = append(primaryKeys, pk)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "failed to query primary key information")
+		return nil, fmt.Errorf("failed to query primary key information: %w", err)
 	}
 
 	return primaryKeys, nil
@@ -196,7 +194,7 @@ func (i *MySQLIntrospector) queryTableComment(
 
 	var tableComment string
 	if err := db.QueryRowContext(ctx, query, dbName, tableName).Scan(&tableComment); err != nil {
-		return "", errors.Wrap(err, "failed to query table comment")
+		return "", fmt.Errorf("failed to query table comment: %w", err)
 	}
 
 	return tableComment, nil

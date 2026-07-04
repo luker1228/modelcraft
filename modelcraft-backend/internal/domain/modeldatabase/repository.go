@@ -17,6 +17,8 @@ type ModelDatabaseRepository interface {
 	List(ctx context.Context, orgName, projectSlug string) ([]*ModelDatabase, error)
 	// Update 更新数据库注册记录
 	Update(ctx context.Context, orgName, projectSlug string, db *ModelDatabase) error
+	// UpdateLatestSyncJobID 更新最近同步任务 ID
+	UpdateLatestSyncJobID(ctx context.Context, orgName, projectSlug, databaseID, jobID string) error
 	// Delete 软删除数据库注册记录
 	Delete(ctx context.Context, orgName, projectSlug, id string) error
 }
@@ -33,4 +35,19 @@ type ModelDatabaseSyncJobRepository interface {
 	// FailStalePendingJobs 将所有 updated_at <= staleBefore 的 pending/running job 标记为 failed。
 	FailStalePendingJobs(ctx context.Context, staleBefore time.Time) error
 	Update(ctx context.Context, job *ModelDatabaseSyncJob) error
+}
+
+type ModelSyncJobRepository interface {
+	Create(ctx context.Context, job *ModelSyncJob) error
+	GetByID(ctx context.Context, orgName, projectSlug, jobID string) (*ModelSyncJob, error)
+	GetByIDs(ctx context.Context, orgName, projectSlug string, jobIDs []string) ([]*ModelSyncJob, error)
+	GetByBatchID(ctx context.Context, orgName, projectSlug, batchID string) ([]*ModelSyncJob, error)
+	// GetActiveByDatabase returns the active (pending/running) job for the given database_id,
+	// only if updated after staleBefore (to exclude zombie jobs).
+	GetActiveByDatabase(
+		ctx context.Context, orgName, projectSlug, databaseID string, staleBefore time.Time,
+	) (*ModelSyncJob, error)
+	// FailStalePendingJobs marks all pending/running jobs with updated_at <= staleBefore as failed.
+	FailStalePendingJobs(ctx context.Context, staleBefore time.Time) error
+	Update(ctx context.Context, job *ModelSyncJob) error
 }

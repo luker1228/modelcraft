@@ -24,8 +24,8 @@ func (q *Queries) CountFieldsByModelID(ctx context.Context, modelID string) (int
 }
 
 const createFieldDefinition = `-- name: CreateFieldDefinition :exec
-INSERT INTO field_definitions (model_id, org_name, project_slug, model_name, database_name, name, enum_name, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, relate_fk_id, belongs_to_fk_id, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO field_definitions (model_id, org_name, project_slug, model_name, database_name, name, enum_name, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, relate_fk_id, belongs_to_fk_id, storage_hint, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateFieldDefinitionParams struct {
@@ -50,6 +50,7 @@ type CreateFieldDefinitionParams struct {
 	Metadata      *json.RawMessage
 	RelateFkID    sql.NullString
 	BelongsToFkID sql.NullString
+	StorageHint   sql.NullString
 }
 
 func (q *Queries) CreateFieldDefinition(ctx context.Context, arg CreateFieldDefinitionParams) error {
@@ -75,6 +76,7 @@ func (q *Queries) CreateFieldDefinition(ctx context.Context, arg CreateFieldDefi
 		arg.Metadata,
 		arg.RelateFkID,
 		arg.BelongsToFkID,
+		arg.StorageHint,
 	)
 	return err
 }
@@ -134,7 +136,7 @@ func (q *Queries) ExistsFieldByName(ctx context.Context, arg ExistsFieldByNamePa
 }
 
 const getFieldByModelIDAndName = `-- name: GetFieldByModelIDAndName :one
-SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, created_at, updated_at, deleted_at, delete_token FROM field_definitions
+SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, storage_hint, status, validation, display_order, metadata, created_at, updated_at, deleted_at, delete_token FROM field_definitions
 WHERE model_id = ? AND name = ? AND ` + "`" + `field_definitions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
@@ -164,6 +166,7 @@ func (q *Queries) GetFieldByModelIDAndName(ctx context.Context, arg GetFieldByMo
 		&i.IsUnique,
 		&i.IsPrimary,
 		&i.IsDeprecated,
+		&i.StorageHint,
 		&i.Status,
 		&i.Validation,
 		&i.DisplayOrder,
@@ -177,7 +180,7 @@ func (q *Queries) GetFieldByModelIDAndName(ctx context.Context, arg GetFieldByMo
 }
 
 const getFieldsByModelID = `-- name: GetFieldsByModelID :many
-SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, created_at, updated_at, deleted_at, delete_token FROM field_definitions
+SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, storage_hint, status, validation, display_order, metadata, created_at, updated_at, deleted_at, delete_token FROM field_definitions
 WHERE model_id = ? AND ` + "`" + `field_definitions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY display_order ASC
 `
 
@@ -208,6 +211,7 @@ func (q *Queries) GetFieldsByModelID(ctx context.Context, modelID string) ([]Fie
 			&i.IsUnique,
 			&i.IsPrimary,
 			&i.IsDeprecated,
+			&i.StorageHint,
 			&i.Status,
 			&i.Validation,
 			&i.DisplayOrder,
@@ -245,7 +249,7 @@ func (q *Queries) GetTailFieldDisplayOrder(ctx context.Context, modelID string) 
 
 const updateField = `-- name: UpdateField :execresult
 UPDATE field_definitions
-SET title = ?, description = ?, non_null = ?, required = ?, is_unique = ?, is_primary = ?, is_deprecated = ?, status = ?, validation = ?, display_order = ?, metadata = ?, updated_at = NOW(3)
+SET title = ?, description = ?, non_null = ?, required = ?, is_unique = ?, is_primary = ?, is_deprecated = ?, status = ?, validation = ?, display_order = ?, metadata = ?, storage_hint = ?, updated_at = NOW(3)
 WHERE model_id = ? AND name = ?
 `
 
@@ -261,6 +265,7 @@ type UpdateFieldParams struct {
 	Validation   *json.RawMessage
 	DisplayOrder string
 	Metadata     *json.RawMessage
+	StorageHint  sql.NullString
 	ModelID      string
 	Name         string
 }
@@ -278,6 +283,7 @@ func (q *Queries) UpdateField(ctx context.Context, arg UpdateFieldParams) (sql.R
 		arg.Validation,
 		arg.DisplayOrder,
 		arg.Metadata,
+		arg.StorageHint,
 		arg.ModelID,
 		arg.Name,
 	)

@@ -3,14 +3,15 @@ package modelruntime
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
-	"maps"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
+	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
-	"modelcraft/pkg/requestcontext"
+	"strings"
 	"time"
 
 	"github.com/graphql-go/graphql"
@@ -20,6 +21,143 @@ import (
 
 type graphqlEnumConfig struct {
 	enumType *graphql.Enum
+}
+
+// Open Data API 错误类型（全局共享）
+var (
+	// openDataErrorInterface Open Data API 错误接口
+	openDataErrorInterface *graphql.Interface
+	// openDataErrorUnion Open Data API 错误联合类型
+	openDataErrorUnion *graphql.Union
+	// openDataErrorTypeMap 错误类型名称到 GraphQL 对象的映射
+	openDataErrorTypeMap map[string]*graphql.Object
+)
+
+// initOpenDataErrorTypes 初始化 Open Data API 错误类型（只调用一次）
+func initOpenDataErrorTypes() {
+	if openDataErrorInterface != nil {
+		return // 已初始化
+	}
+
+	// Error interface
+	openDataErrorInterface = graphql.NewInterface(graphql.InterfaceConfig{
+		Name:        "OpenDataError",
+		Description: "Open Data API 错误接口",
+		Fields: graphql.Fields{
+			"message": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+		ResolveType: func(p graphql.ResolveTypeParams) *graphql.Object {
+			if val, ok := p.Value.(map[string]interface{}); ok {
+				if typeName, ok := val["__typename"].(string); ok {
+					return openDataErrorTypeMap[typeName]
+				}
+			}
+			return nil
+		},
+	})
+
+	// RecordNotFound 错误类型
+	recordNotFoundType := graphql.NewObject(graphql.ObjectConfig{
+		Name:        "RecordNotFound",
+		Description: "记录不存在",
+		Interfaces:  []*graphql.Interface{openDataErrorInterface},
+		Fields: graphql.Fields{
+			"message": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
+
+	// PermissionDenied 错误类型
+	permissionDeniedType := graphql.NewObject(graphql.ObjectConfig{
+		Name:        "PermissionDenied",
+		Description: "权限不足",
+		Interfaces:  []*graphql.Interface{openDataErrorInterface},
+		Fields: graphql.Fields{
+			"message": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
+
+	// DuplicateKey 错误类型
+	duplicateKeyType := graphql.NewObject(graphql.ObjectConfig{
+		Name:        "DuplicateKey",
+		Description: "唯一键冲突",
+		Interfaces:  []*graphql.Interface{openDataErrorInterface},
+		Fields: graphql.Fields{
+			"message": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
+
+	// MultipleRecordsFound 错误类型
+	multipleRecordsFoundType := graphql.NewObject(graphql.ObjectConfig{
+		Name:        "MultipleRecordsFound",
+		Description: "期望一条记录但找到多条",
+		Interfaces:  []*graphql.Interface{openDataErrorInterface},
+		Fields: graphql.Fields{
+			"message": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
+
+	// 类型映射
+	openDataErrorTypeMap = map[string]*graphql.Object{
+		"RecordNotFound":       recordNotFoundType,
+		"PermissionDenied":     permissionDeniedType,
+		"DuplicateKey":         duplicateKeyType,
+		"MultipleRecordsFound": multipleRecordsFoundType,
+	}
+
+	// Union 类型
+	openDataErrorUnion = graphql.NewUnion(graphql.UnionConfig{
+		Name:        "OpenDataErrorUnion",
+		Description: "Open Data API 错误联合类型",
+		Types: []*graphql.Object{
+			recordNotFoundType, permissionDeniedType,
+			duplicateKeyType, multipleRecordsFoundType,
+		},
+		ResolveType: func(p graphql.ResolveTypeParams) *graphql.Object {
+			if val, ok := p.Value.(map[string]interface{}); ok {
+				if typeName, ok := val["__typename"].(string); ok {
+					return openDataErrorTypeMap[typeName]
+				}
+			}
+			return nil
+		},
+	})
+}
+
+// 错误判断函数
+func isPermissionDeniedError(err error) bool {
+	var bizErr *bizerrors.BusinessError
+	if errors.As(err, &bizErr) {
+		return bizErr.Info().GetCode() == bizerrors.PermissionDenied.GetCode()
+	}
+	return false
+}
+
+func isRecordNotFoundError(err error) bool {
+	var bizErr *bizerrors.BusinessError
+	if errors.As(err, &bizErr) {
+		return bizErr.Info().GetCode() == bizerrors.RecordNotFound.GetCode()
+	}
+	return false
+}
+
+func isDuplicateKeyError(err error) bool {
+	var bizErr *bizerrors.BusinessError
+	if errors.As(err, &bizErr) {
+		return bizErr.Info().GetCode() == bizerrors.DuplicateKey.GetCode()
+	}
+	return false
+}
+
+func isMultipleRecordsError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "multiple records found")
+}
+
+// 创建结构化错误响应
+func createStructuredError(typename, message string) map[string]interface{} {
+	return map[string]interface{}{
+		"__typename": typename,
+		"message":    message,
+	}
 }
 
 // graphqlModelResolver GraphQL模型解析器实现，用于生成GraphQL Schema并处理查询和变更。
@@ -46,39 +184,42 @@ func newGraphqlModelResolver(ctx context.Context, model *RuntimeModel,
 	}
 }
 
-// endUserRefFieldName 返回此 model 中 FormatEndUserRef 类型字段的名称。
-// 空字符串表示该 model 无 owner 字段，SELF scope 降级为 ALL（不注入 WHERE）。
-func (m *graphqlModelResolver) endUserRefFieldName() string {
-	return FindEndUserRefFieldName(m.model.Fields)
-}
-
 func (m *graphqlModelResolver) newGraphqlSchema(ctx context.Context) (*graphql.Schema, error) {
 	logger := logfacade.GetLogger(ctx)
 
+	// 初始化 Open Data API 错误类型
+	initOpenDataErrorTypes()
+
 	modelType, err := m.createModelType(ctx)
 	if err != nil {
-		logger.Error(ctx, "createModelType_fail", logfacade.Err(err))
+		logger.Errorf(ctx, err, "createModelType_fail")
 		return nil, bizerrors.New("createModelType_fail")
 	}
 	rootQuery, err := m.createRootQuery(ctx, modelType)
 	if err != nil {
-		logger.Error(ctx, "createRootQuery_fail", logfacade.Err(err))
+		logger.Errorf(ctx, err, "createRootQuery_fail")
 		return nil, bizerrors.New("createRootQuery_fail")
 	}
 
 	baseModelType, err := m.generateModelTypeSkipRelation(ctx, m.model)
 	if err != nil {
-		logger.Error(ctx, "generateModelTypeSkipRelation_fail", logfacade.Err(err))
+		logger.Errorf(ctx, err, "generateModelTypeSkipRelation_fail")
 		return nil, bizerrors.New("generateModelTypeSkipRelation_fail")
 	}
 	rootMutation, err := m.createRootMutation(baseModelType)
 	if err != nil {
-		logger.Error(ctx, "createRootMutation_fail", logfacade.Err(err))
+		logger.Errorf(ctx, err, "createRootMutation_fail")
 		return nil, bizerrors.New("createRootMutation_fail")
 	}
 	schema, err := graphql.NewSchema(graphql.SchemaConfig{
 		Query:    rootQuery,
 		Mutation: rootMutation,
+		Types: []graphql.Type{
+			openDataErrorTypeMap["RecordNotFound"],
+			openDataErrorTypeMap["PermissionDenied"],
+			openDataErrorTypeMap["DuplicateKey"],
+			openDataErrorTypeMap["MultipleRecordsFound"],
+		},
 	})
 
 	return &schema, err
@@ -86,7 +227,12 @@ func (m *graphqlModelResolver) newGraphqlSchema(ctx context.Context) (*graphql.S
 
 func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
-	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+	if err := rctx.RLS.Permissions.CheckAction(ActionSelect); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	startTime := time.Now()
@@ -95,25 +241,19 @@ func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (inter
 	if err != nil {
 		return nil, err
 	}
-	if rf := BuildRowFilter(
-		rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
-	}
 	result, err := rctx.ClientRepo.FindUnique(p.Context, input)
 	if err != nil {
-		if bizerrors.Is(err, sql.ErrNoRows) {
-			result = nil
-		} else {
-			return nil, err
+		if isMultipleRecordsError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("MultipleRecordsFound", err.Error()),
+			}, nil
 		}
-	}
-
-	// Get metadata from context
-	metadata := requestcontext.GetMetadata(p.Context)
-	reqId := ""
-	if metadata != nil {
-		reqId = metadata.ReqID
+		if isRecordNotFoundError(err) || bizerrors.Is(err, sql.ErrNoRows) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("RecordNotFound", "Record not found"),
+			}, nil
+		}
+		return nil, err
 	}
 
 	// Calculate time cost
@@ -123,7 +263,7 @@ func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (inter
 	return map[string]any{
 		FieldItem:     result,
 		FieldTimeCost: timeCost,
-		FieldReqId:    reqId,
+		FieldReqId:    requestIDFromContext(p.Context),
 	}, nil
 }
 
@@ -143,7 +283,7 @@ func (m *graphqlModelResolver) createFindUniqueField(modelType graphql.Type) (*g
 			logger := logfacade.GetLogger(p.Context)
 			result, err2 := m.executeFindUnique(p)
 			if err2 != nil {
-				logger.Error(p.Context, "find_unique_fail", logfacade.Err(err2))
+				err2 = handleErr(p.Context, err2)
 			} else {
 				logger.Infof(p.Context, "find_unqiue_result=%+v", result)
 			}
@@ -198,7 +338,7 @@ func (m *graphqlModelResolver) createRootQuery(ctx context.Context, modelType gr
 
 func (m *graphqlModelResolver) executeFindFirst(p graphql.ResolveParams) (any, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
-	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+	if err := rctx.RLS.Permissions.CheckAction(ActionSelect); err != nil {
 		return nil, err
 	}
 	startTime := time.Now()
@@ -206,11 +346,6 @@ func (m *graphqlModelResolver) executeFindFirst(p graphql.ResolveParams) (any, e
 	input, err := newFindFirstInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
-	}
-	if rf := BuildRowFilter(
-		rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
 	}
 	result, err := rctx.ClientRepo.FindFirst(p.Context, input)
 	if err != nil {
@@ -221,13 +356,6 @@ func (m *graphqlModelResolver) executeFindFirst(p graphql.ResolveParams) (any, e
 		}
 	}
 
-	// Get metadata from context
-	metadata := requestcontext.GetMetadata(p.Context)
-	reqId := ""
-	if metadata != nil {
-		reqId = metadata.ReqID
-	}
-
 	// Calculate time cost
 	timeCost := int(time.Since(startTime).Milliseconds())
 
@@ -235,7 +363,7 @@ func (m *graphqlModelResolver) executeFindFirst(p graphql.ResolveParams) (any, e
 	return map[string]any{
 		FieldItem:     result,
 		FieldTimeCost: timeCost,
-		FieldReqId:    reqId,
+		FieldReqId:    requestIDFromContext(p.Context),
 	}, nil
 }
 
@@ -251,7 +379,7 @@ func (m *graphqlModelResolver) createFindFirstField(modelType graphql.Type) (*gr
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeFindFirst(p)
 			if err != nil {
-				logfacade.GetLogger(p.Context).Error(p.Context, "executeFindFirst fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 			}
 			return result, err
 		},
@@ -260,7 +388,7 @@ func (m *graphqlModelResolver) createFindFirstField(modelType graphql.Type) (*gr
 
 func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[string]any, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
-	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+	if err := rctx.RLS.Permissions.CheckAction(ActionSelect); err != nil {
 		return nil, err
 	}
 	startTime := time.Now()
@@ -268,11 +396,6 @@ func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[str
 	input, err := newFindManyInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
-	}
-	if rf := BuildRowFilter(
-		rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
 	}
 	result, err := rctx.ClientRepo.FindMany(p.Context, input)
 	if err != nil {
@@ -286,8 +409,9 @@ func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[str
 	// Count total matching rows (same WHERE conditions, no LIMIT/OFFSET).
 	var totalCount *int
 	countResult, countErr := rctx.ClientRepo.Count(p.Context, &CountInput{
-		TableName: input.TableName,
-		Where:     input.Where,
+		TableName:  input.TableName,
+		Where:      input.Where,
+		RawFilters: input.RawFilters,
 	})
 	if countErr == nil {
 		if v, ok := countResult[FieldCount]; ok {
@@ -297,13 +421,6 @@ func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[str
 		}
 	}
 
-	// Get metadata from context
-	metadata := requestcontext.GetMetadata(p.Context)
-	reqId := ""
-	if metadata != nil {
-		reqId = metadata.ReqID
-	}
-
 	// Calculate time cost
 	timeCost := int(time.Since(startTime).Milliseconds())
 
@@ -311,7 +428,7 @@ func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[str
 		FieldItems:      result,
 		FieldTotalCount: totalCount,
 		FieldTimeCost:   timeCost,
-		FieldReqId:      reqId,
+		FieldReqId:      requestIDFromContext(p.Context),
 	}, nil
 }
 
@@ -327,7 +444,7 @@ func (m *graphqlModelResolver) createFindManyField(modelType graphql.Type) (*gra
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeFindMany(p)
 			if err != nil {
-				logfacade.GetLogger(p.Context).Error(p.Context, "executeFindMany fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 				return nil, err
 			}
 			return result, err
@@ -337,7 +454,7 @@ func (m *graphqlModelResolver) createFindManyField(modelType graphql.Type) (*gra
 
 func (m *graphqlModelResolver) executeAggregate(p graphql.ResolveParams) (map[string]any, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
-	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+	if err := rctx.RLS.Permissions.CheckAction(ActionSelect); err != nil {
 		return nil, err
 	}
 	input, err := newAggregateInput(m.model.Name, p)
@@ -363,7 +480,7 @@ func (m *graphqlModelResolver) createAggregateField(ctx context.Context) (*graph
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeAggregate(p)
 			if err != nil {
-				logfacade.GetLogger(p.Context).Error(p.Context, "executeAggregate fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 				return nil, err
 			}
 			return result, nil
@@ -376,7 +493,7 @@ func (m *graphqlModelResolver) createAggregateResultType(ctx context.Context) *g
 
 	// 验证模型名称不为空
 	if m.model == nil || m.model.Name == "" {
-		logger.Error(ctx, "model name is empty when creating aggregate result type")
+		logger.Errorf(ctx, nil, "model name is empty when creating aggregate result type")
 		// 返回一个空的聚合结果类型
 		return graphql.NewObject(graphql.ObjectConfig{
 			Name:        "EmptyAggregateResult",
@@ -482,7 +599,7 @@ func (m *graphqlModelResolver) createAggregateResultType(ctx context.Context) *g
 // executeCount 执行count查询操作
 func (m *graphqlModelResolver) executeCount(p graphql.ResolveParams) (map[string]any, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
-	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+	if err := rctx.RLS.Permissions.CheckAction(ActionSelect); err != nil {
 		return nil, err
 	}
 	input, err := newCountInput(m.model.Name, p)
@@ -525,7 +642,7 @@ func (m *graphqlModelResolver) createCountField(ctx context.Context) (*graphql.F
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeCount(p)
 			if err != nil {
-				logfacade.GetLogger(p.Context).Error(p.Context, "executeCount fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 				return nil, err
 			}
 			return result, nil
@@ -542,7 +659,7 @@ func (m *graphqlModelResolver) createCountResultType(ctx context.Context) *graph
 
 	// 验证模型名称不为空
 	if m.model == nil || m.model.Name == "" {
-		logger.Error(ctx, "model name is empty when creating count result type")
+		logger.Errorf(ctx, nil, "model name is empty when creating count result type")
 		// 返回一个空的计数结果类型
 		return graphql.NewObject(graphql.ObjectConfig{
 			Name:        "EmptyCountResult",
@@ -626,7 +743,7 @@ func (r *graphqlModelResolver) createScalarField(ctx context.Context, field *Run
 ) (*graphql.Field, error) {
 	graphqlType, err := getGraphqlTypeBy(field.Type.Format)
 	if err != nil {
-		logfacade.GetLogger(ctx).Errorf(ctx, "failed to get GraphQL type for field %s: %w", field.Name, err)
+		logfacade.GetLogger(ctx).Errorf(ctx, err, "failed to get GraphQL type for field %s", field.Name)
 		return nil, bizerrors.Errorf("failed to get GraphQL type for field %s format %s", field.Name, field.Type.Format)
 	}
 	graphqlField.Type = graphqlType
@@ -981,7 +1098,7 @@ func (r *graphqlModelResolver) createOneToManyResolverFromFK(
 		// 获取父对象记录
 		record, ok := p.Source.(map[string]any)
 		if !ok {
-			logger.Warn(p.Context, "invalid source type for one-to-many relation")
+			logger.Warnf(p.Context, "invalid source type for one-to-many relation")
 			return []map[string]any{}, nil
 		}
 
@@ -1025,7 +1142,7 @@ func (r *graphqlModelResolver) createOneToManyResolverFromFK(
 			Where:     whereMap,
 		})
 		if err != nil {
-			logger.Errorf(p.Context, "failed to query one-to-many relation: %v", err)
+			logger.Errorf(p.Context, err, "failed to query one-to-many relation")
 			return nil, err
 		}
 
@@ -1057,7 +1174,7 @@ func (r *graphqlModelResolver) createManyToOneResolverFromFK(
 
 		record, ok := p.Source.(map[string]any)
 		if !ok {
-			logger.Warn(p.Context, "invalid source type for many-to-one relation")
+			logger.Warnf(p.Context, "invalid source type for many-to-one relation")
 			return nil, nil
 		}
 
@@ -1140,7 +1257,7 @@ func (r *graphqlModelResolver) generateModelType(ctx context.Context, maxDepth i
 		}
 		graphqlfield, err := r.createField(ctx, maxDepth, field, relateObj)
 		if err != nil {
-			logfacade.GetLogger(ctx).Errorf(ctx, "create graphql field err %s", field.Name)
+			logfacade.GetLogger(ctx).Errorf(ctx, nil, "create graphql field err %s", field.Name)
 			return nil, err
 		}
 		if graphqlfield == nil {
@@ -1223,6 +1340,10 @@ func (r *graphqlModelResolver) createFindUniqueResultType(modelType graphql.Type
 			FieldReqId: &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.String),
 				Description: "Unique request tracking ID (UUID v7)",
+			},
+			FieldError: &graphql.Field{
+				Type:        openDataErrorUnion,
+				Description: "Error information if the operation failed",
 			},
 		},
 		Description: "Result wrapper for findUnique query with metadata",
@@ -1355,7 +1476,7 @@ func (r *graphqlModelResolver) listByCursorFieldDescription() string {
 
 func (m *graphqlModelResolver) executeListByCursor(p graphql.ResolveParams) (map[string]any, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
-	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+	if err := rctx.RLS.Permissions.CheckAction(ActionSelect); err != nil {
 		return nil, err
 	}
 	startTime := time.Now()
@@ -1406,11 +1527,6 @@ func (m *graphqlModelResolver) executeListByCursor(p graphql.ResolveParams) (map
 	}
 
 	// Inject RLS row filter
-	if rf := BuildRowFilter(
-		rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
-	}
 
 	// Fetch limit+1 rows to detect hasNextPage
 	rows, err := rctx.ClientRepo.ListByCursor(p.Context, input)
@@ -1437,24 +1553,18 @@ func (m *graphqlModelResolver) executeListByCursor(p graphql.ResolveParams) (map
 		nextCursorStr = &encoded
 	}
 
-	metadata := requestcontext.GetMetadata(p.Context)
-	reqId := ""
-	if metadata != nil {
-		reqId = metadata.ReqID
-	}
-
 	return map[string]any{
 		FieldItems:       rows,
 		FieldNextCursor:  nextCursorStr,
 		FieldHasNextPage: hasNextPage,
 		FieldTimeCost:    int(time.Since(startTime).Milliseconds()),
-		FieldReqId:       reqId,
+		FieldReqId:       requestIDFromContext(p.Context),
 	}, nil
 }
 
 func (m *graphqlModelResolver) executeListByPage(p graphql.ResolveParams) (map[string]any, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
-	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+	if err := rctx.RLS.Permissions.CheckAction(ActionSelect); err != nil {
 		return nil, err
 	}
 	startTime := time.Now()
@@ -1490,11 +1600,6 @@ func (m *graphqlModelResolver) executeListByPage(p graphql.ResolveParams) (map[s
 		Limit:     uint(pageSizeRaw),
 		Offset:    uint((pageIndexRaw - 1) * pageSizeRaw),
 	}
-	if rf := BuildRowFilter(
-		rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID,
-	); rf != nil {
-		maps.Copy(findManyInput.Where, rf)
-	}
 
 	items, err := rctx.ClientRepo.FindMany(p.Context, findManyInput)
 	if err != nil {
@@ -1506,8 +1611,9 @@ func (m *graphqlModelResolver) executeListByPage(p graphql.ResolveParams) (map[s
 	}
 
 	countResult, err := rctx.ClientRepo.Count(p.Context, &CountInput{
-		TableName: findManyInput.TableName,
-		Where:     findManyInput.Where,
+		TableName:  findManyInput.TableName,
+		Where:      findManyInput.Where,
+		RawFilters: findManyInput.RawFilters,
 	})
 	if err != nil {
 		return nil, err
@@ -1517,20 +1623,18 @@ func (m *graphqlModelResolver) executeListByPage(p graphql.ResolveParams) (map[s
 		return nil, bizerrors.Errorf("invalid count result for listByPage: %w", err)
 	}
 
-	metadata := requestcontext.GetMetadata(p.Context)
-	reqID := ""
-	if metadata != nil {
-		reqID = metadata.ReqID
-	}
-
 	return map[string]any{
 		FieldItems:     items,
 		FieldTotal:     total,
 		FieldPageIndex: pageIndexRaw,
 		FieldPageSize:  pageSizeRaw,
 		FieldTimeCost:  int(time.Since(startTime).Milliseconds()),
-		FieldReqId:     reqID,
+		FieldReqId:     requestIDFromContext(p.Context),
 	}, nil
+}
+
+func requestIDFromContext(ctx context.Context) string {
+	return ctxutils.GetRequestID(ctx)
 }
 
 func (m *graphqlModelResolver) createListByCursorField(modelType graphql.Type) (*graphql.Field, error) {
@@ -1544,7 +1648,7 @@ func (m *graphqlModelResolver) createListByCursorField(modelType graphql.Type) (
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeListByCursor(p)
 			if err != nil {
-				logfacade.GetLogger(p.Context).Error(p.Context, "executeListByCursor fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 				return nil, err
 			}
 			return result, err
@@ -1565,7 +1669,7 @@ func (m *graphqlModelResolver) createListByPageField(modelType graphql.Type) (*g
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeListByPage(p)
 			if err != nil {
-				logfacade.GetLogger(p.Context).Error(p.Context, "executeListByPage fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 				return nil, err
 			}
 			return result, err
@@ -1615,7 +1719,12 @@ func (m *graphqlModelResolver) createRootMutation(modelType graphql.Type) (*grap
 
 func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
-	if err := rctx.EndUserPerms.CheckAction(ActionInsert); err != nil {
+	if err := rctx.RLS.Permissions.CheckAction(ActionInsert); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	input, err := newCreateOneInput(m.model.Name, p)
@@ -1636,19 +1745,15 @@ func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interf
 		}
 	}
 
-	// Inject owner from end-user identity (end-user JWT or tenant admin's end-user-admin claim).
-	// Only inject if the model actually has an END_USER_REF field (prevents
-	// accidentally clobbering a user-defined field named "owner" on models
-	// that do not use the END_USER_REF system field).
-	// When no owner identity is available: use payload value as-is.
-	if err := enforceOwnerOnCreate(rctx, m.model.Fields, input.Data); err != nil {
-		return nil, err
-	}
-
 	input.Id = cast.ToString(input.Data[FieldID])
 
 	id, err := rctx.ClientRepo.CreateOne(p.Context, input)
 	if err != nil {
+		if isDuplicateKeyError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("DuplicateKey", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 
@@ -1686,10 +1791,13 @@ func (m *graphqlModelResolver) createCreateOneField(modelType graphql.Type) (*gr
 		Name: gqlTypeName(m.model.Name) + "Create" + ResultTypeSuffix,
 		Fields: graphql.Fields{
 			FieldID: &graphql.Field{
-				Type: graphql.NewNonNull(graphql.ID),
+				Type: graphql.ID,
 			},
 			FieldCreatedObj: &graphql.Field{
 				Type: modelType,
+			},
+			FieldError: &graphql.Field{
+				Type: openDataErrorUnion,
 			},
 		},
 	})
@@ -1701,7 +1809,7 @@ func (m *graphqlModelResolver) createCreateOneField(modelType graphql.Type) (*gr
 			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeCreateOne(p)
 			if err != nil {
-				logger.Error(p.Context, "createOne_fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 			} else {
 				logger.Infof(p.Context, "createOne_result=%+v", result)
 			}
@@ -1712,28 +1820,18 @@ func (m *graphqlModelResolver) createCreateOneField(modelType graphql.Type) (*gr
 
 func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
-	if err := rctx.EndUserPerms.CheckAction(ActionUpdate); err != nil {
+	if err := rctx.RLS.Permissions.CheckAction(ActionUpdate); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldSuccess: false,
+				FieldError:   createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	input, err := newUpdateOneInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
-	}
-
-	// Inject owner from end-user identity (end-user JWT or tenant admin's end-user-admin claim).
-	// Only applies if the model has an END_USER_REF field and an owner identity is available.
-	if ownerID := rctx.resolveEndUserOwnerID(); ownerID != "" {
-		for _, field := range m.model.Fields {
-			if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
-				input.Data[field.Name] = ownerID
-				break
-			}
-		}
-	}
-	if rf := BuildRowFilter(
-		rctx.EndUserPerms, ActionUpdate, m.endUserRefFieldName(), rctx.CurrentEndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
 	}
 
 	// 返回包装结果
@@ -1742,6 +1840,18 @@ func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interf
 	}
 	updatedObj, err := rctx.ClientRepo.UpdateOne(p.Context, input)
 	if err != nil {
+		if isRecordNotFoundError(err) {
+			return map[string]interface{}{
+				FieldSuccess: false,
+				FieldError:   createStructuredError("RecordNotFound", "Record not found"),
+			}, nil
+		}
+		if isDuplicateKeyError(err) {
+			return map[string]interface{}{
+				FieldSuccess: false,
+				FieldError:   createStructuredError("DuplicateKey", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 
@@ -1771,6 +1881,9 @@ func (m *graphqlModelResolver) createUpdateOneField(modelType graphql.Type) (*gr
 			FieldUpdatedObj: &graphql.Field{
 				Type: modelType,
 			},
+			FieldError: &graphql.Field{
+				Type: openDataErrorUnion,
+			},
 		},
 	})
 
@@ -1792,17 +1905,18 @@ func (m *graphqlModelResolver) createUpdateOneField(modelType graphql.Type) (*gr
 
 func (m *graphqlModelResolver) executeDeleteOne(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
-	if err := rctx.EndUserPerms.CheckAction(ActionDelete); err != nil {
+	if err := rctx.RLS.Permissions.CheckAction(ActionDelete); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldSuccess: false,
+				FieldError:   createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	input, err := newDeleteOneInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
-	}
-	if rf := BuildRowFilter(
-		rctx.EndUserPerms, ActionDelete, m.endUserRefFieldName(), rctx.CurrentEndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
 	}
 	// 返回包装结果
 	result := map[string]interface{}{
@@ -1810,12 +1924,13 @@ func (m *graphqlModelResolver) executeDeleteOne(p graphql.ResolveParams) (interf
 	}
 	deleteResult, err := rctx.ClientRepo.DeleteOne(p.Context, input)
 	if err != nil {
+		if isRecordNotFoundError(err) {
+			return map[string]interface{}{
+				FieldSuccess: false,
+				FieldError:   createStructuredError("RecordNotFound", "Record not found"),
+			}, nil
+		}
 		return nil, err
-	}
-
-	if deleteResult == nil && input.DeletedObj {
-		result[FieldSuccess] = false
-		return result, nil
 	}
 
 	if input.DeletedObj {
@@ -1839,6 +1954,9 @@ func (m *graphqlModelResolver) createDeleteOneField(modelType graphql.Type) (*gr
 			FieldDeletedObj: &graphql.Field{
 				Type: modelType,
 			},
+			FieldError: &graphql.Field{
+				Type: openDataErrorUnion,
+			},
 		},
 	})
 
@@ -1849,7 +1967,7 @@ func (m *graphqlModelResolver) createDeleteOneField(modelType graphql.Type) (*gr
 			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeDeleteOne(p)
 			if err != nil {
-				logger.Error(p.Context, "deleteOne_fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 			} else {
 				logger.Infof(p.Context, "deleteOne_result=%+v", result)
 			}
@@ -1860,7 +1978,12 @@ func (m *graphqlModelResolver) createDeleteOneField(modelType graphql.Type) (*gr
 
 func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
-	if err := rctx.EndUserPerms.CheckAction(ActionInsert); err != nil {
+	if err := rctx.RLS.Permissions.CheckAction(ActionInsert); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	logger := logfacade.GetLogger(p.Context)
@@ -1882,14 +2005,14 @@ func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (inter
 				}
 			}
 		}
-		// Inject owner from end-user identity (end-user JWT or tenant admin's end-user-admin claim).
-		// Only applies if the model has an END_USER_REF field and an owner identity is available.
-		if err := enforceOwnerOnCreate(rctx, m.model.Fields, dataItem); err != nil {
-			return nil, err
-		}
 	}
 	result, err := rctx.ClientRepo.CreateMany(p.Context, input)
 	if err != nil {
+		if isDuplicateKeyError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("DuplicateKey", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	return result, nil
@@ -1906,12 +2029,15 @@ func (m *graphqlModelResolver) createCreateManyField(modelType graphql.Type) (*g
 		Name: gqlTypeName(m.model.Name) + "CreateMany" + ResultTypeSuffix,
 		Fields: graphql.Fields{
 			FieldCount: &graphql.Field{
-				Type:        graphql.NewNonNull(graphql.Int),
+				Type:        graphql.Int,
 				Description: "成功创建的记录数",
 			},
 			FieldIdList: &graphql.Field{
 				Type:        graphql.NewList(graphql.ID),
 				Description: "创建的记录ID列表（仅在查询中选择时返回）",
+			},
+			FieldError: &graphql.Field{
+				Type: openDataErrorUnion,
 			},
 		},
 	})
@@ -1923,7 +2049,7 @@ func (m *graphqlModelResolver) createCreateManyField(modelType graphql.Type) (*g
 			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeCreateMany(p)
 			if err != nil {
-				logger.Error(p.Context, "createMany_fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 			} else {
 				logger.Infof(p.Context, "createMany_success")
 			}
@@ -1934,7 +2060,12 @@ func (m *graphqlModelResolver) createCreateManyField(modelType graphql.Type) (*g
 
 func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
-	if err := rctx.EndUserPerms.CheckAction(ActionUpdate); err != nil {
+	if err := rctx.RLS.Permissions.CheckAction(ActionUpdate); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	input, err := newUpdateManyInput(m.model.Name, p)
@@ -1942,24 +2073,13 @@ func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (inter
 		return nil, err
 	}
 
-	// Inject owner from end-user identity (end-user JWT or tenant admin's end-user-admin claim).
-	// updateMany uses a single data map applied to all matched records.
-	if ownerID := rctx.resolveEndUserOwnerID(); ownerID != "" {
-		for _, field := range m.model.Fields {
-			if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
-				input.Data[field.Name] = ownerID
-				break
-			}
-		}
-	}
-	if rf := BuildRowFilter(
-		rctx.EndUserPerms, ActionUpdate, m.endUserRefFieldName(), rctx.CurrentEndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
-	}
-
 	result, err := rctx.ClientRepo.UpdateMany(p.Context, input)
 	if err != nil {
+		if isDuplicateKeyError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("DuplicateKey", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	return result, nil
@@ -1976,8 +2096,11 @@ func (m *graphqlModelResolver) createUpdateManyField(modelType graphql.Type) (*g
 		Name: gqlTypeName(m.model.Name) + "UpdateMany" + ResultTypeSuffix,
 		Fields: graphql.Fields{
 			FieldCount: &graphql.Field{
-				Type:        graphql.NewNonNull(graphql.Int),
+				Type:        graphql.Int,
 				Description: "成功更新的记录数",
+			},
+			FieldError: &graphql.Field{
+				Type: openDataErrorUnion,
 			},
 		},
 	})
@@ -1989,7 +2112,7 @@ func (m *graphqlModelResolver) createUpdateManyField(modelType graphql.Type) (*g
 			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeUpdateMany(p)
 			if err != nil {
-				logger.Error(p.Context, "updateMany_fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 			} else {
 				logger.Infof(p.Context, "updateMany_success")
 			}
@@ -2000,17 +2123,17 @@ func (m *graphqlModelResolver) createUpdateManyField(modelType graphql.Type) (*g
 
 func (m *graphqlModelResolver) executeDeleteMany(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
-	if err := rctx.EndUserPerms.CheckAction(ActionDelete); err != nil {
+	if err := rctx.RLS.Permissions.CheckAction(ActionDelete); err != nil {
+		if isPermissionDeniedError(err) {
+			return map[string]interface{}{
+				FieldError: createStructuredError("PermissionDenied", err.Error()),
+			}, nil
+		}
 		return nil, err
 	}
 	input, err := newDeleteManyInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
-	}
-	if rf := BuildRowFilter(
-		rctx.EndUserPerms, ActionDelete, m.endUserRefFieldName(), rctx.CurrentEndUserID,
-	); rf != nil {
-		maps.Copy(input.Where, rf)
 	}
 	result, err := rctx.ClientRepo.DeleteMany(p.Context, input)
 	if err != nil {
@@ -2030,8 +2153,11 @@ func (m *graphqlModelResolver) createDeleteManyField(modelType graphql.Type) (*g
 		Name: gqlTypeName(m.model.Name) + "DeleteMany" + ResultTypeSuffix,
 		Fields: graphql.Fields{
 			FieldCount: &graphql.Field{
-				Type:        graphql.NewNonNull(graphql.Int),
+				Type:        graphql.Int,
 				Description: "成功删除的记录数",
+			},
+			FieldError: &graphql.Field{
+				Type: openDataErrorUnion,
 			},
 		},
 	})
@@ -2043,7 +2169,7 @@ func (m *graphqlModelResolver) createDeleteManyField(modelType graphql.Type) (*g
 			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeDeleteMany(p)
 			if err != nil {
-				logger.Error(p.Context, "deleteMany_fail", logfacade.Err(err))
+				err = handleErr(p.Context, err)
 			} else {
 				logger.Infof(p.Context, "deleteMany_success")
 			}
@@ -2054,7 +2180,7 @@ func (m *graphqlModelResolver) createDeleteManyField(modelType graphql.Type) (*g
 
 func handleErr(ctx context.Context, err error) error {
 	logger := logfacade.GetLogger(ctx)
-	logger.Error(ctx, "before_process_graphql_err", logfacade.Err(err))
+	logger.Errorf(ctx, err, "before_process_graphql_err")
 	err = handleRepoErr(ctx, err)
 	return gqlerrors.FormatError(err)
 }
@@ -2078,12 +2204,14 @@ func handleRepoErr(ctx context.Context, err error) error {
 		case shared.ErrTypeTimeout:
 			return bizerrors.NewErrorFromContext(ctx, bizerrors.TimeOut)
 		case shared.ErrTypeConstraint:
-			return bizerrors.NewErrorFromContext(ctx, bizerrors.DuplicateKey)
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.DuplicateKey, repoErr.Message)
 		case shared.ErrTypePermission:
 			return bizerrors.NewErrorFromContext(ctx, bizerrors.DatabaseAccessDenied)
+		case shared.ErrTypeNotFound:
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.RecordNotFound)
 
 		}
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError)
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, repoErr.Message)
 	}
 	return err
 }

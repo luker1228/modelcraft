@@ -2,12 +2,13 @@ package httputil
 
 import (
 	"encoding/json"
+	"modelcraft/pkg/httpheader"
 	"net/http"
 )
 
 // WriteJSON writes a JSON response with the given status code and body.
 func WriteJSON(w http.ResponseWriter, statusCode int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 	w.WriteHeader(statusCode)
 	_ = json.NewEncoder(w).Encode(data)
 }

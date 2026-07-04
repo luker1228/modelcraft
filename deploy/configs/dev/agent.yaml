@@ -1,0 +1,7 @@
+LLM_PROVIDER: "deepseek"
+LLM_MODEL: "deepseek-chat"
+LLM_API_KEY: "sk-fd4876ed45ad4395aa1c9a669424ee52"
+LLM_BASE_URL: "https://api.deepseek.com"
+GATEWAY_URL: "http://apisix:9080"
+PORT: "8000"
+TZ: "Asia/Shanghai"

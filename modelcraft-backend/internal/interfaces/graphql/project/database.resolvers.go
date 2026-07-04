@@ -24,10 +24,7 @@ func (r *mutationResolver) RegisterModelDatabase(ctx context.Context, input gene
 	db, err := r.ModelDatabaseAppService.Register(ctx, cmd)
 	if err != nil {
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-			logger.Error(ctx, "RegisterModelDatabase failed",
-				logfacade.Err(bizErr),
-				logfacade.Stack(bizErr),
-			)
+			logger.Errorf(ctx, bizErr, "RegisterModelDatabase failed")
 			switch bizErr.Info().GetCode() {
 			case bizerrors.Conflict.GetCode(), bizerrors.ParamInvalid.GetCode():
 				return &generated.InvalidInput{Message: bizErr.Msg()}, nil

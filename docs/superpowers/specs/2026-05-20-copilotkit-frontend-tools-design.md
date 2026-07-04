@@ -1,5 +1,7 @@
 # CopilotKit 前端工具设计
 
+> 状态更新：本文档描述的是“双 agent”设计稿。当前实际代码只保留 `modelcraft_admin_agent`，`modelcraft_enduser_agent` 与 `/copilotkit/enduser` 未启用。
+
 **日期**: 2026-05-20  
 **范围**: modelcraft-front + modelcraft-agent  
 **状态**: 已批准，待实现
@@ -8,7 +10,7 @@
 
 ## 背景
 
-ModelCraft 存在两类用户：租户管理员（tenant-admin）和终端用户（end-user），两者使用场景完全不同。当前只有一个 `modelcraft_agent`，工具集混合，system prompt 难以聚焦。
+ModelCraft 存在两类用户：租户管理员（tenant-admin）和终端用户（end-user），两者使用场景完全不同。本文是当时为“双 agent”方向准备的设计稿。
 
 本设计将其拆分为两个独立 agent，各自有专属工具集、知识库和引导内容，同时补全缺失的导航工具，并通过 CopilotSidebar `suggestions` 提供开箱即用的快捷入口。
 

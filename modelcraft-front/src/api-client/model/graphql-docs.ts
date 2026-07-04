@@ -13,6 +13,8 @@ export const GET_MODELS = gql`
         description
         databaseName
         storageType
+        createdVia
+        isReadOnly
         fields {
           name
           title
@@ -90,6 +92,8 @@ export const GET_MODEL = gql`
         insertionOrderField
         databaseName
         storageType
+        createdVia
+        isReadOnly
         fields {
           name
           title
@@ -179,9 +183,16 @@ export const GET_MODEL_RECORD_WORKSPACE = gql`
         title
         description
         databaseName
+        createdVia
+        isReadOnly
         jsonSchema
         fields {
           name
+          title
+          format
+          schemaType
+          storageHint
+          isPrimary
           isDeprecated
         }
       }
@@ -971,6 +982,76 @@ export const DELETE_LOGICAL_FOREIGN_KEY = gql`
         ... on FKPairHasRelateFieldsError {
           message
         }
+      }
+    }
+  }
+`
+
+export const SYNC_MODELS_FROM_DB_MUTATION = gql`
+  mutation SyncModelsFromDB($input: SyncModelsFromDBInput!) {
+    syncModelsFromDB(input: $input) {
+      jobId
+    }
+  }
+`
+
+export const MODEL_SYNC_JOB_QUERY = gql`
+  query ModelSyncJob($jobId: ID!) {
+    modelSyncJob(jobId: $jobId) {
+      id
+      databaseName
+      tableNames
+      status
+      totalTables
+      processedTables
+      createdModels
+      syncedModels
+      failedCount
+      failedTables {
+        tableName
+        message
+      }
+      startedAt
+      finishedAt
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const MODEL_SYNC_JOBS_QUERY = gql`
+  query ModelSyncJobs($jobIds: [ID!], $batchId: ID) {
+    modelSyncJobs(jobIds: $jobIds, batchId: $batchId) {
+      id
+      batchId
+      databaseId
+      databaseName
+      tableNames
+      status
+      totalTables
+      processedTables
+      createdModels
+      syncedModels
+      failedCount
+      failedTables {
+        tableName
+        message
+      }
+      startedAt
+      finishedAt
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const START_MODEL_SYNC_MUTATION = gql`
+  mutation StartModelSync($targets: [ModelSyncTargetInput!]!) {
+    startModelSync(targets: $targets) {
+      batchId
+      jobs {
+        databaseId
+        jobId
       }
     }
   }

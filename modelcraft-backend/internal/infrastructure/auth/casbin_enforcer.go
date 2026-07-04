@@ -49,14 +49,14 @@ m = g(r.sub, p.sub) && (p.obj == "*" || r.obj == p.obj) && (p.act == "*" || r.ac
 
 	m, err := model.NewModelFromString(modelText)
 	if err != nil {
-		logger.Errorf(context.Background(), "Failed to load Casbin model: %v", err)
+		logger.Errorf(context.Background(), err, "Failed to load Casbin model")
 		return nil, fmt.Errorf("failed to load Casbin model: %w", err)
 	}
 
 	// Create enforcer without adapter (we'll manage policies programmatically)
 	e, err := casbin.NewEnforcer(m)
 	if err != nil {
-		logger.Errorf(context.Background(), "Failed to create Casbin enforcer: %v", err)
+		logger.Errorf(context.Background(), err, "Failed to create Casbin enforcer")
 		return nil, fmt.Errorf("failed to create Casbin enforcer: %w", err)
 	}
 
@@ -81,7 +81,7 @@ func LoadSystemRolePermissions(e *casbin.Enforcer) error {
 			// Add policy: role -> obj -> act
 			_, err := e.AddPolicy(roleName, perm.Obj, perm.Act)
 			if err != nil {
-				logger.Errorf(context.Background(), "Failed to add policy for role %s: %v", roleName, err)
+				logger.Errorf(context.Background(), err, "Failed to add policy for role %s", roleName)
 				return fmt.Errorf("failed to add policy for role %s: %w", roleName, err)
 			}
 		}

@@ -114,7 +114,7 @@ func (s *UserRoleService) AssignRoleToUser(ctx context.Context, userID string, r
 	if s.enforcer != nil {
 		err := auth.AddUserRole(s.enforcer, userID, role.Name)
 		if err != nil {
-			logger.Errorf(context.Background(), "Failed to add user role to Casbin enforcer: %v", err)
+			logger.Errorf(context.Background(), err, "Failed to add user role to Casbin enforcer")
 			// Don't fail the operation if Casbin sync fails
 		}
 	}
@@ -126,10 +126,9 @@ func (s *UserRoleService) AssignRoleToUser(ctx context.Context, userID string, r
 			// Log error but don't fail the assignment
 			// Permission change succeeded, cache will expire naturally in 5min
 			logger.Errorf(
-				ctx, "Failed to increment permission version: userId=%s, orgName=%s, error=%v",
+				ctx, err, "Failed to increment permission version: userId=%s, orgName=%s",
 				userID,
 				orgName,
-				err,
 			)
 		} else {
 			logger.Infof(
@@ -179,7 +178,7 @@ func (s *UserRoleService) RevokeRoleFromUser(ctx context.Context, userID string,
 	if s.enforcer != nil {
 		err := auth.RemoveUserRole(s.enforcer, userID, role.Name)
 		if err != nil {
-			logger.Errorf(context.Background(), "Failed to remove user role from Casbin enforcer: %v", err)
+			logger.Errorf(context.Background(), err, "Failed to remove user role from Casbin enforcer")
 			// Don't fail the operation if Casbin sync fails
 		}
 	}
@@ -191,10 +190,9 @@ func (s *UserRoleService) RevokeRoleFromUser(ctx context.Context, userID string,
 			// Log error but don't fail the revocation
 			// Permission change succeeded, cache will expire naturally in 5min
 			logger.Errorf(
-				ctx, "Failed to increment permission version: userId=%s, orgName=%s, error=%v",
+				ctx, err, "Failed to increment permission version: userId=%s, orgName=%s",
 				userID,
 				orgName,
-				err,
 			)
 		} else {
 			logger.Infof(
@@ -271,7 +269,7 @@ func (s *UserRoleService) CheckPermission(ctx context.Context, userID, orgName, 
 	for _, userRole := range userRoles {
 		role, err := s.roleRepo.GetRoleByID(ctx, userRole.RoleID)
 		if err != nil {
-			logger.Errorf(context.Background(), "Failed to get role %d: %v", userRole.RoleID, err)
+			logger.Errorf(context.Background(), err, "Failed to get role %d", userRole.RoleID)
 			continue
 		}
 		if role == nil {
@@ -290,7 +288,7 @@ func (s *UserRoleService) CheckPermission(ctx context.Context, userID, orgName, 
 	if s.enforcer != nil {
 		allowed, err := auth.CheckPermission(s.enforcer, userID, perm.Obj, perm.Act)
 		if err != nil {
-			logger.Errorf(context.Background(), "Casbin permission check failed: %v", err)
+			logger.Errorf(context.Background(), err, "Casbin permission check failed")
 			return false, err
 		}
 
@@ -312,7 +310,7 @@ func (s *UserRoleService) CheckPermission(ctx context.Context, userID, orgName, 
 	}
 
 	// Fallback: deny if enforcer is not available
-	logger.Errorf(context.Background(), "Casbin enforcer not available for permission check")
+	logger.Errorf(context.Background(), nil, "Casbin enforcer not available for permission check")
 	return false, nil
 }
 
@@ -322,7 +320,7 @@ func (s *UserRoleService) ensureUserRoleMapping(userID, roleName string, logger 
 	}
 
 	if err := auth.AddUserRole(s.enforcer, userID, roleName); err != nil {
-		logger.Errorf(context.Background(), "Failed to add user role mapping to enforcer: %v", err)
+		logger.Errorf(context.Background(), err, "Failed to add user role mapping to enforcer")
 		// Continue anyway - the mapping might already exist
 	}
 }
@@ -336,7 +334,7 @@ func (s *UserRoleService) syncCustomRolePermissions(
 
 	perms, err := s.permRepo.ListPermissionsByRole(ctx, role.ID)
 	if err != nil {
-		logger.Errorf(context.Background(), "Failed to list permissions for role %d: %v", role.ID, err)
+		logger.Errorf(context.Background(), err, "Failed to list permissions for role %d", role.ID)
 		return
 	}
 
@@ -346,7 +344,7 @@ func (s *UserRoleService) syncCustomRolePermissions(
 
 	for _, p := range perms {
 		if _, err := s.enforcer.AddPolicy(role.Name, p.Obj, p.Act); err != nil {
-			logger.Errorf(context.Background(), "Failed to sync permission to Casbin: %v", err)
+			logger.Errorf(context.Background(), err, "Failed to sync permission to Casbin")
 		}
 	}
 }

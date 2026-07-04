@@ -15,13 +15,25 @@ import (
 
 // HasPermissionDirective implements the @hasPermission directive for operation-level authorization
 type HasPermissionDirective struct {
-	userRoleService *appPermission.UserRoleService
+	userRoleService    *appPermission.UserRoleService
+	enforceEndUserGate bool // true for EndUser link handler, false for internal link handler
 }
 
-// NewHasPermissionDirective creates a new directive handler
+// NewHasPermissionDirective creates a directive handler for the internal GraphQL link.
+// Internal link ignores allowEndUser — all operations go through RBAC.
 func NewHasPermissionDirective(userRoleService *appPermission.UserRoleService) *HasPermissionDirective {
 	return &HasPermissionDirective{
-		userRoleService: userRoleService,
+		userRoleService:    userRoleService,
+		enforceEndUserGate: false,
+	}
+}
+
+// NewEndUserHasPermissionDirective creates a directive handler for the EndUser link.
+// EndUser link enforces allowEndUser: only operations explicitly marked allowEndUser=true are accessible.
+func NewEndUserHasPermissionDirective(userRoleService *appPermission.UserRoleService) *HasPermissionDirective {
+	return &HasPermissionDirective{
+		userRoleService:    userRoleService,
+		enforceEndUserGate: true,
 	}
 }
 
@@ -39,11 +51,11 @@ func (d *HasPermissionDirective) HasPermission(
 
 	// Validate action format
 	if action == "" {
-		logger.Errorf(ctx, "@hasPermission directive: empty action parameter")
+		logger.Errorf(ctx, nil, "@hasPermission directive: empty action parameter")
 		return nil, newGQLError("Invalid permission directive configuration", "INVALID_DIRECTIVE")
 	}
 
-	// FAST PATH: If wildcard permissions are set in context (e.g. from X-Internal-Token),
+	// FAST PATH: If wildcard permissions are already set in context,
 	// skip user identity validation and grant access immediately.
 	if permissions, pErr := ctxutils.GetPermissionsFromContext(ctx); pErr == nil && len(permissions) > 0 {
 		if middleware.CheckPermission(permissions, "*") || middleware.CheckPermission(permissions, action) {
@@ -58,14 +70,18 @@ func (d *HasPermissionDirective) HasPermission(
 		return nil, err
 	}
 
-	// End-user callers: default-deny. Only operations explicitly marked allowEndUser=true are accessible.
-	if ctxutils.IsEndUser(ctx) {
+	// End-user link: default-deny. Only operations explicitly marked allowEndUser=true
+	// are accessible. This gate only applies to the EndUser link handler —
+	// the internal link handler has enforceEndUserGate=false and skips this check.
+	if d.enforceEndUserGate {
 		if !allowEndUser {
-			logger.Infof(ctx, "@hasPermission directive: end-user access denied (allowEndUser=false) user=%s action=%s",
+			logger.Infof(ctx,
+				"@hasPermission directive: end-user link access denied (allowEndUser=false) user=%s action=%s",
 				userID, action)
-			return nil, newPermissionDeniedError(action, userID, orgName, "end-user-default-deny")
+			return nil, newPermissionDeniedError(action, userID, orgName, "end-user-link-default-deny")
 		}
-		logger.Infof(ctx, "@hasPermission directive: end-user access granted (allowEndUser=true) user=%s action=%s",
+		logger.Infof(ctx,
+			"@hasPermission directive: end-user link access granted (allowEndUser=true) user=%s action=%s",
 			userID, action)
 		return next(ctx)
 	}
@@ -88,14 +104,13 @@ func (d *HasPermissionDirective) validateContext(
 	ctx context.Context,
 	logger logfacade.Logger,
 ) (userID, orgName string, err error) {
-	// End-user callers use X-User-ID; tenant callers use X-Tenant-User-Id.
-	if ctxutils.IsEndUser(ctx) {
-		userID, err = ctxutils.GetUserIDFromContext(ctx)
-	} else {
-		userID, err = ctxutils.GetTenantUserIDFromContext(ctx)
+	// Internal link callers have UserID set; EndUser link callers have EndUserID set.
+	userID, err = ctxutils.GetUserIDFromContext(ctx)
+	if err != nil || userID == "" {
+		userID, err = ctxutils.GetEndUserIDFromContext(ctx)
 	}
 	if err != nil || userID == "" {
-		logger.Errorf(ctx, "@hasPermission directive: missing user authentication: %v", err)
+		logger.Errorf(ctx, err, "@hasPermission directive: missing user authentication")
 		return "", "", &gqlerror.Error{
 			Message:    "Authentication required",
 			Extensions: map[string]interface{}{"code": "UNAUTHENTICATED"},
@@ -104,7 +119,7 @@ func (d *HasPermissionDirective) validateContext(
 
 	orgName, err = ctxutils.GetOrgNameFromContext(ctx)
 	if err != nil || orgName == "" {
-		logger.Errorf(ctx, "@hasPermission directive: missing organization context for user %s: %v", userID, err)
+		logger.Errorf(ctx, err, "@hasPermission directive: missing organization context for user %s", userID)
 		return "", "", &gqlerror.Error{
 			Message:    "Organization context required",
 			Extensions: map[string]interface{}{"code": "MISSING_ORGANIZATION"},
@@ -154,8 +169,8 @@ func (d *HasPermissionDirective) checkDatabasePermission(
 	allowed, err := d.userRoleService.CheckPermission(ctx, userID, orgName, action)
 	if err != nil {
 		logger.Errorf(
-			ctx, "@hasPermission directive: permission check failed for user %s, action %s: %v",
-			userID, action, err,
+			ctx, err, "@hasPermission directive: permission check failed for user %s, action %s",
+			userID, action,
 		)
 		return nil, newGQLError("Permission check failed", "PERMISSION_CHECK_ERROR")
 	}

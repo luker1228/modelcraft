@@ -264,9 +264,8 @@ func (s *RoleService) DeleteRole(ctx context.Context, roleID int) error {
 		_, err := s.enforcer.RemoveFilteredPolicy(0, role.Name)
 		if err != nil {
 			logger.Errorf(
-				ctx, "Failed to remove Casbin policies for role %s: %v",
+				ctx, err, "Failed to remove Casbin policies for role %s",
 				role.Name,
-				err,
 			)
 			// Don't fail the operation if Casbin cleanup fails
 		}

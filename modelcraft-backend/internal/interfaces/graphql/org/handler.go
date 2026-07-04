@@ -8,13 +8,25 @@ import (
 	playgroundpkg "modelcraft/pkg/graphql"
 
 	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/gin-gonic/gin"
 	"github.com/go-chi/chi/v5"
 )
 
-// OrgGraphQLHandler creates GraphQL handler for org domain
+// OrgGraphQLHandler creates GraphQL handler for org domain (internal link).
 func OrgGraphQLHandler(resolver *Resolver) http.HandlerFunc {
 	hasPermissionDirective := NewHasPermissionDirective(resolver.UserRoleService)
+	config := generated.Config{Resolvers: resolver}
+	config.Directives.HasPermission = hasPermissionDirective.HasPermission
+	h := handler.NewDefaultServer(generated.NewExecutableSchema(config))
+	h.AroundResponses(graphqlutil.InjectRequestIDExtension)
+	return func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r)
+	}
+}
+
+// OrgEndUserGraphQLHandler creates GraphQL handler for org domain (EndUser link).
+// Uses NewEndUserHasPermissionDirective to enforce allowEndUser gating.
+func OrgEndUserGraphQLHandler(resolver *Resolver) http.HandlerFunc {
+	hasPermissionDirective := NewEndUserHasPermissionDirective(resolver.UserRoleService)
 	config := generated.Config{Resolvers: resolver}
 	config.Directives.HasPermission = hasPermissionDirective.HasPermission
 	h := handler.NewDefaultServer(generated.NewExecutableSchema(config))
@@ -32,12 +44,10 @@ func OrgPlaygroundHandler() http.HandlerFunc {
 			orgName = "default"
 		}
 		endpoint := "/org/" + orgName + "/graphql"
-		ginHandler := playgroundpkg.Handler(playgroundpkg.PlaygroundConfig{
+		httpHandler := playgroundpkg.HTTPHandler(playgroundpkg.PlaygroundConfig{
 			Endpoint: endpoint,
 			Title:    "GraphQL Playground - Org API (" + orgName + ")",
 		})
-		c, _ := gin.CreateTestContext(w)
-		c.Request = r
-		ginHandler(c)
+		httpHandler(w, r)
 	}
 }

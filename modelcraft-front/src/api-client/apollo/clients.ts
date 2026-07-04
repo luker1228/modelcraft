@@ -27,32 +27,6 @@ export function buildProjectScopedEndpoint(orgName: string, projectSlug: string)
   return `/api/bff/graphql/org/${orgName}/project/${projectSlug}`
 }
 
-// ── End-User endpoint builders ───────────────────────────────────────────────
-
-export function buildEndUserRuntimeEndpoint(
-  orgName: string,
-  projectSlug: string,
-  databaseName: string,
-  modelName: string
-): string {
-  return `${GATEWAY_URL}/api/bff/graphql/end-user/org/${orgName}/project/${projectSlug}/db/${databaseName}/model/${modelName}`
-}
-
-/**
- * Build end-user project-scoped BFF path (no trailing slash).
- * @see buildProjectScopedEndpoint for the developer equivalent.
- */
-export function buildEndUserProjectScopedEndpoint(orgName: string, projectSlug: string): string {
-  return `/api/bff/graphql/end-user/org/${orgName}/project/${projectSlug}`
-}
-
-/**
- * Build end-user org-scoped BFF path (no trailing slash).
- */
-export function buildEndUserOrgScopedEndpoint(orgName: string): string {
-  return `/api/bff/graphql/end-user/org/${orgName}`
-}
-
 // ── Shared utilities exposed for the link chains below ──────────────────────
 
 export { generateUUID, buildXAction }

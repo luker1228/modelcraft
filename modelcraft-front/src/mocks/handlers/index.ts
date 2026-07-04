@@ -19,7 +19,6 @@ import {
   createMockMyUserProfilePayload,
   createMockUpdateMyProfilePayload,
 } from '../data/org/profile-factory'
-import { endUserAuthHandlers } from './end-user/auth-handlers'
 import { modelHandlers } from './model/handlers'
 import { enumHandlers } from './enum/handlers'
 import { rbacHandlers } from './project/rbac-handlers'
@@ -88,7 +87,6 @@ const profileHandlers = [
  *
  * 始终激活的 handlers（非页面级控制）：
  *   - profileHandlers  — 用户 profile 操作
- *   - endUserAuthHandlers — 终端用户认证
  *
  * 页面级控制的 handlers（按页面 key 启用）：
  *   - 'model-editor'  → modelHandlers
@@ -98,7 +96,6 @@ const profileHandlers = [
 function buildHandlers() {
   const active = [
     ...profileHandlers,
-    ...endUserAuthHandlers,
   ]
 
   if (isMockPage('model-editor')) {

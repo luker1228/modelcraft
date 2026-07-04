@@ -12,11 +12,6 @@ import { generateUUID } from '@shared/utils/uuid'
 import { useAuthStore } from '@shared/stores/auth-store'
 import { buildXAction } from '@api-client/apollo/x-action'
 
-function isEndUserPath(): boolean {
-  if (typeof window === 'undefined') return false
-  return window.location.pathname.startsWith('/end-user/')
-}
-
 // HTTP链接配置 - 使用动态 URI
 // Org endpoint: /graphql/org/{orgName}/
 // Handles: Projects, Clusters, Users, Roles, Organization management
@@ -39,7 +34,7 @@ const httpLink = createHttpLink({
 const authLink = setContext(async (operation: { operationName?: string; query: import('@apollo/client').DocumentNode }, { headers }: { headers?: Record<string, string> }) => {
   // 获取认证token（如果有的话）
   let token = typeof window !== 'undefined' ? useAuthStore.getState().accessToken : null
-  if (!token && typeof window !== 'undefined' && !isEndUserPath()) {
+  if (!token && typeof window !== 'undefined') {
     token = await refreshAccessToken()
   }
 
@@ -189,6 +184,22 @@ export function resetApolloCache() {
   if (apolloClient) {
     apolloClient.resetStore()
   }
+}
+
+/**
+ * Synchronously wipe the global Apollo cache without refetching active queries.
+ * Use this together with a React re-mount (key change) to force all queries
+ * to fetch fresh data from the network on the next render.
+ */
+export function clearApolloCache() {
+  apolloClient?.cache.reset()
+}
+
+/**
+ * Get the global Apollo client instance (may be null before provider mounts).
+ */
+export function getApolloClient() {
+  return apolloClient
 }
 
 export function ApolloWrapper({ children }: { children: React.ReactNode }) {

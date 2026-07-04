@@ -109,7 +109,7 @@ func (r *mutationResolver) UpdateField(ctx context.Context, modelID string, fiel
 	}
 
 	if err := r.ModelDesignService.UpdateFieldSync(ctx, cmd); err != nil {
-		logfacade.GetLogger(ctx).Error(ctx, "failed to update field", logfacade.Err(err), logfacade.Stack(err))
+		logfacade.GetLogger(ctx).Errorf(ctx, err, "failed to update field")
 		return &generated.UpdateFieldPayload{Error: errorAdapter.ConvertToUpdateFieldError(err)}, nil
 	}
 
@@ -136,7 +136,7 @@ func (r *mutationResolver) RemoveField(ctx context.Context, modelID string, fiel
 	}
 
 	if err := r.ModelDesignService.RemoveFieldSync(ctx, cmd); err != nil {
-		logfacade.GetLogger(ctx).Error(ctx, "failed to remove field", logfacade.Err(err), logfacade.Stack(err))
+		logfacade.GetLogger(ctx).Errorf(ctx, err, "failed to remove field")
 		return &generated.RemoveFieldPayload{Error: errorAdapter.ConvertToRemoveFieldError(err)}, nil
 	}
 

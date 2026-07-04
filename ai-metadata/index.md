@@ -31,7 +31,7 @@ ai-metadata/
 │   │   ├── README.md
 │   │   ├── architecture.md
 │   │   ├── gateway-architecture.md
-│   │   ├── developer-enduser-system.md
+│   │   ├── user-vs-end-user.md
 │   │   ├── comments.md
 │   │   ├── context-handling.md
 │   │   ├── contract-sync.md
@@ -106,7 +106,7 @@ ai-metadata/
 | [backend/development/README.md](./backend/development/README.md) | 开发规范总览 & AI 使用指南 |
 | [backend/development/architecture.md](./backend/development/architecture.md) | DDD 分层架构、依赖规则、目录映射 |
 | [backend/development/gateway-architecture.md](./backend/development/gateway-architecture.md) | ⭐ Gateway 架构、认证代理链路与运行配置 |
-| [backend/development/developer-enduser-system.md](./backend/development/developer-enduser-system.md) | ⭐ Developer / EndUser 双体系（认证、路由、边界） |
+| [backend/development/user-vs-end-user.md](./backend/development/user-vs-end-user.md) | ⭐ 用户身份体系全览（Developer/EndUser 双层、RLS end-user 角色、`X-MC-Auth-*`、context 命名） |
 | [backend/development/comments.md](./backend/development/comments.md) | 代码注释规范 |
 | [backend/development/context-handling.md](./backend/development/context-handling.md) | Context 传递与使用规范 |
 | [backend/development/contract-sync.md](./backend/development/contract-sync.md) | GraphQL Schema 规范与代码生成工作流 |

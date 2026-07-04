@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"modelcraft/pkg/httpheader"
 	"net/http"
 	"regexp"
 	"strings"
@@ -51,7 +52,7 @@ func ChiGraphQLActionMiddleware() func(http.Handler) http.Handler {
 // validateGraphQLAction performs all X-Action validation and body restoration.
 // Returns (errorCode, errorMessage) on failure, ("", "") on success.
 func validateGraphQLAction(r *http.Request) (string, string) {
-	xAction := r.Header.Get("X-Action")
+	xAction := r.Header.Get(httpheader.XAction)
 	if xAction == "" {
 		return errCodeActionRequired, "X-Action header is required"
 	}

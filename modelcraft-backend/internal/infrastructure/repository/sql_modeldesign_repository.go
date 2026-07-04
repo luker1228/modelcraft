@@ -50,6 +50,7 @@ func ModelToDomain(row dbgen.Model) *modeldesign.DataModel {
 			SyncError:           row.SyncError.String,
 			CreatedAt:           createdAt,
 			CreatedVia:          modeldesign.ModelCreationSource(row.CreatedVia),
+			IsReadOnly:          row.IsReadOnly,
 			UpdatedAt:           updatedAt,
 		},
 	}
@@ -76,6 +77,7 @@ func ModelToCreateParams(m *modeldesign.DataModel, orgName string) dbgen.CreateM
 		Status:           sql.NullString{String: m.Status, Valid: m.Status != ""},
 		GroupID:          sqlerr.PtrToNullStr(m.GroupID),
 		CreatedVia:       dbgen.ModelsCreatedVia(createdVia),
+		IsReadOnly:       m.IsReadOnly,
 		DeploymentStatus: sql.NullString{String: string(m.DeploymentStatus), Valid: string(m.DeploymentStatus) != ""},
 		LastSyncAt:       sqlerr.PtrToNullTime(m.LastSyncAt),
 		SyncError:        sql.NullString{String: m.SyncError, Valid: m.SyncError != ""},
@@ -168,6 +170,7 @@ func FieldDefinitionToDomain(row dbgen.FieldDefinition) (*modeldesign.FieldDefin
 		Metadata:      metadata,
 		BelongsToFKID: sqlerr.NullStrToPtr(row.BelongsToFkID),
 		RelateFKID:    sqlerr.NullStrToPtr(row.RelateFkID),
+		StorageHint:   sqlerr.NullStrToPtr(row.StorageHint),
 		CreatedAt:     createdAt,
 		UpdatedAt:     updatedAt,
 	}, nil
@@ -212,6 +215,7 @@ func FieldDefinitionToCreateParams(
 		Metadata:      ptrJSON(metadataJSON),
 		RelateFkID:    sqlerr.PtrToNullStr(fd.RelateFKID),
 		BelongsToFkID: sqlerr.PtrToNullStr(fd.BelongsToFKID),
+		StorageHint:   sqlerr.PtrToNullStr(fd.StorageHint),
 	}, nil
 }
 
@@ -239,6 +243,7 @@ func FieldDefinitionToUpdateParams(fd *modeldesign.FieldDefinition) (dbgen.Updat
 		Validation:   ptrJSON(validationJSON),
 		DisplayOrder: fd.DisplayOrder,
 		Metadata:     ptrJSON(metadataJSON),
+		StorageHint:  sqlerr.PtrToNullStr(fd.StorageHint),
 		ModelID:      fd.ModelID,
 		Name:         fd.Name,
 	}, nil
@@ -453,7 +458,8 @@ func (r *SqlModelDesignRepository) Query(
 	return models, int(total), nil
 }
 
-// ListDatabaseCatalog returns distinct database names for a project with pagination.
+// ListDatabaseCatalog returns registered (onboarded) database names for a project with pagination.
+// Queries the model_database table (已接管的数据库注册表), not the models table.
 func (r *SqlModelDesignRepository) ListDatabaseCatalog(
 	ctx context.Context,
 	orgName, projectSlug, search string,
@@ -470,7 +476,7 @@ func (r *SqlModelDesignRepository) ListDatabaseCatalog(
 	offset = int32((page - 1) * pageSize)
 
 	searchFilter, searchArg := nullableTrickArgs(search)
-	rows, err := r.q.ListModelDatabases(ctx, dbgen.ListModelDatabasesParams{
+	rows, err := r.q.ListModelDatabaseCatalog(ctx, dbgen.ListModelDatabaseCatalogParams{
 		OrgName:      orgName,
 		ProjectSlug:  projectSlug,
 		SearchFilter: searchFilter,
@@ -482,7 +488,7 @@ func (r *SqlModelDesignRepository) ListDatabaseCatalog(
 		return nil, 0, err
 	}
 
-	total, err := r.q.CountModelDatabases(ctx, dbgen.CountModelDatabasesParams{
+	total, err := r.q.CountModelDatabaseCatalog(ctx, dbgen.CountModelDatabaseCatalogParams{
 		OrgName:      orgName,
 		ProjectSlug:  projectSlug,
 		SearchFilter: searchFilter,

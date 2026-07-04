@@ -28,6 +28,8 @@ const (
 	FieldCreatedObj = "createdObj"
 	// FieldDeletedObj 删除的对象结果字段名
 	FieldDeletedObj = "deletedObj"
+	// FieldError 错误结果字段名
+	FieldError = "error"
 	// FieldCount 受影响的记录数结果字段名
 	FieldCount = "count"
 	// FieldIdList 返回的ID列表结果字段名
@@ -158,4 +160,14 @@ const (
 const (
 	// MaxCreateManyBatchSize createMany操作的最大批量大小
 	MaxCreateManyBatchSize = 1000
+	// MaxFindManyLimit findMany查询take参数的上限。
+	//
+	// take=0 是一个成熟且有用的设计：LIMIT 0 的意义不是"查数据"，
+	// 而是"问结构 / 验查询 / 测接口 / 省资源"——
+	//   - 问结构：让数据库只返回字段元信息，不搬运任何行数据；
+	//   - 验查询：验证 where / orderBy 语法是否合法、RLS 策略是否生效；
+	//   - 测接口：前端联调时探测接口可用性与返回 shape；
+	//   - 省资源：对大表做"零成本"探测，避免全表扫描风险。
+	// 因此 take=0（显式空集）被允许，而 take > MaxFindManyLimit 才拒绝。
+	MaxFindManyLimit = 1000
 )

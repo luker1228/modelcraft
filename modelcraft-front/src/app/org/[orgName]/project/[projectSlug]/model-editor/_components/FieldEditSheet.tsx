@@ -11,7 +11,7 @@ import {
 import type { ModelEditorState } from '../_hooks'
 import type { FieldOperations } from '../_hooks'
 import {
-  CreateEnumFieldPage,
+  // CreateEnumFieldPage, // 创建 ENUM 字段已禁用
   EditFieldImmutablePage,
 } from './field-pages'
 
@@ -47,6 +47,8 @@ export function FieldEditSheet({ state, fieldOps, orgName, projectSlug }: FieldE
           <SheetDescription className="text-sm">{pageMeta.description}</SheetDescription>
         </SheetHeader>
 
+        {/* 创建 ENUM 字段已禁用：系统不再支持直接创建字段 */}
+        {/*
         {fieldOps.fieldPageMode === 'create-enum' && (
           <CreateEnumFieldPage
             enumOptions={fieldOps.enumOptions}
@@ -58,6 +60,7 @@ export function FieldEditSheet({ state, fieldOps, orgName, projectSlug }: FieldE
             projectSlug={projectSlug}
           />
         )}
+        */}
 
         {fieldOps.fieldPageMode === 'edit' && state.editingField && (
           <EditFieldImmutablePage

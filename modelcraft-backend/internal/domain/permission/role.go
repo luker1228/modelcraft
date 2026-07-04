@@ -112,7 +112,7 @@ func (r *Role) validateSystemRole() error {
 	if !IsSystemRoleName(r.Name) {
 		return bizerrors.NewError(
 			bizerrors.ParamInvalid,
-		"system role name must be one of: owner, admin, editor, viewer, guest",
+			"system role name must be one of: owner, admin, editor, viewer, guest",
 		)
 	}
 	return nil

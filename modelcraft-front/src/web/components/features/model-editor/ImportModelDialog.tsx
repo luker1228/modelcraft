@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useParams } from 'next/navigation'
-import { useQuery, useMutation, ApolloClient } from '@apollo/client'
+import { useQuery } from '@apollo/client'
 import { ChevronLeft, ChevronRight, Loader2, Search, Table2, X } from 'lucide-react'
 import {
   Sheet,
@@ -16,7 +15,8 @@ import { Input } from '@web/components/ui/input'
 import { Button } from '@web/components/ui/button'
 import { toast } from 'sonner'
 import { LIST_TABLES } from '@/api-client/project'
-import { IMPORT_MODEL } from '@/api-client/model'
+import { useModelSyncJob } from '@web/hooks/model/use-sync-models-from-db'
+import { useStartModelSync } from '@web/hooks/model/use-model-sync'
 import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 
 const PAGE_SIZE = 20
@@ -26,6 +26,7 @@ interface ImportModelDialogProps {
   onOpenChange: (open: boolean) => void
   projectSlug: string
   databaseName: string
+  databaseId: string | null
   onSuccess: () => void
 }
 
@@ -40,26 +41,21 @@ interface ListTablesQueryData {
   } | null
 }
 
-interface ImportModelMutationData {
-  importModel?: boolean | null
-}
-
 export function ImportModelDialog({
   open,
   onOpenChange,
   projectSlug,
   databaseName,
+  databaseId,
   onSuccess,
 }: ImportModelDialogProps) {
-  const params = useParams()
-  const orgName = params?.orgName as string
+  // listTables lives on the project endpoint: /graphql/org/{orgName}/project/{projectSlug}/
+  const projectClient = useProjectScopedClient(projectSlug)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTable, setSelectedTable] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-
-  // listTables and importModel live on the project endpoint: /graphql/org/{orgName}/project/{projectSlug}/
-  const projectClient = useProjectScopedClient(projectSlug) as ApolloClient<object>
+  const [jobId, setJobId] = useState<string | null>(null)
 
   const offset = (currentPage - 1) * PAGE_SIZE
 
@@ -77,18 +73,36 @@ export function ImportModelDialog({
     fetchPolicy: 'network-only',
   })
 
-  const [importModel, { loading: importing }] = useMutation<ImportModelMutationData>(
-    IMPORT_MODEL,
-    { client: projectClient }
-  )
+  const { startSync, loading: syncing } = useStartModelSync(projectSlug)
+  const { data: jobData, loading: jobLoading } = useModelSyncJob(jobId, projectSlug)
+  const job = jobData?.modelSyncJobs?.[0]
 
   useEffect(() => {
     if (!open) {
       setSearchQuery('')
       setSelectedTable(null)
       setCurrentPage(1)
+      setJobId(null)
     }
   }, [open])
+
+  // Watch async job status
+  useEffect(() => {
+    if (!job) return
+    const status = job.status
+    if (status === 'SUCCEEDED') {
+      toast.success('模型导入成功')
+      setJobId(null)
+      onSuccess()
+      onOpenChange(false)
+    } else if (status === 'FAILED') {
+      toast.error('导入失败，请重试')
+      setJobId(null)
+    }
+  }, [job, onSuccess, onOpenChange])
+
+  const isJobRunning = job?.status === 'PENDING' || job?.status === 'RUNNING'
+  const isImporting = syncing || (!!jobId && (jobLoading || isJobRunning))
 
   useEffect(() => {
     setCurrentPage(1)
@@ -109,28 +123,20 @@ export function ImportModelDialog({
   }, [tables, searchQuery])
 
   const handleImport = async () => {
-    if (!selectedTable) return
+    if (!selectedTable || !databaseId) return
 
     try {
-      const result = await importModel({
-        variables: {
-          input: {
-            databaseName,
-            tableName: selectedTable,
-          },
-        },
-      })
-
-      if (result.data?.importModel) {
-        toast.success('模型导入成功')
-        onSuccess()
-        onOpenChange(false)
+      const result = await startSync([{
+        databaseId,
+        tableNames: [selectedTable],
+      }])
+      if (result && result.jobs.length > 0) {
+        setJobId(result.jobs[0].jobId)
       } else {
         toast.error('导入失败，请重试')
       }
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : '导入失败，请重试'
+      const message = error instanceof Error ? error.message : '导入失败，请重试'
       toast.error(message)
     }
   }
@@ -240,7 +246,7 @@ export function ImportModelDialog({
             variant="outline"
             size="sm"
             onClick={() => onOpenChange(false)}
-            disabled={importing}
+            disabled={isImporting}
           >
             取消
           </Button>
@@ -248,10 +254,10 @@ export function ImportModelDialog({
             size="sm"
             className="border-0 bg-[#2563eb] text-white transition-colors duration-200 hover:bg-[#1d4ed8]"
             onClick={handleImport}
-            disabled={!selectedTable || importing}
+            disabled={!selectedTable || isImporting || !databaseId}
           >
-            {importing && <Loader2 className="mr-1.5 size-3.5 animate-spin" strokeWidth={1.5} />}
-            {importing ? '导入中...' : '导入'}
+            {isImporting && <Loader2 className="mr-1.5 size-3.5 animate-spin" strokeWidth={1.5} />}
+            {isImporting ? '导入中...' : '导入'}
           </Button>
         </SheetFooter>
       </SheetContent>

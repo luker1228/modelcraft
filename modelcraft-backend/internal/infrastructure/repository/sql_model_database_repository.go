@@ -24,14 +24,15 @@ func NewSqlModelDatabaseRepository(q dbgen.Querier) modeldatabase.ModelDatabaseR
 // Create persists a new model database registration.
 func (r *SqlModelDatabaseRepository) Create(ctx context.Context, db *modeldatabase.ModelDatabase) error {
 	if err := r.q.CreateModelDatabase(ctx, dbgen.CreateModelDatabaseParams{
-		ID:          db.ID,
-		OrgName:     db.OrgName,
-		ProjectSlug: db.ProjectSlug,
-		ClusterID:   db.ClusterID,
-		Name:        db.Name,
-		Title:       db.Title,
-		Description: sql.NullString{String: db.Description, Valid: db.Description != ""},
-		Mode:        dbgen.ModelDatabaseMode(db.Mode),
+		ID:              db.ID,
+		OrgName:         db.OrgName,
+		ProjectSlug:     db.ProjectSlug,
+		ClusterID:       db.ClusterID,
+		Name:            db.Name,
+		Title:           db.Title,
+		Description:     sql.NullString{String: db.Description, Valid: db.Description != ""},
+		Mode:            dbgen.ModelDatabaseMode(db.Mode),
+		LatestSyncJobID: nullStringFromPtr(db.LatestSyncJobID),
 	}); err != nil {
 		return err
 	}
@@ -107,12 +108,25 @@ func (r *SqlModelDatabaseRepository) Update(
 	ctx context.Context, orgName, projectSlug string, db *modeldatabase.ModelDatabase,
 ) error {
 	return r.q.UpdateModelDatabase(ctx, dbgen.UpdateModelDatabaseParams{
-		Title:       db.Title,
-		Description: sql.NullString{String: db.Description, Valid: db.Description != ""},
-		Mode:        dbgen.ModelDatabaseMode(db.Mode),
-		ID:          db.ID,
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
+		Title:           db.Title,
+		Description:     sql.NullString{String: db.Description, Valid: db.Description != ""},
+		Mode:            dbgen.ModelDatabaseMode(db.Mode),
+		LatestSyncJobID: nullStringFromPtr(db.LatestSyncJobID),
+		ID:              db.ID,
+		OrgName:         orgName,
+		ProjectSlug:     projectSlug,
+	})
+}
+
+// UpdateLatestSyncJobID updates only the latest_sync_job_id on a model database record.
+func (r *SqlModelDatabaseRepository) UpdateLatestSyncJobID(
+	ctx context.Context, orgName, projectSlug, databaseID, jobID string,
+) error {
+	return r.q.UpdateModelDatabaseLatestSyncJob(ctx, dbgen.UpdateModelDatabaseLatestSyncJobParams{
+		LatestSyncJobID: sql.NullString{String: jobID, Valid: true},
+		ID:              databaseID,
+		OrgName:         orgName,
+		ProjectSlug:     projectSlug,
 	})
 }
 
@@ -135,17 +149,34 @@ func (r *SqlModelDatabaseRepository) Delete(
 // modelDatabaseToDomain converts a dbgen.ModelDatabase row to a domain ModelDatabase entity.
 func modelDatabaseToDomain(row dbgen.ModelDatabase) *modeldatabase.ModelDatabase {
 	return &modeldatabase.ModelDatabase{
-		ID:          row.ID,
-		OrgName:     row.OrgName,
-		ProjectSlug: row.ProjectSlug,
-		ClusterID:   row.ClusterID,
-		Name:        row.Name,
-		Title:       row.Title,
-		Description: row.Description.String,
-		Mode:        modeldatabase.DatabaseMode(row.Mode),
-		CreatedAt:   row.CreatedAt,
-		UpdatedAt:   row.UpdatedAt,
+		ID:              row.ID,
+		OrgName:         row.OrgName,
+		ProjectSlug:     row.ProjectSlug,
+		ClusterID:       row.ClusterID,
+		Name:            row.Name,
+		Title:           row.Title,
+		Description:     row.Description.String,
+		Mode:            modeldatabase.DatabaseMode(row.Mode),
+		LatestSyncJobID: nullStringToPtr(row.LatestSyncJobID),
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
 	}
+}
+
+// nullStringFromPtr converts *string to sql.NullString.
+func nullStringFromPtr(s *string) sql.NullString {
+	if s == nil {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: *s, Valid: true}
+}
+
+// nullStringToPtr converts sql.NullString to *string.
+func nullStringToPtr(ns sql.NullString) *string {
+	if !ns.Valid {
+		return nil
+	}
+	return &ns.String
 }
 
 // compile-time interface check

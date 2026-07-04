@@ -6,46 +6,12 @@ package projectgraphql
 
 import (
 	"context"
-	appRLS "modelcraft/internal/app/rls"
+	"encoding/json"
+	"fmt"
 	domainRLS "modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/graphql/project/generated"
-	"modelcraft/pkg/bizerrors"
+	"modelcraft/internal/interfaces/http/middleware"
 )
-
-// SetModelRLSPolicy is the resolver for the setModelRLSPolicy field.
-func (r *mutationResolver) SetModelRLSPolicy(ctx context.Context, input generated.SetModelRLSPolicyInput) (*generated.SetModelRLSPolicyPayload, error) {
-	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert GraphQL input to AppService DTO
-	appInput := appRLS.SetModelRLSPolicyInput{
-		ModelID:         input.ModelID,
-		SelectPredicate: domainRLS.JsonExpr(input.SelectPredicate),
-		InsertCheck:     domainRLS.JsonExpr(input.InsertCheck),
-		UpdatePredicate: domainRLS.JsonExpr(input.UpdatePredicate),
-		UpdateCheck:     domainRLS.JsonExpr(input.UpdateCheck),
-		DeletePredicate: domainRLS.JsonExpr(input.DeletePredicate),
-	}
-
-	// Call AppService
-	policy, err := r.RLSPolicyAppService.SetPolicy(ctx, orgName, projectSlug, appInput)
-	if err != nil {
-		return &generated.SetModelRLSPolicyPayload{
-			Policy: nil,
-			Error:  convertRLSErrorToGraphQLType(ctx, err),
-		}, nil
-	}
-
-	// Convert domain model to GraphQL type
-	graphqlPolicy := convertPolicyToGraphQL(policy)
-
-	return &generated.SetModelRLSPolicyPayload{
-		Policy: graphqlPolicy,
-		Error:  nil,
-	}, nil
-}
 
 // ValidateRLSExpr is the resolver for the validateRLSExpr field.
 func (r *mutationResolver) ValidateRLSExpr(ctx context.Context, input generated.ValidateRLSExprInput) (*generated.ValidateRLSExprPayload, error) {
@@ -54,18 +20,38 @@ func (r *mutationResolver) ValidateRLSExpr(ctx context.Context, input generated.
 		return nil, err
 	}
 
-	// Convert exprType
 	exprType := convertGraphQLExprTypeToDomain(input.ExprType)
 
-	// Call AppService
-	validationErrors := r.RLSPolicyAppService.ValidateExpr(
-		ctx, orgName, projectSlug, input.ModelID,
-		domainRLS.ExprType(exprType), domainRLS.JsonExpr(input.Expression),
+	var sampleInput map[string]any
+	if input.SampleInput != nil && *input.SampleInput != "" {
+		if err := json.Unmarshal([]byte(*input.SampleInput), &sampleInput); err != nil {
+			return &generated.ValidateRLSExprPayload{
+				Result: &generated.ValidationResult{
+					Valid: false,
+					Errors: []*generated.ValidationError{{
+						Path:    "sampleInput",
+						Message: err.Error(),
+						Code:    "INVALID_SAMPLE_INPUT",
+					}},
+				},
+			}, nil
+		}
+	}
+
+	dryRunResult := r.RLSExprValidateService.ValidateAndDryRun(
+		ctx,
+		orgName,
+		projectSlug,
+		input.ModelID,
+		domainRLS.ExprType(exprType),
+		input.Expression,
+		sampleInput,
+		middleware.GetUserContext(ctx),
 	)
 
-	// Convert validation errors
-	graphqlErrors := make([]*generated.ValidationError, 0, len(validationErrors))
-	for _, e := range validationErrors {
+	// Convert errors
+	graphqlErrors := make([]*generated.ValidationError, 0, len(dryRunResult.Errors))
+	for _, e := range dryRunResult.Errors {
 		graphqlErrors = append(graphqlErrors, &generated.ValidationError{
 			Path:    e.Path,
 			Message: e.Message,
@@ -73,94 +59,26 @@ func (r *mutationResolver) ValidateRLSExpr(ctx context.Context, input generated.
 		})
 	}
 
+	var dryRun *generated.RLSExprDryRun
+	if dryRunResult.Valid {
+		dryRun = &generated.RLSExprDryRun{
+			SQL:    stringPtrIfNotEmpty(dryRunResult.SQL),
+			Result: dryRunResult.Result,
+		}
+		if len(dryRunResult.Params) > 0 {
+			params := make([]string, 0, len(dryRunResult.Params))
+			for _, param := range dryRunResult.Params {
+				params = append(params, fmt.Sprint(param))
+			}
+			dryRun.Params = params
+		}
+	}
+
 	return &generated.ValidateRLSExprPayload{
 		Result: &generated.ValidationResult{
-			Valid:  len(validationErrors) == 0,
+			Valid:  len(graphqlErrors) == 0,
 			Errors: graphqlErrors,
 		},
+		DryRun: dryRun,
 	}, nil
-}
-
-// SetProjectAuthSchema is the resolver for the setProjectAuthSchema field.
-func (r *mutationResolver) SetProjectAuthSchema(ctx context.Context, input generated.SetProjectAuthSchemaInput) (*generated.SetProjectAuthSchemaPayload, error) {
-	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	variables := make([]domainRLS.AuthVariable, 0, len(input.Variables))
-	for _, variable := range input.Variables {
-		if variable == nil {
-			continue
-		}
-		variables = append(variables, domainRLS.AuthVariable{
-			Name:   variable.Name,
-			Source: variable.Source,
-			Type:   toDomainAuthVarType(variable.Type),
-		})
-	}
-
-	authSchema, err := r.AuthSchemaAppService.SetAuthSchema(ctx, orgName, appRLS.SetProjectAuthSchemaInput{
-		ProjectSlug: projectSlug,
-		Variables:   variables,
-	})
-	if err != nil {
-		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-			switch bizErr.Info().GetCode() {
-			case bizerrors.ProjectNotFound.GetCode():
-				return &generated.SetProjectAuthSchemaPayload{
-					AuthSchema: nil,
-					Error:      &generated.ResourceNotFound{Message: bizErr.Error(), ResourceType: generated.ResourceTypeProject},
-				}, nil
-			case bizerrors.ParamInvalid.GetCode():
-				return &generated.SetProjectAuthSchemaPayload{
-					AuthSchema: nil,
-					Error: &generated.InvalidInput{
-						Message: bizErr.Error(),
-					},
-				}, nil
-			}
-		}
-		return nil, err
-	}
-
-	return &generated.SetProjectAuthSchemaPayload{
-		AuthSchema: toGraphQLProjectAuthSchema(authSchema),
-		Error:      nil,
-	}, nil
-}
-
-// ModelRLSPolicy is the resolver for the modelRLSPolicy field.
-func (r *queryResolver) ModelRLSPolicy(ctx context.Context, modelID string) (*generated.ModelRLSPolicy, error) {
-	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Call AppService
-	policy, err := r.RLSPolicyAppService.GetPolicy(ctx, orgName, projectSlug, modelID)
-	if err != nil {
-		return nil, err
-	}
-
-	if policy == nil {
-		return nil, nil //nolint:nilnil // nil policy with nil error means no policy exists
-	}
-
-	return convertPolicyToGraphQL(policy), nil
-}
-
-// ProjectAuthSchema is the resolver for the projectAuthSchema field.
-func (r *queryResolver) ProjectAuthSchema(ctx context.Context) (*generated.ProjectAuthSchema, error) {
-	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	authSchema, err := r.AuthSchemaAppService.GetAuthSchema(ctx, orgName, projectSlug)
-	if err != nil {
-		return nil, err
-	}
-
-	return toGraphQLProjectAuthSchema(authSchema), nil
 }

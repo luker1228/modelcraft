@@ -2,105 +2,143 @@ package modelruntime
 
 import (
 	"context"
-	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/modelruntime"
-	"modelcraft/internal/domain/project"
-	"modelcraft/internal/domain/rbac"
+	"modelcraft/internal/domain/rls"
+	"strings"
 
-	rbacapp "modelcraft/internal/app/rbac"
+	apprls "modelcraft/internal/app/rls"
 )
 
-// endUserPermissionServiceImpl 实现 modelruntime.EndUserPermissionService。
-// 依赖 rbacapp.EndUserAuthzService，支持 CUSTOM 和 PRESET 两种 grant_type。
-type endUserPermissionServiceImpl struct {
-	authzSvc *rbacapp.EndUserAuthzService
-	rbacRepo rbac.EndUserPermissionRepository
+// PolicyPermissionResolver converts V2 RLS policies into a lightweight action summary.
+type PolicyPermissionResolver struct {
+	policyRepo rls.PolicyRepositoryV2
 }
 
-// NewEndUserPermissionService 创建 EndUserPermissionService 实例。
-// modelRepo 可选：传入后支持 PRESET=READ_WRITE_OWNER 等需要 owner 字段的预设展开；
-// 传 nil 时 PRESET owner-scoped 类型会被跳过（不影响 READ_ALL / READ_WRITE_ALL）。
-func NewEndUserPermissionService(
-	rbacRepo rbac.EndUserPermissionRepository,
-	modelRepo modeldesign.ModelRepository,
-) modelruntime.EndUserPermissionService {
-	svc := rbacapp.NewEndUserAuthzService(rbacRepo, modelRepo)
-	return &endUserPermissionServiceImpl{authzSvc: svc, rbacRepo: rbacRepo}
+func NewPolicyPermissionResolver(policyRepo rls.PolicyRepositoryV2) *PolicyPermissionResolver {
+	return &PolicyPermissionResolver{policyRepo: policyRepo}
 }
 
-// Resolve 查询 end-user 在指定 model 上的有效权限，返回权限快照。
-// endUserID 为空时（tenant admin）直接返回 nil, nil。
-// 以下情况返回全量通配权限，无需绑定 bundle：
-//  1. user_orgs.is_admin=true：org 级别管理员，对 org 下所有 project/model 拥有全量权限。
-//  2. is_protected=true && name="admin" 的 project 角色：project 级别通配角色。
-func (s *endUserPermissionServiceImpl) Resolve(
-	ctx context.Context, orgName, projectSlug, endUserID, modelID string,
+// ResolveFromV2Policy loads V2 policies for a model and returns ALL matching policies
+// (across all actions). The resolver-level CheckAction calls filter by action at check time.
+func (r *PolicyPermissionResolver) ResolveFromV2Policy(
+	ctx context.Context, orgName, projectSlug, modelID string, endUserRoles []string,
 ) (*modelruntime.ResolvedModelPermissions, error) {
-	if endUserID == "" {
-		return nil, nil //nolint:nilnil // nil ResolvedModelPermissions is the tenant-admin sentinel (skip all checks)
-	}
-
-	// Check org-level admin first (user_orgs.is_admin=true) — broadest privilege.
-	orgAdmin, err := s.rbacRepo.IsOrgAdmin(ctx, orgName, endUserID)
-	if err != nil {
-		return nil, err
-	}
-	if orgAdmin {
-		return adminWildcardPermissions(), nil
-	}
-
-	isAdmin, err := s.rbacRepo.HasProtectedAdminRole(ctx, orgName, projectSlug, endUserID)
-	if err != nil {
-		return nil, err
-	}
-	if isAdmin {
-		return adminWildcardPermissions(), nil
-	}
-
-	eps, err := s.authzSvc.GetEffectivePermissions(ctx, rbacapp.GetEffectivePermissionsQuery{
-		ProjectScope: project.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
-		UserID:       endUserID,
-	})
+	policies, err := r.policyRepo.ListByModel(ctx, orgName, projectSlug, modelID)
 	if err != nil {
 		return nil, err
 	}
 
-	return toResolvedModelPermissions(eps, modelID), nil
+	roleSet := make(map[string]struct{}, len(endUserRoles)+1)
+	for _, role := range endUserRoles {
+		roleSet[role] = struct{}{}
+	}
+	roleSet["*"] = struct{}{} // wildcard: matches all end-users regardless of role
+
+	resolved := make([]modelruntime.ResolvedPolicy, 0, len(policies))
+	for _, p := range policies {
+		if _, ok := roleSet[p.Role]; !ok {
+			continue
+		}
+		mapped := mapAction(p.Action)
+		if mapped == "" {
+			continue
+		}
+		resolved = append(resolved, modelruntime.ResolvedPolicy{
+			Action:        mapped,
+			UsingExpr:     string(p.UsingExpr),
+			WithCheckExpr: string(p.WithCheckExpr),
+		})
+	}
+	return &modelruntime.ResolvedModelPermissions{Policies: resolved}, nil
 }
 
-// toResolvedModelPermissions 将 EffectivePermissionSet 映射为 ResolvedModelPermissions。
-// rowScope 映射规则：
-//   - RowScopeAll  → IsSelf=false（不注入 WHERE）
-//   - RowScopeSelf → IsSelf=true（注入 WHERE <EndUserRef> = $endUserID）
-func toResolvedModelPermissions(
-	eps rbac.EffectivePermissionSet, modelID string,
-) *modelruntime.ResolvedModelPermissions {
-	return &modelruntime.ResolvedModelPermissions{
-		Select: toActionPermission(eps.GetPermission(modelID, rbac.ActionSelect)),
-		Insert: toActionPermission(eps.GetPermission(modelID, rbac.ActionInsert)),
-		Update: toActionPermission(eps.GetPermission(modelID, rbac.ActionUpdate)),
-		Delete: toActionPermission(eps.GetPermission(modelID, rbac.ActionDelete)),
+func mapAction(a rls.Action) modelruntime.Action {
+	switch a {
+	case rls.ActionRead:
+		return modelruntime.ActionSelect
+	case rls.ActionCreate:
+		return modelruntime.ActionInsert
+	case rls.ActionUpdate:
+		return modelruntime.ActionUpdate
+	case rls.ActionDelete:
+		return modelruntime.ActionDelete
+	default:
+		return ""
 	}
 }
 
-func toActionPermission(ep *rbac.EffectivePermission) modelruntime.ActionPermission {
-	if ep == nil {
-		return modelruntime.ActionPermission{Allowed: false}
-	}
-	return modelruntime.ActionPermission{
-		Allowed: true,
-		IsSelf:  ep.RowScope == rbac.RowScopeSelf,
-	}
+// CompileUsingExpr compiles a single USING expression (CEL or JSON) to parameterised SQL.
+// Implements the PolicyResolver interface.
+func (r *PolicyPermissionResolver) CompileUsingExpr(
+	ctx context.Context, usingExpr string, userCtx *rls.UserContext,
+) (*rls.CompiledPolicy, error) {
+	return apprls.NewPolicyExpressionSQLCompiler().CompileUsing(ctx, usingExpr, userCtx)
 }
 
-// adminWildcardPermissions 返回通配 admin 角色的全量权限快照。
-// is_protected=true && name="admin" 的角色无需绑定 bundle，对所有 model 拥有全部操作权限。
-func adminWildcardPermissions() *modelruntime.ResolvedModelPermissions {
-	all := modelruntime.ActionPermission{Allowed: true, IsSelf: false}
-	return &modelruntime.ResolvedModelPermissions{
-		Select: all,
-		Insert: all,
-		Update: all,
-		Delete: all,
+// ResolveUsing resolves USING policies for a specific action from V2 policies.
+// It loads all V2 policies for the model, filters by the given action and user roles,
+// compiles each USING expression, and OR-merges the results.
+// Implements the PolicyResolver interface.
+func (r *PolicyPermissionResolver) ResolveUsing(
+	ctx context.Context, orgName, projectSlug, modelID string,
+	action rls.Action, userCtx *rls.UserContext,
+) (string, []interface{}, error) {
+	var roles []string
+	if userCtx != nil {
+		roles = userCtx.Roles
 	}
+
+	perms, err := r.ResolveFromV2Policy(ctx, orgName, projectSlug, modelID, roles)
+	if err != nil {
+		return "", nil, err
+	}
+
+	mappedAction := mapAction(action)
+	if mappedAction == "" {
+		return "", nil, nil
+	}
+
+	orClauses := make([]string, 0, len(perms.Policies))
+	var allParams []interface{}
+	for _, pol := range perms.Policies {
+		if pol.Action != mappedAction || pol.UsingExpr == "" {
+			continue
+		}
+		compiled, err := r.CompileUsingExpr(ctx, pol.UsingExpr, userCtx)
+		if err != nil {
+			return "", nil, err
+		}
+		orClauses = append(orClauses, "("+compiled.SQL+")")
+		allParams = append(allParams, compiled.Params...)
+	}
+
+	if len(orClauses) == 0 {
+		return "1=1", nil, nil
+	}
+	return strings.Join(orClauses, " OR "), allParams, nil
+}
+
+// GetCheckExpr returns the first CHECK expression for the given action from V2 policies.
+// Implements the PolicyResolver interface.
+func (r *PolicyPermissionResolver) GetCheckExpr(
+	ctx context.Context, orgName, projectSlug, modelID string,
+	action rls.Action, userCtx *rls.UserContext,
+) (string, error) {
+	var roles []string
+	if userCtx != nil {
+		roles = userCtx.Roles
+	}
+
+	perms, err := r.ResolveFromV2Policy(ctx, orgName, projectSlug, modelID, roles)
+	if err != nil {
+		return "", err
+	}
+
+	mappedAction := mapAction(action)
+	for _, pol := range perms.Policies {
+		if pol.Action == mappedAction && pol.WithCheckExpr != "" {
+			return pol.WithCheckExpr, nil
+		}
+	}
+	return "", nil
 }

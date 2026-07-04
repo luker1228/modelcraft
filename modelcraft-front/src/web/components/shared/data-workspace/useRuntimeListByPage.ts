@@ -19,13 +19,51 @@ interface UseRuntimeListByPageOptions {
   runtimeFields: string[] | FieldDefinition[] | (string | FieldDefinition)[]
   runtimeClient: ApolloClient<object> | null
   whereInput?: Record<string, unknown>
-  orderBy?: Record<string, string>[]
+  orderBy?: RuntimeOrderBy
   pageSize?: number
   resetDeps?: ReadonlyArray<unknown>
 }
 
+export type RuntimeSortDirection = 'asc' | 'desc'
+export type RuntimeOrderBy = Record<string, RuntimeSortDirection>[]
+
+export interface RuntimeSort {
+  field: string
+  direction: RuntimeSortDirection
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+export function getDefaultListByPageOrderBy(
+  runtimeFields: string[] | FieldDefinition[] | (string | FieldDefinition)[]
+): RuntimeOrderBy | undefined {
+  const fieldNames = runtimeFields
+    .map((field) => (typeof field === 'string' ? field : field.name))
+    .filter((fieldName) => fieldName.length > 0)
+  const sortField = fieldNames.includes('id') ? 'id' : fieldNames[0]
+  return sortField ? [{ [sortField]: sortField === 'id' ? 'desc' : 'asc' }] : undefined
+}
+
+export function buildListByPageOrderBy(
+  primarySort: RuntimeSort | null | undefined,
+  stableSortEnabled: boolean,
+  sortableFieldNames: readonly string[]
+): RuntimeOrderBy | undefined {
+  const orderBy: RuntimeOrderBy = primarySort
+    ? [{ [primarySort.field]: primarySort.direction }]
+    : []
+
+  if (
+    stableSortEnabled &&
+    sortableFieldNames.includes('id') &&
+    primarySort?.field !== 'id'
+  ) {
+    orderBy.push({ id: 'desc' })
+  }
+
+  return orderBy.length > 0 ? orderBy : undefined
 }
 
 export function useRuntimeListByPage({
@@ -44,6 +82,10 @@ export function useRuntimeListByPage({
     return buildListByPageQuery(modelName, runtimeFields)
   }, [modelName, runtimeFields])
 
+  const effectiveOrderBy = useMemo(() => {
+    return orderBy && orderBy.length > 0 ? orderBy : getDefaultListByPageOrderBy(runtimeFields)
+  }, [orderBy, runtimeFields])
+
   const {
     data: contentData,
     loading: contentLoading,
@@ -51,11 +93,12 @@ export function useRuntimeListByPage({
   } = useQuery<Record<string, unknown>>(listByPageQuery || NOOP_QUERY, {
     client: runtimeClient ?? undefined,
     skip: !listByPageQuery || !runtimeClient,
+    fetchPolicy: 'network-only',
     variables: {
       where: whereInput,
       pageIndex: currentPage,
       pageSize,
-      orderBy,
+      orderBy: effectiveOrderBy,
     },
   })
 

@@ -25,6 +25,7 @@ import {
   DataWorkspacePanel,
   type DataWorkspaceTab,
 } from '@web/components/features/model-editor/DataWorkspacePanel'
+import { buildModelEditorPath } from '@shared/routes/model-editor-path'
   // Onboarding: pendingAction is consumed by ModelSidebar directly via useOnboarding
 
 const DevelopRecordWorkspace = lazy(() => import('@web/components/features/model-editor/model-record-form/DevelopRecordWorkspace'))
@@ -43,10 +44,10 @@ export function ModelEditorView() {
   // If navigated from the databases page, pre-select the target database
   useEffect(() => {
     const dbParam = searchParams.get('db')
-    if (dbParam) {
+    if (dbParam && dbParam !== state.selectedDatabase) {
       state.setSelectedDatabase(dbParam)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchParams, state.selectedDatabase]) // eslint-disable-line react-hooks/exhaustive-deps
   const [schemaRefreshToken, setSchemaRefreshToken] = useState(0)
   const [openedTabs, setOpenedTabs] = useState<DataWorkspaceTab[]>([])
   const handleFieldAdded = useCallback(() => {
@@ -146,8 +147,8 @@ export function ModelEditorView() {
         </DialogContent>
       </Dialog>
 
-      {/* Create Model Sheet */}
-      <CreateModelDialog state={state} crud={crud} />
+      {/* 新建模型已禁用：系统不再支持直接创建模型 */}
+      {/* <CreateModelDialog state={state} crud={crud} /> */}
 
       {/* Edit Model Drawer */}
       <ModelDetailPanel
@@ -169,6 +170,7 @@ export function ModelEditorView() {
         onOpenChange={state.setImportDialogOpen}
         projectSlug={projectSlug}
         databaseName={state.selectedDatabase}
+        databaseId={crud.databases.find(d => d.name === state.selectedDatabase)?.id ?? null}
         onSuccess={() => crud.refetchModels()}
       />
 
@@ -237,7 +239,12 @@ export function ModelEditorView() {
                           variant="ghost"
                           size="sm"
                           className="h-7 text-xs text-muted-foreground hover:text-foreground"
-                          onClick={() => router.push(`/org/${orgName}/project/${projectSlug}/model-editor`)}
+                          onClick={() =>
+                            router.push(buildModelEditorPath(orgName, projectSlug, {
+                              view: 'schema',
+                              databaseName: state.selectedDatabase || null,
+                            }))
+                          }
                         >
                           <LayoutGrid className="mr-1.5 size-3.5" />
                           查看模型结构

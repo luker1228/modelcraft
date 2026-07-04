@@ -20,10 +20,12 @@ type whoamiResponse struct {
 	OrgName string `json:"orgName"`
 }
 
-// Whoami calls GET /api/cli/end-user/auth/whoami with a PAT token (mc_pat_xxx)
-// and returns the resolved credentials. The PAT is stored as AccessToken.
+// Whoami calls GET /api/tenant/auth/whoami with a PAT token (mc_pat_xxx) and returns
+// the resolved credentials. The PAT is stored as AccessToken.
+// APISIX routes /api/tenant/auth/* to the backend; the backend's
+// HandlePATWhoami validates the token and returns identity.
 func (c AuthClient) Whoami(ctx context.Context, server, pat string) (*config.Credentials, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, joinURL(server, "/api/cli/end-user/auth/whoami"), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, joinURL(server, "/api/tenant/auth/whoami"), nil)
 	if err != nil {
 		return nil, output.NewCLIError("INVALID_ARGUMENT", "Failed to build request.", false, "Verify command arguments and retry.", nil)
 	}

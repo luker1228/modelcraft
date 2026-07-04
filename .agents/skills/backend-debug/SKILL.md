@@ -1,38 +1,46 @@
 ---
 name: backend-debug
 description: >
-  排查和修复 ModelCraft 服务端错误（backend + gateway）。仅在“明确服务端排错”场景触发，必须同时满足：
-  (A) 服务端上下文明确（如：后端 / backend / modelcraft-backend / gateway / API / GraphQL resolver / Go 服务）；
-  (B) 排错意图明确（如：报错 / 异常 / requestId / logs / debug / 定位原因 / 修复错误）。
-  典型触发：
-  (1) 用户粘贴了带 errors/requestId 的后端或 gateway 响应/日志；
-  (2) 明确说“后端报错了”“gateway 报错了”“接口返回错误”“帮我定位服务端问题”；
-  (3) 明确要求查看 backend/gateway 日志并定位根因。
-  不触发：
-  - 纯功能开发、重构、代码讲解、部署配置修改、前端问题；
-  - 仅出现“日志”“错误”等泛词但未指向服务端。
-  规则：默认不自动触发；只有在满足 A+B 时才使用本 skill。
+  排查 ModelCraft 服务端问题、查询后端日志（backend + gateway + apisix + agent）。
+  以下任一场景均应触发：
+  (1) 查日志 / 看日志 / 查 requestId / grep 日志 / tail 日志 / 查 server.log / 查 backend 日志；
+  (2) 用户粘贴了带 errors / requestId 的后端或 gateway 响应或日志内容；
+  (3) 明确说"后端报错了""gateway 报错了""接口返回错误""帮我定位服务端问题"；
+  (4) 明确要求查看 backend / gateway / apisix / agent 日志并定位根因；
+  (5) 用户提供 requestId，想知道发生了什么。
+  只要与后端日志或服务端排错有关，就应使用本 skill。
+  不触发：纯功能开发、重构、代码讲解、部署配置修改、前端问题。
 ---
 
 # 服务端问题排查与修复（Backend + Gateway）
 
 目标：**先用日志精准定位根因，再选择合适的验证手段（单测 / 数据库），最后最小化修复**。
 
+硬规则：
+
+- 排查问题必须以**定位根因**为目标，不接受只看到表面报错就直接改代码。
+- 如果现有日志**无法定位根因**，先在最可疑的边界补日志，再重启服务、重放请求。
+- 重放后拿新的 `requestId`，继续按 `apisix -> backend -> agent` 三段链路查，直到根因收敛。
+
 ---
 
-## 0）先识别环境（必须）
+## 0）环境说明
 
-排查前先判断运行环境，后续命令按环境分支执行：
+排查前先判断当前运行模式，后续命令按对应环境执行。
 
-- `dev`：服务在宿主机通过 `just run` 运行，日志通常在项目目录 `logs/` 或终端输出。
-- `docker`：服务在容器里运行，日志在容器文件或 `docker logs`。
+| 环境 | 运行方式 | 日志位置 | 查日志命令 |
+|------|---------|---------|-----------|
+| **docker**（默认） | `docker-compose up` | backend: `/app/logs/server.log`；agent: `/app/logs/agent.log`；apisix: `/usr/local/apisix/logs/access.log` / `/usr/local/apisix/logs/error.log` | `docker exec modelcraft-backend sh -c "grep '<requestId>' /app/logs/server.log"` |
+| **dev**（本地调试） | `just run` | 宿主机 `logs/server.log` | `cd modelcraft-backend && just log-cat <requestId>` |
 
-建议先做一次快速识别：
+快速确认当前状态：
 
 ```bash
-# 是否有容器在跑
-docker ps --format '{{.Names}}'
+docker ps --format '{{.Names}}' | grep modelcraft
 ```
+
+- 如果 `modelcraft-backend` 容器在跑 → **docker 模式**
+- 如果容器不在、但服务能访问 → 可能是 **dev 模式**（`just run`）
 
 ---
 
@@ -54,14 +62,61 @@ docker ps --format '{{.Names}}'
 
 ---
 
-## 第二步：用 requestId 查日志链（优先 grep）
+## 第二步：用 requestId 查日志链（99% 的问题先查 requestId）
+
+默认顺序：
+
+1. 先查 `apisix`，确认请求有没有进网关、状态码是什么
+2. 再查 `modelcraft-backend`，确认有没有转发进 Go 服务
+3. 如果链路经过 `modelcraft-agent`，再查 agent 文件日志
+
+先串链路，再猜代码。不要上来就翻源码。
+
+### docker 模式（默认）
+
+```bash
+# backend — 容器内 grep 文件日志
+docker exec modelcraft-backend sh -c "grep '<requestId>' /app/logs/server.log"
+
+# agent — 容器内 grep 文件日志
+docker exec modelcraft-agent sh -c "grep '<requestId>' /app/logs/agent.log"
+
+# apisix — 容器内 grep access / error 文件日志
+docker exec modelcraft-apisix sh -c "grep '<requestId>' /usr/local/apisix/logs/access.log /usr/local/apisix/logs/error.log"
+```
+
+### dev 模式（本地 `just run` 调试）
 
 ```bash
 cd modelcraft-backend
 just log-cat <requestId>
 ```
 
-这会从 `logs/server.log` 中按 `request_id` 字段精确匹配，过滤出该请求的全部日志行，完整还原请求生命周期。
+这会从 `logs/server.log` 中按 `request_id` 字段精确匹配，过滤出该请求的全部日志行。
+
+### 三段链路推荐命令
+
+```bash
+# 1. 先看 apisix
+docker exec modelcraft-apisix sh -c "grep '<requestId>' /usr/local/apisix/logs/access.log /usr/local/apisix/logs/error.log"
+
+# 2. 再看 backend
+docker exec modelcraft-backend sh -c "grep '<requestId>' /app/logs/server.log"
+
+# 3. 如果请求经过 agent，再看 agent
+docker exec modelcraft-agent sh -c "grep '<requestId>' /app/logs/agent.log"
+```
+
+**错误定位原则：错误发生在最后一个有日志的服务层。**
+
+| apisix | backend | agent | 结论 |
+|--------|---------|-------|------|
+| 有日志 | 无日志  | —     | 错误在 apisix（请求未到达 backend） |
+| 有日志 | 有日志  | 无日志 | 错误在 backend 内部，或该链路未调用 agent |
+| 有日志 | 有日志  | 有日志 | 按时间顺序找第一条 `error` / `warn` |
+| 无日志 | —       | —     | 请求未进入网关（客户端问题 / 网络问题） |
+
+> requestId 已经串联三段链路的所有日志，grep 只需要 requestId 关键字，不需要查附近行（无需 `-A` / `-B`）。
 
 ### 日志格式
 
@@ -84,40 +139,53 @@ just log-cat <requestId>
 - **找最早的 error/panic**——这是根本原因，后续的 error 通常是它的传播
 - **看 `stack` 字段**——只有 Interfaces 层才打 stack，能定位到精确的代码路径
 - **看 SQL 日志**——`[SQLC] query ok` 行带有 `sql` 和 `sql_args` 字段，可以直接拿去数据库重现查询
+- 如果日志只有“失败了”但没有说明**为什么失败**，结论不是“看不出来”，而是**日志不够，需要补日志**
 
-日志检索规范：
+### 如果当前日志不足以定位根因
 
-- **优先使用 `grep`**（含容器内 `grep`），先精确命中 requestId，再扩展上下文。
-- 无 `grep` 再考虑其它工具。
+按下面顺序处理：
 
-按环境查日志：
+1. 判断卡在哪一层：`apisix`、`backend`、`agent`、DB、外部依赖
+2. 在该层的关键边界补日志：入参、分支判断、下游请求、返回状态、错误对象、关键 ID
+3. 重启对应服务
+4. 重放同一个请求
+5. 拿新的 `requestId` 再查三段链路
 
-```bash
-# dev: backend
-cd modelcraft-backend
-grep -n "<requestId>" logs/server.log
+补日志原则：
 
-# dev: gateway
-cd modelcraft-gateway
-grep -n "<requestId>" log/server.log
-
-# docker: backend
-docker exec modelcraft-backend sh -lc "grep -n '<requestId>' /app/logs/server.log"
-
-# docker: gateway
-docker exec modelcraft-gateway sh -lc "grep -n '<requestId>' /app/logs/server.log"
-```
-
-如果 requestId 不在 file log，再查容器标准日志：
-
-```bash
-docker logs modelcraft-backend 2>&1 | grep "<requestId>"
-docker logs modelcraft-gateway 2>&1 | grep "<requestId>"
-```
+- 优先加在**分支点**和**跨服务边界**，不要无脑到处打印
+- 日志要能回答“进没进到这里、拿到了什么参数、为什么走这个分支、下游返回了什么”
+- 补日志是为了缩小范围；一旦根因确认，应转向修复和验证
 
 ---
 
-## 第三步：定位源码
+## 第三步：对准——把证据和判断告诉用户，等确认再继续
+
+查到日志后，**停下来**，向用户报告：
+
+1. **证据**：贴出关键日志行（level、msg、caller、error 字段）
+2. **定位层**：错误发生在哪一层（apisix / backend / agent）
+3. **猜测根因**：你认为是什么问题，以及为什么这样判断
+4. **等用户确认**：明确说"请确认后我再继续"，不要自行推进到修复
+
+示例格式：
+
+> **证据**
+> ```
+> level=ERROR caller=app/modeldesign/field_app.go:87
+> msg="failed to create field"
+> error="CONFLICT.FIELD: field name 'id' already exists"
+> ```
+>
+> **定位**：错误在 backend，apisix 和 agent 均无异常日志。
+>
+> **猜测根因**：字段名 `id` 已存在，触发唯一键冲突。问题在 Application 层的重复校验逻辑或数据库唯一约束。
+>
+> 请确认是否符合你的预期，确认后我再继续定位源码。
+
+---
+
+## 第四步：定位源码
 
 从日志的 `caller` 字段（如 `app/modeldesign/field_app.go:87`）直接定位文件和行号。
 
@@ -231,11 +299,18 @@ just db login .env.autotest
 
 **适用**：问题发生在鉴权、代理转发、请求头注入、跨服务 requestId 传递。
 
+```bash
+docker exec modelcraft-apisix sh -c "grep '<requestId>' /usr/local/apisix/logs/access.log /usr/local/apisix/logs/error.log"
+docker exec modelcraft-agent sh -c "grep '<requestId>' /app/logs/agent.log"
+```
+
 重点检查：
 
 - gateway `request_start/request_end` 是否成对，状态码是否符合预期。
 - 同一 `request_id` 是否在 backend 出现（确认转发链路）。
+- 同一 `request_id` 是否在 agent 出现（确认 backend -> agent 调用链路）。
 - 是否存在鉴权拦截（如 missing Authorization、invalid token）。
+- agent 是否有上游 GraphQL / tool / LLM 调用失败、超时、429、5xx。
 
 ---
 
@@ -252,11 +327,33 @@ just build
 # 2. 跑相关包的单元测试（如果 Domain 层有改动）
 just test-unit-pkg ./internal/domain/<domain>/...
 
-# 3. 重启服务，用原请求复现
+# 3. 重启服务
+# docker 模式：
+cd ../deploy && docker-compose -f compose/docker-compose.local.yml restart modelcraft
+# dev 模式：
 just run force=true
 
 # 4. 确认问题消失
-just log-cat <requestId>   # 跑新请求后用新 requestId 查
+# docker 模式：
+docker exec modelcraft-backend sh -c "grep '<requestId>' /app/logs/server.log"
+# dev 模式：
+just log-cat <requestId>
+```
+
+如果前面还没有定位到根因，不要直接修。先补日志，然后按下面步骤继续：
+
+```bash
+# 1. 修改代码补日志
+
+# 2. 重启服务
+cd ../deploy && docker-compose -f compose/docker-compose.local.yml restart backend apisix modelcraft-agent
+
+# 3. 重放请求，拿到新的 requestId
+
+# 4. 用新的 requestId 再查三段链路
+docker exec modelcraft-apisix sh -c "grep '<newRequestId>' /usr/local/apisix/logs/access.log /usr/local/apisix/logs/error.log"
+docker exec modelcraft-backend sh -c "grep '<newRequestId>' /app/logs/server.log"
+docker exec modelcraft-agent sh -c "grep '<newRequestId>' /app/logs/agent.log"
 ```
 
 ---
@@ -278,8 +375,10 @@ just log-cat <requestId>   # 跑新请求后用新 requestId 查
 
 ## 注意事项
 
-- `just log-cat` 依赖 `logs/server.log` 存在。服务未运行过或日志被清理时，直接看 `just logs`
-- 某些启动错误（配置缺失、DB 连不上）没有 requestId，直接读 `just logs` 即可
+- **docker 模式**（默认）：backend 用 `/app/logs/server.log`，agent 用 `/app/logs/agent.log`，apisix 用 `/usr/local/apisix/logs/access.log` 和 `/usr/local/apisix/logs/error.log`。
+- **dev 模式**（本地 `just run`）：日志在宿主机 `modelcraft-backend/logs/server.log`，用 `just log-cat` 或 `just logs` 查看。
+- **排障默认动作**：只要用户给了 `requestId`，先查 `apisix` -> `backend` -> `agent` 三段，不要先猜代码。
+- 某些启动错误（配置缺失、DB 连不上）没有 requestId，这时直接 `tail -f` 对应容器内日志文件。
 - 修复时遵守分层规则（避免引入新问题）：
   - **Repository 层**只返回 `shared.RepositoryError`，不返回 `*BusinessError`
   - **Application 层**把 nil 结果转成 `bizerrors.NewErrorFromContext()`，把 DB 错误转成 `bizerrors.ConvertRepositoryError()`

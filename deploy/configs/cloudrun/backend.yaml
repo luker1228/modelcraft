@@ -1,0 +1,51 @@
+server:
+  port: "8080"
+  mode: "release"
+
+database:
+  type: "mysql"
+  host: "10.12.107.131"
+  port: 3306
+  username: "root"
+  password: "Jmx931228"
+  database: "mc_meta"
+  charset: "utf8mb4"
+  max_open_conns: 100
+  max_idle_conns: 10
+  conn_max_lifetime: 3600
+  log_level: "info"
+  migrate_on_startup: true
+
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+
+jwt:
+  secret: "7f687b4450fbd9efb567f0e211f3eae2302e52d69086d9dcc3c374fd5fd192e6"
+  private_key: "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIExV1xYZQMvx0rDvpFtLV55SrcDq+p9S9boAuA5xrefaoAoGCCqGSM49\nAwEHoUQDQgAExhyKJmlGOYsCV1OV1ZF1yhVuPwcdL38DeWGLWil9mK+2nEzDbwLY\nWnDMZRlNTDRWDBtfIOPQ2F5FKuKlTBTZew==\n-----END EC PRIVATE KEY-----"
+  expiration: 21600s
+  issuer: "modelcraft"
+
+auth:
+  cookie:
+    domain: ""
+    secure: true
+    same_site: "lax"
+  design:
+    jwt_public_key_path: ""
+    jwt_public_key: ""
+    accept_modelcraft_jwt: true
+  runtime:
+    optional_for_projects: []
+
+crypto:
+  aes_key: "m7Qx2Nf9Lp4Vt8Kc1Hs6Zd3Rw5By0JgA"
+
+logger:
+  level: "info"
+  output_path: "stdout"
+  max_size: 100
+  max_backups: 10
+  max_age: 7
+  compress: true

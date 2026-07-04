@@ -11,9 +11,7 @@ import (
 )
 
 func TestInjectRequestIDExtension(t *testing.T) {
-	ctx := ctxutils.NewHttpContext(context.Background(), &ctxutils.HttpRequestContext{
-		RequestId: "test-request-id",
-	})
+	ctx := ctxutils.SetRequestID(context.Background(), "test-request-id")
 
 	resp := InjectRequestIDExtension(ctx, func(context.Context) *graphql.Response {
 		return &graphql.Response{}

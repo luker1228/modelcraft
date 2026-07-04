@@ -145,52 +145,11 @@ Then('模型应该包含名为 {string} 的 EndUserRef 字段', async function (
   expect(ownerField?.format).toBe('END_USER_REF')
 })
 
-Then('应该返回默认的 READ_WRITE_OWNER 策略', function (this: ModelCraftWorld) {
-  const payload = (this.lastResponse as {
-    model: { model: { rlsPolicy: { preset: string } | null } | null }
-  }).model
-  expect(payload.model).not.toBeNull()
-  expect(payload.model?.rlsPolicy).not.toBeNull()
-  expect(payload.model?.rlsPolicy?.preset).toBe('READ_WRITE_OWNER')
-})
-
-Then('返回结果应同时包含 owner EndUserRef 字段和 READ_WRITE_OWNER 策略', function (this: ModelCraftWorld) {
-  const payload = (this.lastResponse as {
-    model: {
-      model: {
-        fields: Array<{ name: string; format: string }>
-        rlsPolicy: { preset: string } | null
-      } | null
-    }
-  }).model
-
-  expect(payload.model).not.toBeNull()
-  const ownerField = payload.model?.fields.find(f => f.name === 'owner')
-  expect(ownerField).toBeDefined()
-  expect(ownerField?.format).toBe('END_USER_REF')
-  expect(payload.model?.rlsPolicy).not.toBeNull()
-  expect(payload.model?.rlsPolicy?.preset).toBe('READ_WRITE_OWNER')
-})
-
 Then('应该返回 null（无策略）', function (this: ModelCraftWorld) {
   const payload = (this.lastResponse as {
     model: { model: { rlsPolicy: unknown } | null }
   }).model
   expect(payload.model?.rlsPolicy).toBeNull()
-})
-
-Then('该模型应该存在默认的 READ_WRITE_OWNER 策略', async function (this: ModelCraftWorld) {
-  const modelId = getCurrentModelId(this)
-  const res = await this.projectClient.query<{
-    model: {
-      model: {
-        rlsPolicy: { preset: string } | null
-      } | null
-    }
-  }>(GET_MODEL_WITH_FIELDS, { id: modelId })
-
-  expect(res.model.model?.rlsPolicy).not.toBeNull()
-  expect(res.model.model?.rlsPolicy?.preset).toBe('READ_WRITE_OWNER')
 })
 
 Then('该模型应该不存在 RLS 策略', async function (this: ModelCraftWorld) {

@@ -2,11 +2,9 @@ package projectgraphql
 
 import (
 	"modelcraft/internal/app/cluster"
-	appEnduser "modelcraft/internal/app/enduser"
 	appmodeldatabase "modelcraft/internal/app/modeldatabase"
 	"modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/app/permission"
-	apprbac "modelcraft/internal/app/rbac"
 	"modelcraft/internal/app/rls"
 )
 
@@ -32,20 +30,16 @@ type Resolver struct {
 	// Field selection checker
 	FieldSelectionChecker *FieldSelectionChecker
 
-	// RLS (Row Level Security)
-	RLSPolicyAppService  *rls.ModelRLSPolicyAppService
-	AuthSchemaAppService *rls.AuthSchemaAppService
+	// RLS (Row Level Security) — expression validation + dry-run
+	RLSExprValidateService *rls.RLSExprValidateService
 
-	// End-User
-	EndUserMgmtAppService *appEnduser.EndUserManagementAppService
-
-	// RBAC (Data-Level Row & Column Permission)
-	RBACPermissionSvc *apprbac.EndUserPermissionAppService
-	RBACBundleSvc     *apprbac.EndUserBundleAppService
-	RBACRoleSvc       *apprbac.EndUserRoleAppService
-	RBACAuthzSvc      *apprbac.EndUserAuthzService
+	// RLS Policy V2
+	PolicyCRUDService *rls.DataPolicyService
 
 	// Database management
 	ModelDatabaseAppService     *appmodeldatabase.ModelDatabaseAppService
 	ModelDatabaseSyncAppService *appmodeldatabase.ModelDatabaseSyncAppService
+
+	// Model sync (syncModelsFromDB)
+	SyncModelsAppService *appmodeldatabase.SyncModelsAppService
 }

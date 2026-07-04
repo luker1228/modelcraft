@@ -2,13 +2,13 @@ package middleware
 
 import (
 	"encoding/json"
-	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"runtime/debug"
 	"time"
 
-	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 )
 
 // ChiRecoveryMiddleware is a Chi-compatible recovery middleware that
@@ -24,12 +24,12 @@ func ChiRecoveryMiddleware(logger logfacade.Logger) func(http.Handler) http.Hand
 					requestID := resolveRequestID(r)
 
 					// Log panic with stack trace and duration
-					logger.Error(r.Context(), "request_panic",
+					logger.With(
 						logfacade.Any("panic", rec),
-						logfacade.String("stack", string(debug.Stack())),
-						logfacade.Duration("duration", time.Since(start)),
-						logfacade.String("request_id", requestID),
-					)
+						logfacade.String(logfacade.StackFieldKey, string(debug.Stack())),
+						logfacade.Duration(logfacade.DurationKey, time.Since(start)),
+						logfacade.String(logfacade.RequestIDKey, requestID),
+					).Errorf(r.Context(), nil, "request_panic")
 
 					// Return JSON error response similar to Gin middleware
 					w.WriteHeader(http.StatusInternalServerError)
@@ -45,14 +45,12 @@ func ChiRecoveryMiddleware(logger logfacade.Logger) func(http.Handler) http.Hand
 	}
 }
 
+// resolveRequestID resolves the request ID from the X-Request-ID header.
+// Recovery runs as the outermost middleware, before ChiLoggerMiddleware sets
+// the request_id in context, so we read the header directly with a UUID fallback.
 func resolveRequestID(r *http.Request) string {
-	if hrc := ctxutils.FromContext(r.Context()); hrc != nil && hrc.RequestId != "" {
-		return hrc.RequestId
-	}
-
-	if requestID := chimw.GetReqID(r.Context()); requestID != "" {
+	if requestID := r.Header.Get(httpheader.XRequestID); requestID != "" {
 		return requestID
 	}
-
-	return r.Header.Get("X-Request-ID")
+	return uuid.NewString()
 }

@@ -1,5 +1,5 @@
 // BFF: /api/bff/graphql/org/[orgName]/project/[projectSlug]
-// 直接透传到网关 /graphql/org/{orgName}/project/{projectSlug}
+// 透传到网关 /graphql/org/{orgName}/project/{projectSlug}，这是合法的外部开发态 GraphQL 入口
 
 import { NextRequest, NextResponse } from 'next/server'
 import { tenantProjectGraphQL } from '@/app/api/bff/gateway-routes'

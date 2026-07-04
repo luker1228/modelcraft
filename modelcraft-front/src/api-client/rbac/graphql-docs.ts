@@ -934,6 +934,36 @@ export const REMOVE_DATA_PERMISSION_ITEM_FROM_BUNDLE = gql`
   }
 `
 
+export const LIST_END_USERS = gql`
+  query ListEndUsers($input: ListEndUsersInput) {
+    listEndUsers(input: $input) {
+      connection {
+        nodes {
+          id
+          username
+          isForbidden
+          isBuiltin
+          createdBy
+          createdAt
+          updatedAt
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        totalCount
+      }
+      error {
+        __typename
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+      }
+    }
+  }
+`
+
 export const GET_VIRTUAL_PRESETS_BY_MODEL = gql`
   query GetVirtualPresetsByModel($modelId: ID!) {
     virtualPresetsByModel(modelId: $modelId)

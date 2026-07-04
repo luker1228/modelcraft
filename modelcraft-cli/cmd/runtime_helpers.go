@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"encoding/json"
+	"net/http"
 
 	"modelcraft-cli/internal/app"
+	"modelcraft-cli/internal/client"
 	"modelcraft-cli/internal/config"
 	"modelcraft-cli/internal/output"
 	"modelcraft-cli/internal/resource"
@@ -15,6 +17,25 @@ type runtimeCreds struct {
 	Server      string
 	OrgName     string
 	AccessToken string
+}
+
+// newGraphQLClient builds a GraphQLClient reading impersonation flags from
+// the command tree. Persistent flags --as-userid / --as-username / --as-role
+// are defined on the root command and inherited by all subcommands.
+func newGraphQLClient(cmd *cobra.Command) client.GraphQLClient {
+	return client.GraphQLClient{
+		HTTPClient: http.DefaultClient,
+		Impersonation: client.Impersonation{
+			UserID:   flagOrEmpty(cmd, "as-userid"),
+			UserName: flagOrEmpty(cmd, "as-username"),
+			Roles:    flagOrEmpty(cmd, "as-role"),
+		},
+	}
+}
+
+func flagOrEmpty(cmd *cobra.Command, name string) string {
+	v, _ := cmd.Flags().GetString(name)
+	return v
 }
 
 func resolveRuntimeContext(_ *cobra.Command, credentialsPath, project, rawPath string) (map[string]any, resource.ModelPath, runtimeCreds, error) {

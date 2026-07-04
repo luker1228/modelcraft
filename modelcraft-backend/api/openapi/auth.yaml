@@ -135,6 +135,32 @@ paths:
               schema:
                 $ref: "common.yaml#/schemas/SystemError"
 
+  /api/tenant/auth/whoami:
+    get:
+      operationId: whoami
+      summary: Resolve current identity from a bearer token
+      tags: [Auth]
+      security: []
+      responses:
+        "200":
+          description: Identity resolved
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/WhoamiResponse"
+        "401":
+          description: Invalid or expired bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/WhoamiUnauthorizedError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/schemas/SystemError"
+
 schemas:
   # -- Auth domain errors --
   AuthInvalidInputError:
@@ -218,6 +244,27 @@ schemas:
             type: string
             enum:
               - AUTHENTICATION_FAILED
+          message:
+            type: string
+
+  WhoamiUnauthorizedError:
+    type: object
+    required:
+      - requestId
+      - error
+    properties:
+      requestId:
+        type: string
+      error:
+        type: object
+        required:
+          - code
+          - message
+        properties:
+          code:
+            type: string
+            enum:
+              - UNAUTHENTICATED
           message:
             type: string
 
@@ -353,3 +400,47 @@ schemas:
           expiresIn:
             type: integer
             description: Access token TTL in seconds
+
+  WhoamiResponse:
+    allOf:
+      - $ref: "common.yaml#/schemas/BaseResponse"
+      - type: object
+        required:
+          - userId
+          - orgName
+          - isAdmin
+          - memberships
+        properties:
+          userId:
+            type: string
+          orgName:
+            type: string
+          isAdmin:
+            type: boolean
+          accessToken:
+            type: string
+          memberships:
+            type: array
+            items:
+              $ref: "auth.yaml#/schemas/WhoamiMembershipInfo"
+
+  WhoamiMembershipInfo:
+    type: object
+    required:
+      - orgId
+      - orgName
+      - displayName
+      - role
+      - joinedAt
+    properties:
+      orgId:
+        type: string
+      orgName:
+        type: string
+      displayName:
+        type: string
+      role:
+        type: string
+      joinedAt:
+        type: integer
+        format: int64

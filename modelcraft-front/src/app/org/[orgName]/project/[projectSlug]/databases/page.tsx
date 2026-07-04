@@ -42,8 +42,10 @@ import {
   useUnregisterModelDatabase,
   useStartModelDatabaseSync,
   useFetchModelDatabaseSyncJob,
+  useModelSyncJobs,
   type ModelDatabase,
   type ModelDatabaseSyncJob,
+  type ModelSyncJob,
 } from '@web/hooks/model-database/use-model-databases'
 import { RegisterDatabaseDialog } from './_components/RegisterDatabaseDialog'
 import { EditDatabaseSheet } from './_components/EditDatabaseSheet'
@@ -65,6 +67,7 @@ export default function DatabasesPage() {
   const { unregister } = useUnregisterModelDatabase(params.projectSlug)
   const { startSync, loading: syncStarting } = useStartModelDatabaseSync(params.projectSlug)
   const { fetchJob } = useFetchModelDatabaseSyncJob(params.projectSlug)
+  const { getJobs } = useModelSyncJobs(params.projectSlug)
 
   const [registerOpen, setRegisterOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<ModelDatabase | null>(null)
@@ -90,6 +93,41 @@ export default function DatabasesPage() {
       pollersRef.current = {}
     }
   }, [])
+
+  // Load initial sync job states from latestSyncJobId on each database
+  useEffect(() => {
+    if (databases.length === 0) return
+    const jobIds = databases
+      .map((db) => db.latestSyncJobId)
+      .filter((id): id is string => !!id)
+    if (jobIds.length === 0) return
+    void getJobs(jobIds).then((jobs: ModelSyncJob[]) => {
+      setJobsByDatabaseId((prev) => {
+        const next = { ...prev }
+        jobs.forEach((job) => {
+          // Only set if not already tracking a newer job
+          if (!next[job.databaseId]) {
+            next[job.databaseId] = {
+              id: job.id,
+              databaseId: job.databaseId,
+              status: job.status as ModelDatabaseSyncJob['status'],
+              totalTables: job.totalTables,
+              processedTables: job.processedTables,
+              createdModels: job.createdModels,
+              syncedModels: job.syncedModels,
+              failedCount: job.failedCount,
+              failedTables: job.failedTables,
+              startedAt: job.startedAt ?? null,
+              finishedAt: job.finishedAt ?? null,
+              createdAt: job.createdAt,
+              updatedAt: job.updatedAt,
+            }
+          }
+        })
+        return next
+      })
+    })
+  }, [databases, getJobs])
 
   const upsertJob = (job: ModelDatabaseSyncJob) => {
     setJobsByDatabaseId((prev) => ({ ...prev, [job.databaseId]: job }))
@@ -138,12 +176,10 @@ export default function DatabasesPage() {
   }
 
   const handleDatabasesRegistered = async (registeredDatabases: ModelDatabase[]) => {
-    const syncableDatabases = registeredDatabases.filter((db) => db.mode !== 'SELF_HOSTED')
-
     setOptimisticDatabases((prev) => buildDisplayedDatabases(prev, registeredDatabases))
     setJobsByDatabaseId((prev) => {
       const next = { ...prev }
-      syncableDatabases.forEach((database) => {
+      registeredDatabases.forEach((database) => {
         if (!next[database.id]) {
           next[database.id] = createOptimisticPendingSyncJob(database.id)
         }
@@ -153,7 +189,7 @@ export default function DatabasesPage() {
 
     try {
       const startedCount = await startSyncForRegisteredDatabases(
-        syncableDatabases,
+        registeredDatabases,
         startSync,
         upsertJob,
         startPolling
@@ -202,13 +238,13 @@ export default function DatabasesPage() {
         actions={
           <Button size="sm" onClick={() => setRegisterOpen(true)} className="gap-1.5">
             <Plus className="size-4" strokeWidth={1.5} />
-            接管数据库
+            注册数据库
           </Button>
         }
       />
 
       <p className="mb-5 text-sm text-muted-foreground">
-        接管此项目使用的 MySQL 数据库，设置访问模式
+        注册此项目使用的 MySQL 数据库，设置访问模式
       </p>
 
       <div className="overflow-hidden rounded-lg border border-border bg-card">
@@ -223,7 +259,6 @@ export default function DatabasesPage() {
                 <TableRow>
                   <TableHead>名称</TableHead>
                   <TableHead>描述</TableHead>
-                  <TableHead>模式</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead className="w-16" />
                 </TableRow>
@@ -232,10 +267,10 @@ export default function DatabasesPage() {
                 {displayedDatabases.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={4}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
-                      暂无已接管的数据库，点击右上角"接管数据库"开始
+                      暂无已注册的数据库，点击右上角"注册数据库"开始
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -262,27 +297,8 @@ export default function DatabasesPage() {
                         {db.description || '—'}
                       </TableCell>
                       <TableCell>
-                        {db.mode === 'SELF_HOSTED' ? (
-                          <Badge
-                            variant="outline"
-                            className="w-fit border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
-                          >
-                            自建
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="w-fit border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400"
-                          >
-                            托管
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {db.mode !== 'SELF_HOSTED' && (
-                          renderJobStatus(jobsByDatabaseId[db.id]) ?? (
-                            <span className="text-xs text-muted-foreground">待同步</span>
-                          )
+                        {renderJobStatus(jobsByDatabaseId[db.id]) ?? (
+                          <span className="text-xs text-muted-foreground">待同步</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -302,13 +318,11 @@ export default function DatabasesPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {db.mode !== 'SELF_HOSTED' && (
-                                <DropdownMenuItem onClick={() => setSyncTarget(db)}>
-                                  <RefreshCw className="mr-2 size-3.5" />
-                                  同步数据库
-                                </DropdownMenuItem>
-                              )}
-                              {db.mode !== 'SELF_HOSTED' && jobsByDatabaseId[db.id] && (
+                              <DropdownMenuItem onClick={() => setSyncTarget(db)}>
+                                <RefreshCw className="mr-2 size-3.5" />
+                                同步数据库
+                              </DropdownMenuItem>
+                              {jobsByDatabaseId[db.id] && (
                                 <DropdownMenuItem onClick={() => setResultTarget(db)}>
                                   查看同步结果
                                 </DropdownMenuItem>
@@ -318,7 +332,7 @@ export default function DatabasesPage() {
                                 onClick={() => setUnregisterTarget(db)}
                               >
                                 <Trash2 className="mr-2 size-3.5" />
-                                取消接管
+                                取消注册
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -365,9 +379,9 @@ export default function DatabasesPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确定取消接管？</AlertDialogTitle>
+            <AlertDialogTitle>确定取消注册？</AlertDialogTitle>
             <AlertDialogDescription>
-              确定取消接管 {unregisterTarget?.title} 吗？已关联的模型将无法通过此入口访问数据库。
+              确定取消注册 {unregisterTarget?.title} 吗？已关联的模型将无法通过此入口访问数据库。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -381,7 +395,7 @@ export default function DatabasesPage() {
                 }
               }}
             >
-              确认取消接管
+              确认取消注册
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

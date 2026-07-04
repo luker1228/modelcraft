@@ -9,23 +9,21 @@ import (
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/database/dml"
 	"modelcraft/internal/infrastructure/repository"
+	"modelcraft/internal/interfaces/http/middleware"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
-	"modelcraft/pkg/requestcontext"
 
 	"github.com/graphql-go/graphql"
-	"github.com/graphql-go/graphql/language/ast"
-	"github.com/graphql-go/graphql/language/parser"
-	"github.com/graphql-go/graphql/language/source"
 )
 
 // GraphqlAppService graphql应用服务
 type GraphqlAppService struct {
 	modelRepo            modelruntime.ModelRepository
 	graphqlSchemaManager *modelruntime.GraphqlSchemaManager
-	permService          modelruntime.EndUserPermissionService
+	permResolver         *PolicyPermissionResolver
+	snapshotBuilder      *RLSSnapshotBuilder
 }
 
 // GetSchema 获取或构建 GraphQL Schema。
@@ -43,7 +41,7 @@ func (s *GraphqlAppService) GetSchema(ctx context.Context, orgName string, model
 
 	model, err := s.modelRepo.GetByName(ctx, modelLocator)
 	if err != nil {
-		logger.Errorf(ctx, "get model fail: %v", err)
+		logger.Errorf(ctx, err, "get model fail")
 		if shared.IsNotFoundError(err) {
 			return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
 		}
@@ -56,7 +54,7 @@ func (s *GraphqlAppService) GetSchema(ctx context.Context, orgName string, model
 	logger.Infof(ctx, "model=%s", bizutils.MarshalToStringIgnoreErr(model))
 	gschema, err = s.graphqlSchemaManager.NewSchemaFrom(ctx, model)
 	if err != nil {
-		logger.Errorf(ctx, "generate schema fail: %v", err)
+		logger.Errorf(ctx, err, "generate schema fail")
 		return nil, fmt.Errorf("生成schema失败 %s", modelLocator.GetFullPath())
 	}
 	s.graphqlSchemaManager.StoreSchema(ctx, modelLocator, gschema)
@@ -68,16 +66,23 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 	cmd ExecuteGraphQLCommand,
 ) (*graphql.Result, error) {
 	logger := logfacade.GetLogger(ctx)
-
-	// Inject request metadata into context
-	ctx = requestcontext.WithMetadata(ctx)
 	modelLocator, err := modeldesign.NewModelLocator(orgName, projectSlug, databaseName, name)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = s.denyManagedModelMutation(ctx, modelLocator, cmd); err != nil {
-		return nil, err
+	// Load model once — modelID needed by snapshot builder and permission resolution
+	model, err := s.modelRepo.GetByName(ctx, modelLocator)
+	if err != nil {
+		logger.Errorf(ctx, err, "get model fail")
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
+		}
+		return nil, fmt.Errorf("获取模型失败 %s", modelLocator.GetFullPath())
+	}
+	modelID := model.ID
+	if modelID == "" {
+		modelID = model.Name
 	}
 
 	gschema, err := s.GetSchema(ctx, orgName, modelLocator)
@@ -85,41 +90,32 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 		return nil, err
 	}
 
-	// 创建请求级 DB 连接
-	clientSqlDB, err := repository.DefaultClusterManager.GetConnectionWithDatabase(
-		ctx, orgName, modelLocator.ProjectSlug, modelLocator.DatabaseName,
-	)
-	if err != nil {
-		logger.Errorf(ctx, "get client sql db fail: %v", err)
-		return nil, fmt.Errorf("获取客户端数据库失败 %s", databaseName)
-	}
-	clientRepo := dml.NewClientDB(clientSqlDB)
-
-	// 提取 endUserID。
-	// Runtime 只认 ctxutils 注入的身份上下文：
-	// - end-user（非管理员）: X-User-Type=end_user + X-Is-Admin=false → 走权限检查
-	// - end-user（管理员）:   X-User-Type=end_user + X-Is-Admin=true  → 跳过权限检查（与 tenant admin 等同）
-	// - tenant admin: 无 end-user 身份（endUserID 为空）
-	endUserID := ""
-	if ctxutils.IsEndUser(ctx) && !ctxutils.GetIsAdminFromContext(ctx) {
-		if uid, err := ctxutils.GetUserIDFromContext(ctx); err == nil {
-			endUserID = uid
+	var rlsCtx *modelruntime.RLSContext
+	userCtx := middleware.GetUserContext(ctx)
+	if userCtx != nil && userCtx.UseAdmin {
+		rlsCtx = &modelruntime.RLSContext{
+			IsAdmin: true,
 		}
-	}
-
-	// 解析 end-user 权限快照。
-	// 仅普通 end-user 请求需要查权限（endUserID != ""），管理员和 tenant admin 跳过，perms 保持 nil。
-	var endUserPerms *modelruntime.ResolvedModelPermissions
-	if endUserID != "" {
-		endUserPerms, err = s.resolveEndUserPerms(ctx, orgName, projectSlug, endUserID, modelLocator)
+	} else {
+		rlsCtx, ctx, err = s.resolveNonAdminRLS(ctx, orgName, projectSlug, modelID)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	endUserAdminID, _ := ctxutils.GetTenantUserIDFromContext(ctx)
+	// 创建请求级 DB 连接
+	clientSqlDB, err := repository.DefaultClusterManager.GetConnectionWithDatabase(
+		ctx, orgName, modelLocator.ProjectSlug, modelLocator.DatabaseName,
+	)
+	if err != nil {
+		logger.Errorf(ctx, err, "get client sql db fail")
+		return nil, fmt.Errorf("获取客户端数据库失败 %s", databaseName)
+	}
+	// Wrap with RLS intercept layer
+	clientRepo := dml.NewRLSInterceptDB(dml.NewClientDB(clientSqlDB))
+
 	reqCtx := modelruntime.WithGraphqlRequestContext(
-		ctx, clientRepo, orgName, projectSlug, endUserID, endUserAdminID, endUserPerms,
+		ctx, clientRepo, orgName, projectSlug, rlsCtx,
 	)
 
 	// 执行GraphQL查询
@@ -138,95 +134,81 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 	return result, nil
 }
 
-// resolveEndUserPerms 获取 end-user 权限快照。
-// 调用方负责在 endUserID 为空时跳过此方法。
-// 需要 model.ID，因此单独加载 model（GetSchema 内部缓存 schema，此处只取 ID）。
-func (s *GraphqlAppService) resolveEndUserPerms(
-	ctx context.Context,
-	orgName, projectSlug, endUserID string,
-	modelLocator *modeldesign.ModelLocator,
-) (*modelruntime.ResolvedModelPermissions, error) {
-	logger := logfacade.GetLogger(ctx)
-	model, err := s.modelRepo.GetByName(ctx, modelLocator)
-	if err != nil {
-		logger.Errorf(ctx, "get model for permission resolve fail: %v", err)
-		if shared.IsNotFoundError(err) {
-			return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
-		}
-		return nil, fmt.Errorf("获取模型失败 %s", modelLocator.GetFullPath())
-	}
-	if model == nil {
-		return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
-	}
-	perms, err := s.permService.Resolve(ctx, orgName, projectSlug, endUserID, model.ID)
-	if err != nil {
-		logger.Errorf(ctx, "resolve end-user permissions fail: %v", err)
-		return nil, fmt.Errorf("解析权限失败")
-	}
-	return perms, nil
-}
-
-func (s *GraphqlAppService) denyManagedModelMutation(
-	ctx context.Context,
-	modelLocator *modeldesign.ModelLocator,
-	cmd ExecuteGraphQLCommand,
-) error {
-	logger := logfacade.GetLogger(ctx)
-
-	isMutation, err := isMutationOperation(cmd.Query, cmd.OperationName)
-	if err != nil {
-		return bizerrors.NewError(bizerrors.ParamInvalid, fmt.Sprintf("invalid graphql operation: %v", err))
-	}
-	if !isMutation {
-		return nil
-	}
-
-	model, modelErr := s.modelRepo.GetByName(ctx, modelLocator)
-	if modelErr != nil {
-		logger.Errorf(ctx, "get model fail: %v", modelErr)
-		return fmt.Errorf("获取模型失败 %s", modelLocator.GetFullPath())
-	}
-	if model != nil && model.CreatedVia == modeldesign.ModelCreationSourceImported {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.ManagedModelReadOnly, modelLocator.ModelName)
-	}
-	return nil
-}
-
-func isMutationOperation(query, operationName string) (bool, error) {
-	doc, err := parser.Parse(parser.ParseParams{
-		Source: source.NewSource(&source.Source{Body: []byte(query), Name: "RuntimeGraphQLRequest"}),
-	})
-	if err != nil {
-		return false, err
-	}
-
-	for _, definition := range doc.Definitions {
-		opDef, ok := definition.(*ast.OperationDefinition)
-		if !ok {
-			continue
-		}
-		if operationName != "" {
-			if opDef.Name == nil || opDef.Name.Value != operationName {
-				continue
-			}
-		}
-		if opDef.Operation == "mutation" {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
 // NewGraphqlAppService 创建graphql应用服务
 func NewGraphqlAppService(
 	modelRepo modelruntime.ModelRepository,
 	lfkRepo modeldesign.LogicalForeignKeyRepository,
-	permService modelruntime.EndUserPermissionService,
+	permResolver *PolicyPermissionResolver,
+	snapshotBuilder *RLSSnapshotBuilder,
 ) *GraphqlAppService {
 	schemaManager := modelruntime.NewGraphqlSchemaManager(modelRepo, lfkRepo)
 	return &GraphqlAppService{
 		modelRepo:            modelRepo,
 		graphqlSchemaManager: schemaManager,
-		permService:          permService,
+		permResolver:         permResolver,
+		snapshotBuilder:      snapshotBuilder,
 	}
+}
+
+func (s *GraphqlAppService) buildRLSContext(
+	ctx context.Context,
+	orgName, projectSlug, modelID string,
+) (*modelruntime.RLSContext, error) {
+	logger := logfacade.GetLogger(ctx)
+
+	userCtx := middleware.GetUserContext(ctx)
+	rlsCtx := &modelruntime.RLSContext{
+		IsAdmin:     userCtx != nil && userCtx.UseAdmin,
+		UserContext: userCtx,
+	}
+	if rlsCtx.IsAdmin {
+		return rlsCtx, nil
+	}
+
+	endUserID, err := ctxutils.GetEndUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rlsCtx.EndUserID = endUserID
+	rlsCtx.Permissions, err = s.permResolver.ResolveFromV2Policy(
+		ctx, orgName, projectSlug, modelID, rlsCtx.UserContext.Roles,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if rlsCtx.Permissions != nil && rlsCtx.Permissions.IsEmpty() {
+		rlsCtx.FastFail = true
+		rlsCtx.FastFailReason = "permissions: no permissions granted"
+		logger.Debugf(ctx, "RLS fast-fail: model=%s reason=%s", modelID, rlsCtx.FastFailReason)
+		return rlsCtx, nil
+	}
+
+	snap, err := s.snapshotBuilder.Build(ctx, orgName, projectSlug, modelID, rlsCtx.UserContext, rlsCtx.Permissions)
+	if err != nil {
+		return nil, err
+	}
+	rlsCtx.Snapshot = snap
+	logger.Infof(ctx, "RLS context built: model=%s endUser=%s policies=%d select=%v update=%v delete=%v create=%v",
+		modelID, endUserID, len(rlsCtx.Permissions.Policies),
+		!snap.NoSelectPolicy, !snap.NoUpdatePolicy, !snap.NoDeletePolicy, !snap.NoCreatePolicy)
+
+	return rlsCtx, nil
+}
+
+// resolveNonAdminRLS builds the RLS context for a non-admin user and attaches
+// the snapshot to ctx when present. Returns a FastFail error as PermissionDenied.
+func (s *GraphqlAppService) resolveNonAdminRLS(
+	ctx context.Context, orgName, projectSlug, modelID string,
+) (*modelruntime.RLSContext, context.Context, error) {
+	rlsCtx, err := s.buildRLSContext(ctx, orgName, projectSlug, modelID)
+	if err != nil {
+		return nil, ctx, err
+	}
+	if rlsCtx.FastFail {
+		return nil, ctx, bizerrors.NewError(bizerrors.PermissionDenied, rlsCtx.FastFailReason)
+	}
+	if rlsCtx.Snapshot != nil {
+		ctx = modelruntime.WithRLSSnapshot(ctx, rlsCtx.Snapshot)
+	}
+	return rlsCtx, ctx, nil
 }

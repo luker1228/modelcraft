@@ -148,7 +148,7 @@ no decorative elements, vector-style, flat design
 
 ### `Users` — 开发者管理
 
-**使用位置**：`AppLayout.tsx` 侧边栏（标签"开发者"）、`UsersTab.tsx`、`EndUsersManagementTable.tsx`、`developers/members/page.tsx`
+**使用位置**：`AppLayout.tsx` 侧边栏（标签"开发者"）、`UsersTab.tsx`、`developers/members/page.tsx`
 
 **渲染上下文**：侧边栏 Org 区段导航，链接到 `/org/{orgName}/developers`。也用于开发者成员列表的列表头和用户组相关的表格图标。
 
@@ -237,7 +237,7 @@ no decorative elements, vector-style, flat design
 | `Save` | 保存 | `size-4` | InsertFieldSheet、login-settings | 表单提交按钮图标，与"保存"文字并排 |
 | `Archive` | 归档 | `size-4` | ModelRecordTable、ModelDetailPanel | 数据记录软删除操作，区别于 Trash2 的永久删除 |
 | `Search` | 搜索 | `size-4` | search-input 前缀、AppLayout 全局搜索 | 始终作为输入框左侧前缀图标，`text-muted-foreground` |
-| `RefreshCw` | 刷新 | `size-3.5`~`size-4` | RelationPicker、EndUserTables、identity-form-section | 数据刷新/重载按钮，多为 Ghost 图标按钮 |
+| `RefreshCw` | 刷新 | `size-3.5`~`size-4` | RelationPicker、identity-form-section | 数据刷新/重载按钮，多为 Ghost 图标按钮 |
 | `RotateCcw` | 回滚 | `size-3.5` | bundles/[bundleId]（权限包版本回滚）、OnboardingPanel | 权限包版本回滚按钮，配"还原"文字，与 Loader2 切换（加载中状态） |
 
 ---
@@ -253,9 +253,9 @@ no decorative elements, vector-style, flat design
 | 图标 | 语义 | 使用位置 | 渲染上下文 |
 |------|------|----------|------------|
 | `Shield` | 角色/访问控制入口 | RoleTable、bundles 详情页 | 角色列表行图标，中性色 `text-muted-foreground` |
-| `ShieldCheck` | 已授权 / 权限健康 | UsersTab、workspace、end-user 详情 | 绿色/主色强调，用户已有有效角色时显示 |
-| `ShieldAlert` | 权限告警 / 无权限 | PermissionsTab 警告角标、no-project-access 页 | `text-destructive` 或警告色，用户访问被拒时的空状态主图标 |
-| `ShieldOff` | 已撤权 / 未授权 | EndUserAccessTable、roles/page、end-user 详情 | 灰色/弱化色，表示该用户当前无有效授权 |
+| `ShieldCheck` | 已授权 / 权限健康 | UsersTab、workspace | 绿色/主色强调，用户已有有效角色时显示 |
+| `ShieldAlert` | 权限告警 / 无权限 | PermissionsTab 警告角标 | `text-destructive` 或警告色，用户访问被拒时的空状态主图标 |
+| `ShieldOff` | 已撤权 / 未授权 | roles/page | 灰色/弱化色，表示该用户当前无有效授权 |
 
 **成套 AI Prompt 提示**：四个图标应风格完全一致，仅内部符号不同：
 - `Shield`：空盾牌轮廓
@@ -298,7 +298,7 @@ no decorative elements, vector-style, flat design
 | `Tags` | 枚举类型字段 | `size-4` | FieldEditSheet 字段类型标记 | 字段类型为 ENUM 时显示，标识枚举类型 |
 | `Link2` | 外键/关联字段 | `size-3.5`~`size-6` | InsertFieldSheet、ForeignKeyPanel | 字段类型为外键时的图标；ForeignKeyPanel 空状态大图标（`opacity-30`） |
 | `Unlink` | 断开关联 | `size-4` | OneToManySection、RecordRelationManagerDialog | "解除关联"操作按钮，通常与 Link2 配套出现 |
-| `ExternalLink` | 跳转关联记录 | `size-3.5` | EndUsersManagementTable、ModelEditorView | 在表格行内提供"在新上下文查看"的跳转入口 |
+| `ExternalLink` | 跳转关联记录 | `size-3.5` | ModelEditorView | 在表格行内提供"在新上下文查看"的跳转入口 |
 
 ---
 
@@ -306,7 +306,7 @@ no decorative elements, vector-style, flat design
 
 | 图标 | 语义 | 典型位置 | 渲染上下文摘要 |
 |------|------|----------|----------------|
-| `User` | 单个用户 / 用户名 | DatabaseConfigFields 用户名前缀、end-user 详情 | 数据库连接配置表单的用户名输入框前缀（`size-3.5 text-muted-foreground`） |
+| `User` | 单个用户 / 用户名 | DatabaseConfigFields 用户名前缀 | 数据库连接配置表单的用户名输入框前缀（`size-3.5 text-muted-foreground`） |
 | `Users` | 用户组 / 成员列表 | AppLayout nav（开发者）、UsersTab、developers/members | 见导航侧边栏章节 |
 | `CircleUserRound` | 当前用户头像占位 | `UserMenu.tsx` 顶部用户下拉菜单 | 用户菜单 DropdownMenuItem，配"个人资料"文字，`size-4 mr-2` |
 | `Building2` | 组织切换器 | `organization-switcher.tsx` | 组织切换下拉菜单的组织图标占位，当组织无自定义头像时显示 |
@@ -326,8 +326,8 @@ no decorative elements, vector-style, flat design
 | `ChevronLeft` | 多步骤上一步 | ImportModelDialog、CreatePermissionSheet |
 | `ChevronRight` | 面包屑分隔 / 行跳转 | breadcrumb（分隔符）、AppLayout 子菜单箭头、UsersTab 行跳转 |
 | `ChevronsUpDown` | 可展开下拉（Combobox）| RelationSelector、RecordRelationManagerDialog、ModelSidebar |
-| `ArrowLeft` | 返回上级页面 | roles/[roleId]、permissions、bundles/[bundleId]、end-users/[userId] |
-| `ArrowRight` | 进入详情 / 下一步 | BundlesTab 列表行、CreateEndUserDialog 下一步、guide 页导航 |
+| `ArrowLeft` | 返回上级页面 | roles/[roleId]、permissions、bundles/[bundleId] |
+| `ArrowRight` | 进入详情 / 下一步 | BundlesTab 列表行、guide 页导航 |
 | `ArrowUpDown` | 排序触发 | `SortPopover.tsx` 排序弹出面板触发按钮 |
 | `Circle` | 单选指示器（空心圆） | `dropdown-menu.tsx` Radio Item 未选中态 |
 
@@ -338,7 +338,7 @@ no decorative elements, vector-style, flat design
 | 图标 | 语义 | 典型位置 | 渲染上下文摘要 |
 |------|------|----------|----------------|
 | `LayoutGrid` | 网格视图切换 | `view-toggle.tsx` | 与 `List` 配对的 ToggleGroup，`aria-label="网格视图"`，`size-4` |
-| `MoreHorizontal` | 更多操作菜单（⋮） | ProjectCard、EndUserAccessTable、EndUsersManagementTable、breadcrumb | 表格行 hover 时出现，`opacity-0 group-hover:opacity-100` 动画，触发 DropdownMenu |
+| `MoreHorizontal` | 更多操作菜单（⋮） | ProjectCard、breadcrumb | 表格行 hover 时出现，`opacity-0 group-hover:opacity-100` 动画，触发 DropdownMenu |
 | `Eye` | 查看密码 / 预览 | password-input、DatabaseConfigFields、ErrorHistoryDialog | 密码框右侧切换图标；ErrorHistoryDialog 中"展开详情"按钮 |
 | `EyeOff` | 隐藏密码 | password-input、DatabaseConfigFields | 密码可见时的切换图标，与 `Eye` 互斥显示 |
 | `HelpCircle` | 帮助提示 tooltip | InsertFieldSheet、AppLayout | `size-3.5 cursor-help text-muted-foreground`，悬停展开 TooltipContent，如"UUID v7 说明"、"关联字段说明" |

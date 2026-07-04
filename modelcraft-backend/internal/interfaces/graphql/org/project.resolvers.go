@@ -8,10 +8,8 @@ import (
 	"context"
 	clusterApp "modelcraft/internal/app/cluster"
 	appProject "modelcraft/internal/app/project"
-	appRLS "modelcraft/internal/app/rls"
 	domainCluster "modelcraft/internal/domain/cluster"
 	"modelcraft/internal/domain/project"
-	domainRLS "modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/graphql/org/adapter"
 	"modelcraft/internal/interfaces/graphql/org/generated"
 	"modelcraft/pkg/bizerrors"
@@ -65,10 +63,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input generated.Cr
 	proj, err := r.ProjectAppService.CreateProject(ctx, cmd)
 	if err != nil {
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-			logger.Error(ctx, "Failed to create project",
-				logfacade.Err(bizErr),
-				logfacade.Stack(bizErr),
-			)
+			logger.Errorf(ctx, bizErr, "Failed to create project")
 			gqlError := errorAdapter.ConvertToCreateProjectErrors(bizErr)
 			return &generated.CreateProjectPayload{
 				Project: nil,
@@ -177,10 +172,7 @@ func (r *mutationResolver) UpdateProjectCluster(ctx context.Context, projectSlug
 	clusterEntity, err := r.ClusterAppService.UpdateProjectCluster(ctx, cmd)
 	if err != nil {
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-			logger.Error(ctx, "Failed to update project cluster",
-				logfacade.Err(bizErr),
-				logfacade.Stack(bizErr),
-			)
+			logger.Errorf(ctx, bizErr, "Failed to update project cluster")
 			return &generated.UpdateClusterPayload{
 				Cluster: nil,
 				Error:   errorAdapter.ConvertToUpdateClusterError(bizErr),
@@ -284,56 +276,6 @@ func (r *mutationResolver) TestDatabaseConnection(ctx context.Context, input gen
 		Success:        true,
 		ConnectionTime: &connectionTime,
 		Error:          nil,
-	}, nil
-}
-
-// SetProjectAuthSchema is the resolver for the setProjectAuthSchema field.
-func (r *mutationResolver) SetProjectAuthSchema(ctx context.Context, input generated.SetProjectAuthSchemaInput) (*generated.SetProjectAuthSchemaPayload, error) {
-	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
-	if err != nil {
-		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "organization context required")
-	}
-
-	variables := make([]domainRLS.AuthVariable, 0, len(input.Variables))
-	for _, variable := range input.Variables {
-		if variable == nil {
-			continue
-		}
-
-		variables = append(variables, domainRLS.AuthVariable{
-			Name:   variable.Name,
-			Source: variable.Source,
-			Type:   toDomainAuthVarType(variable.Type),
-		})
-	}
-
-	authSchema, err := r.AuthSchemaAppService.SetAuthSchema(ctx, orgName, appRLS.SetProjectAuthSchemaInput{
-		ProjectSlug: input.ProjectSlug,
-		Variables:   variables,
-	})
-	if err != nil {
-		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-			switch bizErr.Info().GetCode() {
-			case bizerrors.ProjectNotFound.GetCode():
-				return &generated.SetProjectAuthSchemaPayload{
-					AuthSchema: nil,
-					Error:      &generated.ResourceNotFound{Message: bizErr.Error(), ResourceType: generated.ResourceTypeProject},
-				}, nil
-			case bizerrors.ParamInvalid.GetCode():
-				return &generated.SetProjectAuthSchemaPayload{
-					AuthSchema: nil,
-					Error: &generated.InvalidInput{
-						Message: bizErr.Error(),
-					},
-				}, nil
-			}
-		}
-		return nil, err
-	}
-
-	return &generated.SetProjectAuthSchemaPayload{
-		AuthSchema: toGraphQLProjectAuthSchema(authSchema),
-		Error:      nil,
 	}, nil
 }
 

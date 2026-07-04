@@ -12,92 +12,6 @@ import (
 	"time"
 )
 
-type EndUserBundleDataPermissionItemsGrantType string
-
-const (
-	EndUserBundleDataPermissionItemsGrantTypePRESET EndUserBundleDataPermissionItemsGrantType = "PRESET"
-	EndUserBundleDataPermissionItemsGrantTypeCUSTOM EndUserBundleDataPermissionItemsGrantType = "CUSTOM"
-)
-
-func (e *EndUserBundleDataPermissionItemsGrantType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = EndUserBundleDataPermissionItemsGrantType(s)
-	case string:
-		*e = EndUserBundleDataPermissionItemsGrantType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for EndUserBundleDataPermissionItemsGrantType: %T", src)
-	}
-	return nil
-}
-
-type NullEndUserBundleDataPermissionItemsGrantType struct {
-	EndUserBundleDataPermissionItemsGrantType EndUserBundleDataPermissionItemsGrantType
-	Valid                                     bool // Valid is true if EndUserBundleDataPermissionItemsGrantType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullEndUserBundleDataPermissionItemsGrantType) Scan(value interface{}) error {
-	if value == nil {
-		ns.EndUserBundleDataPermissionItemsGrantType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.EndUserBundleDataPermissionItemsGrantType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullEndUserBundleDataPermissionItemsGrantType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.EndUserBundleDataPermissionItemsGrantType), nil
-}
-
-type EndUserBundleDataPermissionItemsPreset string
-
-const (
-	EndUserBundleDataPermissionItemsPresetREADWRITEALL      EndUserBundleDataPermissionItemsPreset = "READ_WRITE_ALL"
-	EndUserBundleDataPermissionItemsPresetREADALL           EndUserBundleDataPermissionItemsPreset = "READ_ALL"
-	EndUserBundleDataPermissionItemsPresetREADWRITEOWNER    EndUserBundleDataPermissionItemsPreset = "READ_WRITE_OWNER"
-	EndUserBundleDataPermissionItemsPresetREADALLWRITEOWNER EndUserBundleDataPermissionItemsPreset = "READ_ALL_WRITE_OWNER"
-)
-
-func (e *EndUserBundleDataPermissionItemsPreset) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = EndUserBundleDataPermissionItemsPreset(s)
-	case string:
-		*e = EndUserBundleDataPermissionItemsPreset(s)
-	default:
-		return fmt.Errorf("unsupported scan type for EndUserBundleDataPermissionItemsPreset: %T", src)
-	}
-	return nil
-}
-
-type NullEndUserBundleDataPermissionItemsPreset struct {
-	EndUserBundleDataPermissionItemsPreset EndUserBundleDataPermissionItemsPreset
-	Valid                                  bool // Valid is true if EndUserBundleDataPermissionItemsPreset is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullEndUserBundleDataPermissionItemsPreset) Scan(value interface{}) error {
-	if value == nil {
-		ns.EndUserBundleDataPermissionItemsPreset, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.EndUserBundleDataPermissionItemsPreset.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullEndUserBundleDataPermissionItemsPreset) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.EndUserBundleDataPermissionItemsPreset), nil
-}
-
 type LogicalForeignKeysDirection string
 
 const (
@@ -227,6 +141,95 @@ func (ns NullModelDatabaseSyncJobStatus) Value() (driver.Value, error) {
 	return string(ns.ModelDatabaseSyncJobStatus), nil
 }
 
+type ModelRlsPoliciesAction string
+
+const (
+	ModelRlsPoliciesActionRead   ModelRlsPoliciesAction = "read"
+	ModelRlsPoliciesActionCreate ModelRlsPoliciesAction = "create"
+	ModelRlsPoliciesActionUpdate ModelRlsPoliciesAction = "update"
+	ModelRlsPoliciesActionDelete ModelRlsPoliciesAction = "delete"
+)
+
+func (e *ModelRlsPoliciesAction) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ModelRlsPoliciesAction(s)
+	case string:
+		*e = ModelRlsPoliciesAction(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ModelRlsPoliciesAction: %T", src)
+	}
+	return nil
+}
+
+type NullModelRlsPoliciesAction struct {
+	ModelRlsPoliciesAction ModelRlsPoliciesAction
+	Valid                  bool // Valid is true if ModelRlsPoliciesAction is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullModelRlsPoliciesAction) Scan(value interface{}) error {
+	if value == nil {
+		ns.ModelRlsPoliciesAction, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ModelRlsPoliciesAction.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullModelRlsPoliciesAction) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ModelRlsPoliciesAction), nil
+}
+
+type ModelSyncJobStatus string
+
+const (
+	ModelSyncJobStatusPending        ModelSyncJobStatus = "pending"
+	ModelSyncJobStatusRunning        ModelSyncJobStatus = "running"
+	ModelSyncJobStatusSucceeded      ModelSyncJobStatus = "succeeded"
+	ModelSyncJobStatusPartialSuccess ModelSyncJobStatus = "partial_success"
+	ModelSyncJobStatusFailed         ModelSyncJobStatus = "failed"
+)
+
+func (e *ModelSyncJobStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ModelSyncJobStatus(s)
+	case string:
+		*e = ModelSyncJobStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ModelSyncJobStatus: %T", src)
+	}
+	return nil
+}
+
+type NullModelSyncJobStatus struct {
+	ModelSyncJobStatus ModelSyncJobStatus
+	Valid              bool // Valid is true if ModelSyncJobStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullModelSyncJobStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ModelSyncJobStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ModelSyncJobStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullModelSyncJobStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ModelSyncJobStatus), nil
+}
+
 type ModelsCreatedVia string
 
 const (
@@ -267,26 +270,6 @@ func (ns NullModelsCreatedVia) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.ModelsCreatedVia), nil
-}
-
-type ApiKey struct {
-	ID     string
-	UserID string
-	// 用户命名，如 GitHub Actions
-	Name string
-	// SHA256 hash，不存明文
-	KeyHash string
-	// 完整 key 前 10 位，如 mc_a1b2c3d4
-	KeyPrefix string
-	// 绑定的角色 ID 列表（roles.id）
-	RoleIds *json.RawMessage
-	// 防抖：距上次 > 1 分钟才更新
-	LastUsedAt sql.NullTime
-	// NULL = 永不过期
-	ExpiresAt sql.NullTime
-	CreatedAt time.Time
-	// NULL = 有效
-	RevokedAt sql.NullTime
 }
 
 // 数据库集群配置信息表
@@ -333,152 +316,6 @@ type DatabaseCluster struct {
 	DeleteToken uint64
 }
 
-// EndUser Personal Access Token 注册表（PAT）
-type EndUserApiToken struct {
-	// 唯一标识符 (UUID v7)
-	ID string
-	// 所属组织
-	OrgName string
-	// 创建者 EndUser ID
-	EndUserID string
-	// 用户自定义名称
-	Name string
-	// SHA-256(plaintext) hex，用于验证
-	TokenHash string
-	// NULL 表示永不过期
-	ExpiresAt sql.NullTime
-	// 最近使用时间，异步更新
-	LastUsedAt sql.NullTime
-	// 创建时间
-	CreatedAt time.Time
-	// 软删除时间戳，0 表示活跃
-	DeletedAt uint64
-	// 唯一键避让位，0 表示活跃
-	DeleteToken uint64
-}
-
-// Bundle 数据权限 Item：bundle 在某模型上的唯一数据权限配置
-type EndUserBundleDataPermissionItem struct {
-	// Item UUID
-	ID string
-	// 所属权限包 ID，FK → end_user_permission_bundles.id
-	BundleID string
-	// 目标模型 ID，FK → models.id
-	ModelID string
-	// 授权来源类型
-	GrantType EndUserBundleDataPermissionItemsGrantType
-	// PRESET 模板枚举值（仅 grant_type=PRESET 时有值）
-	Preset NullEndUserBundleDataPermissionItemsPreset
-	// 自定义权限实体 ID（仅 grant_type=CUSTOM 时有值），FK → end_user_data_permissions.id
-	CustomPermissionID sql.NullString
-	// 显示排序权重（ASC）
-	SortOrder int32
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
-
-// 自定义数据权限实体：管理员手工定义的模型级行列策略（仅 CUSTOM）
-type EndUserDataPermission struct {
-	// 权限实体 UUID
-	ID string
-	// 所属组织（冗余，不做 FK）
-	OrgName string
-	// 所属项目（冗余，不做 FK）
-	ProjectSlug string
-	// 数据源名称（可空，预留按数据源授权能力）
-	DatabaseName sql.NullString
-	// 模型名称（可空，预留按模型名授权能力）
-	ModelName sql.NullString
-	// 关联模型 ID，FK → models.id
-	ModelID string
-	// 权限名称，人类可读
-	Name string
-	// 权限描述
-	Description sql.NullString
-	// 列策略 JSON
-	ColumnPolicy *json.RawMessage
-	// 行策略 JSON，谓词为 GraphQL Runtime where 条件
-	RowPolicy *json.RawMessage
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	// 软删除时间戳，0 表示活跃
-	DeletedAt uint64
-	// 唯一键避让位，0 表示活跃
-	DeleteToken uint64
-}
-
-// 权限包：数据权限 item 的命名集合，用于角色授权或用户直接授权
-type EndUserPermissionBundle struct {
-	// 权限包 UUID
-	ID string
-	// 用户可自定义的 URL 友好标识符，同项目内唯一，创建时设定后不可修改
-	Slug string
-	// 所属组织
-	OrgName string
-	// 所属项目
-	ProjectSlug string
-	// 权限包名称
-	Name string
-	// 权限包描述
-	Description sql.NullString
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	// 软删除时间戳，0 表示活跃
-	DeletedAt uint64
-	// 唯一键避让位，0 表示活跃
-	DeleteToken uint64
-}
-
-// 权限包历史快照：记录每次 data permission item 列表变更，支持回滚
-type EndUserPermissionBundleSnapshot struct {
-	// 快照 UUID
-	ID string
-	// 所属权限包 ID，FK → end_user_permission_bundles.id
-	BundleID string
-	// 版本号，从 1 开始，每个权限包独立计数
-	Version int32
-	// 快照时刻的 data permission item 列表，格式：[{"modelId":"uuid","grantType":"PRESET|CUSTOM","preset":"READ_ALL|...","customPermissionId":"uuid|null","sortOrder":0}]
-	Items json.RawMessage
-	// 快照创建时间
-	CreatedAt time.Time
-	// 操作人标识（用户 ID 或 system）
-	CreatedBy sql.NullString
-	// 若为回滚操作，指向来源版本号；否则为 NULL
-	RestoredFrom sql.NullInt32
-}
-
-// 角色-权限包 关联：角色持有哪些权限包
-type EndUserRoleBundle struct {
-	// UUID
-	ID string
-	// 所属组织（冗余，快速查询）
-	OrgName string
-	// 所属项目（冗余，快速查询）
-	ProjectSlug string
-	// 角色 ID，FK → project_roles.id
-	RoleID string
-	// 权限包 ID，FK → end_user_permission_bundles.id
-	BundleID string
-	// 授权时间
-	GrantedAt time.Time
-}
-
-// 用户直接授权-权限包：绕过角色直接给用户授予权限包
-type EndUserUserBundle struct {
-	// UUID
-	ID string
-	// 所属组织
-	OrgName string
-	// 所属项目
-	ProjectSlug string
-	// 用户 ID，FK → users.id
-	UserID string
-	// 权限包 ID，FK → end_user_permission_bundles.id
-	BundleID string
-	// 授权时间
-	GrantedAt time.Time
-}
-
 // 模型字段定义表
 type FieldDefinition struct {
 	// 所属模型ID
@@ -515,6 +352,8 @@ type FieldDefinition struct {
 	IsPrimary sql.NullBool
 	// 是否已废弃
 	IsDeprecated sql.NullBool
+	// 存储优化提示，通常为 DB 列名；非空表示该字段映射到实际 DB 列，参与 syncModelsFromDB 的 full sync
+	StorageHint sql.NullString
 	// 字段状态：init/active/inactive
 	Status string
 	// 字段验证规则配置
@@ -605,6 +444,10 @@ type Model struct {
 	LastSyncAt sql.NullTime
 	// 同步错误信息
 	SyncError sql.NullString
+	// 模型创建来源：NEW=新建，IMPORTED=导入
+	CreatedVia ModelsCreatedVia
+	// 是否只读：1=只读（禁止结构修改），0=可编辑
+	IsReadOnly bool
 	// 创建时间
 	CreatedAt sql.NullTime
 	// 更新时间
@@ -613,8 +456,6 @@ type Model struct {
 	DeletedAt uint64
 	// 唯一键避让位，0 表示活跃
 	DeleteToken uint64
-	// 模型创建来源：NEW=新建，IMPORTED=导入
-	CreatedVia ModelsCreatedVia
 }
 
 // Project 已接管的 MySQL database 注册表
@@ -635,6 +476,8 @@ type ModelDatabase struct {
 	Description sql.NullString
 	// self_hosted=可读写; managed=只读
 	Mode ModelDatabaseMode
+	// 最近一次 ModelSyncJob ID
+	LatestSyncJobID sql.NullString
 	// 软删除时间戳，0 表示活跃
 	DeletedAt uint64
 	// 唯一键避让位，0 表示活跃
@@ -749,23 +592,67 @@ type ModelGroup struct {
 	DeleteToken uint64
 }
 
-// Model RLS 策略配置
+// RLS 策略表（多策略存储）
 type ModelRlsPolicy struct {
 	ID uint64
+	// 组织名
+	OrgName string
+	// 项目标识
+	ProjectSlug string
 	// 模型 ID
 	ModelID string
-	// SELECT USING 谓词 JSON
-	SelectPredicate string
-	// INSERT WITH CHECK 谓词 JSON
-	InsertCheck string
-	// UPDATE USING 谓词 JSON
-	UpdatePredicate string
-	// UPDATE WITH CHECK 谓词 JSON
-	UpdateCheck string
-	// DELETE USING 谓词 JSON
-	DeletePredicate string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	// 策略名称（model 内唯一）
+	PolicyName string
+	// 操作类型
+	Action ModelRlsPoliciesAction
+	// 匹配角色（*=通配，匹配所有 EndUser）
+	Role string
+	// USING 表达式（read/update/delete）
+	UsingExpr sql.NullString
+	// WITH CHECK 表达式（create/update）
+	WithCheckExpr sql.NullString
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+// syncModelsFromDB 异步任务表
+type ModelSyncJob struct {
+	// 任务唯一标识符
+	ID string
+	// 批次 ID，同批次多条 job 共享
+	BatchID string
+	// 关联 model_database.id
+	DatabaseID string
+	// 所属组织名称
+	OrgName string
+	// 所属项目标识符
+	ProjectSlug string
+	// 目标数据库名称
+	DatabaseName string
+	// 指定同步的表名列表，空数组表示全量
+	TableNames json.RawMessage
+	// 任务状态
+	Status ModelSyncJobStatus
+	// 扫描到的总表数
+	TotalTables int32
+	// 已处理表数
+	ProcessedTables int32
+	// 新建模型数
+	CreatedModels int32
+	// 已同步模型数
+	SyncedModels int32
+	// 失败表数
+	FailedCount int32
+	// 失败明细，格式：[{tableName, message}]
+	FailedTables json.RawMessage
+	// worker 开始时间
+	StartedAt sql.NullTime
+	// 任务结束时间
+	FinishedAt sql.NullTime
+	// 创建时间
+	CreatedAt time.Time
+	// 更新时间
+	UpdatedAt time.Time
 }
 
 // 组织表（多租户容器）
@@ -865,48 +752,10 @@ type ProjectAuthSchema struct {
 	ProjectSlug string
 	// 认证变量列表 [{name, source, type}]
 	Variables json.RawMessage
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
-
-// Project 级数据角色表
-type ProjectRole struct {
-	// 角色 ID (UUID)
-	ID string
-	// 所属 Org
-	OrgName string
-	// 所属项目
-	ProjectSlug string
-	// Project 内唯一角色名
-	Name string
-	// 角色描述
-	Description sql.NullString
-	// 内置隐式角色标志
-	IsImplicit bool
-	// 受保护角色：不可删除、不可改名、不可修改权限包关联
-	IsProtected bool
 	// 创建时间
 	CreatedAt time.Time
 	// 更新时间
 	UpdatedAt time.Time
-	// 软删除时间戳
-	DeletedAt uint64
-	// 唯一键避让位
-	DeleteToken uint64
-}
-
-// Project 级角色-用户关联表（纯关联，不可修改，删除重建）
-type ProjectRoleUser struct {
-	// 关联 ID (UUID)
-	ID string
-	// 所属 Org
-	OrgName string
-	// 角色 ID（引用 project_roles.id）
-	RoleID string
-	// 用户 ID（引用 users.id）
-	UserID string
-	// 创建时间
-	CreatedAt time.Time
 }
 
 type RefreshToken struct {
@@ -992,6 +841,30 @@ type User struct {
 	CreatedAt time.Time
 	// 更新时间
 	UpdatedAt time.Time
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
+}
+
+// EndUser Personal Access Token 注册表（PAT）
+type UserApiToken struct {
+	// 唯一标识符 (UUID v7)
+	ID string
+	// 所属组织
+	OrgName string
+	// 创建者 EndUser ID
+	EndUserID string
+	// 用户自定义名称
+	Name string
+	// SHA-256(plaintext) hex，用于验证
+	TokenHash string
+	// NULL 表示永不过期
+	ExpiresAt sql.NullTime
+	// 最近使用时间，异步更新
+	LastUsedAt sql.NullTime
+	// 创建时间
+	CreatedAt time.Time
 	// 软删除时间戳，0 表示活跃
 	DeletedAt uint64
 	// 唯一键避让位，0 表示活跃

@@ -33,6 +33,10 @@ func NewRootCommand(info BuildInfo) *cobra.Command {
 	root.AddCommand(newRunCommand())
 	root.AddCommand(newSchemaCommand())
 	root.AddCommand(newDescribeCommand())
+
+	root.PersistentFlags().String("as-userid", "", "Impersonate this user ID (sets X-MC-Auth-Userid header)")
+	root.PersistentFlags().String("as-username", "", "Impersonate this username (sets X-MC-Auth-Username header)")
+	root.PersistentFlags().String("as-role", "", "Impersonate this role (sets X-MC-Auth-Roles header)")
 	return root
 }
 

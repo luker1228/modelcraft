@@ -42,6 +42,7 @@ func TestSqlModelDatabaseRepository_Create_PopulatesTimestamps(t *testing.T) {
 			entity.Title,
 			sql.NullString{},
 			dbgen.ModelDatabaseMode(entity.Mode),
+			sql.NullString{},
 		).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -54,6 +55,7 @@ func TestSqlModelDatabaseRepository_Create_PopulatesTimestamps(t *testing.T) {
 		"title",
 		"description",
 		"mode",
+		"latest_sync_job_id",
 		"deleted_at",
 		"delete_token",
 		"created_at",
@@ -67,6 +69,7 @@ func TestSqlModelDatabaseRepository_Create_PopulatesTimestamps(t *testing.T) {
 		entity.Title,
 		sql.NullString{},
 		dbgen.ModelDatabaseMode(entity.Mode),
+		sql.NullString{},
 		uint64(0),
 		uint64(0),
 		now,
@@ -74,7 +77,7 @@ func TestSqlModelDatabaseRepository_Create_PopulatesTimestamps(t *testing.T) {
 	)
 
 	selectQuery := "SELECT id, org_name, project_slug, cluster_id, name, title," +
-		" description, mode, deleted_at, delete_token, created_at, updated_at FROM model_database"
+		" description, mode, latest_sync_job_id, deleted_at, delete_token, created_at, updated_at FROM model_database"
 	mock.ExpectQuery(selectQuery).
 		WithArgs(entity.ID, entity.OrgName, entity.ProjectSlug).
 		WillReturnRows(rows)

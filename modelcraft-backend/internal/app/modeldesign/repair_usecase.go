@@ -59,7 +59,7 @@ func (s *RepairModelUseCase) RepairModel(
 	if model == nil {
 		return nil, fmt.Errorf("model not found: %s", modelID)
 	}
-	if model.IsManagedReadOnlyModel() {
+	if model.IsReadOnly {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ManagedModelReadOnly, model.ModelName)
 	}
 
@@ -82,7 +82,7 @@ func (s *RepairModelUseCase) RepairModel(
 
 	// In dry run mode, return without making changes
 	if mode == entity.DryRun {
-		logger.Info(ctx, "Dry run mode: returning without making changes")
+		logger.Infof(ctx, "Dry run mode: returning without making changes")
 		return result, nil
 	}
 

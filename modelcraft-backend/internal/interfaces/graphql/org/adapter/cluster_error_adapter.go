@@ -40,7 +40,7 @@ func (a *ClusterErrorAdapter) ConvertToGetClusterError(err *bizerrors.BusinessEr
 	case bizerrors.ClusterNotFound.GetCode(), bizerrors.NotFound.GetCode():
 		return orgResourceNotFound(err.Msg(), generated.ResourceTypeCluster)
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for GetCluster: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for GetCluster: %s", err.Info().GetCode())
 		return orgResourceNotFound(err.Msg(), generated.ResourceTypeCluster)
 	}
 }
@@ -67,7 +67,7 @@ func (a *ClusterErrorAdapter) ConvertToUpdateClusterError(err *bizerrors.Busines
 		suggestion := connectionSuggestion
 		return &generated.DatabaseConnectionFailed{Message: err.Msg(), Suggestion: &suggestion}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for UpdateCluster: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for UpdateCluster: %s", err.Info().GetCode())
 		return orgResourceNotFound(err.Msg(), generated.ResourceTypeCluster)
 	}
 }
@@ -84,7 +84,7 @@ func (a *ClusterErrorAdapter) ConvertToDeleteClusterError(err *bizerrors.Busines
 	case bizerrors.ClusterNotFound.GetCode(), bizerrors.NotFound.GetCode():
 		return orgResourceNotFound(err.Msg(), generated.ResourceTypeCluster)
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for DeleteCluster: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for DeleteCluster: %s", err.Info().GetCode())
 		return orgResourceNotFound(err.Msg(), generated.ResourceTypeCluster)
 	}
 }
@@ -104,7 +104,7 @@ func (a *ClusterErrorAdapter) ConvertToTestConnectionError(err *bizerrors.Busine
 		suggestion := connectionSuggestion
 		return &generated.DatabaseConnectionFailed{Message: err.Msg(), Suggestion: &suggestion}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for TestConnection: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for TestConnection: %s", err.Info().GetCode())
 		return &generated.DatabaseConnectionFailed{Message: err.Msg()}
 	}
 }

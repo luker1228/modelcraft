@@ -74,9 +74,8 @@ func (s *PermissionService) AddPermissionToRole(ctx context.Context, roleID int,
 		_, err := s.enforcer.AddPolicy(role.Name, obj, act)
 		if err != nil {
 			logger.Errorf(
-				ctx, "Failed to add Casbin policy for role %s: %v",
+				ctx, err, "Failed to add Casbin policy for role %s",
 				role.Name,
-				err,
 			)
 			// Don't fail the operation if Casbin sync fails
 		}
@@ -132,9 +131,8 @@ func (s *PermissionService) RemovePermissionFromRole(ctx context.Context, roleID
 		_, err := s.enforcer.RemovePolicy(role.Name, obj, act)
 		if err != nil {
 			logger.Errorf(
-				ctx, "Failed to remove Casbin policy for role %s: %v",
+				ctx, err, "Failed to remove Casbin policy for role %s",
 				role.Name,
-				err,
 			)
 			// Don't fail the operation if Casbin sync fails
 		}

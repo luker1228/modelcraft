@@ -95,7 +95,7 @@ func (c *PermissionCache) GetUserPermissions(ctx context.Context, userID, orgNam
 		}
 	} else if err != redis.Nil {
 		// Redis error (not a cache miss) - log and continue to DB
-		logfacade.GetLogger(ctx).Warn(ctx, "Redis cache error, falling back to database", logfacade.Err(err))
+		logfacade.GetLogger(ctx).Warnf(ctx, "Redis cache error, falling back to database, err=%v", err)
 	}
 
 	// Step 3: Cache miss - load from database
@@ -160,7 +160,7 @@ func (c *PermissionCache) GetUserPermissionsAndRoles(
 		}
 	} else if err != redis.Nil {
 		// Redis error (not a cache miss) - log and continue to DB
-		logfacade.GetLogger(ctx).Warn(ctx, "Redis cache error, falling back to database", logfacade.Err(err))
+		logfacade.GetLogger(ctx).Warnf(ctx, "Redis cache error, falling back to database, err=%v", err)
 	}
 
 	// Step 3: Cache miss - load from database

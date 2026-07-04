@@ -32,6 +32,12 @@ CREATE TABLE IF NOT EXISTS `models` (
   `last_sync_at` DATETIME(3) NULL COMMENT '最后同步时间',
   `sync_error` TEXT NULL COMMENT '同步错误信息',
 
+  -- 创建来源字段
+  `created_via` ENUM('NEW', 'IMPORTED') NOT NULL DEFAULT 'NEW' COMMENT '模型创建来源：NEW=新建，IMPORTED=导入',
+
+  -- 只读控制字段（与 createdVia 解耦，由数据库 mode 决定）
+  `is_read_only` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否只读：1=只读（禁止结构修改），0=可编辑',
+
   -- 时间戳字段
   `created_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
@@ -48,7 +54,9 @@ CREATE TABLE IF NOT EXISTS `models` (
 
   -- 普通索引
   KEY `idx_models_project` (`org_name`, `project_slug`) COMMENT '项目查询索引',
-  KEY `idx_models_live_project` (`org_name`, `project_slug`, `deleted_at`) COMMENT '项目活跃模型查询索引'
+  KEY `idx_models_live_project` (`org_name`, `project_slug`, `deleted_at`) COMMENT '项目活跃模型查询索引',
+  KEY `idx_models_is_read_only` (`is_read_only`) COMMENT '只读模型查询索引',
+  KEY `idx_models_created_via` (`created_via`) COMMENT '模型创建来源查询索引'
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型定义主表';
 
@@ -220,6 +228,9 @@ CREATE TABLE IF NOT EXISTS `field_definitions` (
   `is_primary` TINYINT(1) NULL DEFAULT 0 COMMENT '是否主键',
   `is_deprecated` TINYINT(1) NULL DEFAULT 0 COMMENT '是否已废弃',
   
+  -- 存储提示（对应 DB 列名，非空表示该字段由 DB 同步而来）
+  `storage_hint` VARCHAR(128) NULL COMMENT '存储优化提示，通常为 DB 列名；非空表示该字段映射到实际 DB 列，参与 syncModelsFromDB 的 full sync',
+
   -- 状态和验证配置
   `status` VARCHAR(20) NOT NULL DEFAULT 'init' COMMENT '字段状态：init/active/inactive',
   `validation` JSON NULL COMMENT '字段验证规则配置',

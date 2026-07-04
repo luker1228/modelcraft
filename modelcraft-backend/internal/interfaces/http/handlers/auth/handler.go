@@ -2,12 +2,18 @@ package auth
 
 import (
 	"encoding/json"
+	"modelcraft/internal/app/apitoken"
 	"modelcraft/internal/interfaces/http/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/config"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
+	"strings"
+	"time"
+
+	httpmiddleware "modelcraft/internal/interfaces/http/middleware"
 
 	appAuth "modelcraft/internal/app/auth"
 )
@@ -15,14 +21,23 @@ import (
 // Handler handles HTTP auth endpoints.
 type Handler struct {
 	tokenService *appAuth.TokenService
+	apiTokenSvc  *apitoken.APITokenService
 	cookieCfg    config.CookieConfig
+	isOrgAdminFn httpmiddleware.IsOrgAdminFn
 }
 
 // NewHandler creates a new auth Handler.
-func NewHandler(tokenService *appAuth.TokenService, cookieCfg config.CookieConfig) *Handler {
+func NewHandler(
+	tokenService *appAuth.TokenService,
+	apiTokenSvc *apitoken.APITokenService,
+	cookieCfg config.CookieConfig,
+	isOrgAdminFn httpmiddleware.IsOrgAdminFn,
+) *Handler {
 	return &Handler{
 		tokenService: tokenService,
+		apiTokenSvc:  apiTokenSvc,
 		cookieCfg:    cookieCfg,
+		isOrgAdminFn: isOrgAdminFn,
 	}
 }
 
@@ -82,7 +97,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	var req generated.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logfacade.GetLogger(r.Context()).Warn(r.Context(), "Invalid register request body", logfacade.Err(err))
+		logfacade.GetLogger(r.Context()).With(logfacade.Err(err)).Warnf(r.Context(), "Invalid register request body")
 		writeAuthError(w, http.StatusBadRequest, requestID, "PARAM_INVALID.AUTH", "Invalid request body")
 		return
 	}
@@ -120,7 +135,7 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	var req generated.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logfacade.GetLogger(r.Context()).Warn(r.Context(), "Invalid login request body", logfacade.Err(err))
+		logfacade.GetLogger(r.Context()).With(logfacade.Err(err)).Warnf(r.Context(), "Invalid login request body")
 		writeAuthError(w, http.StatusBadRequest, requestID, "PARAM_INVALID.AUTH", "Invalid request body")
 		return
 	}
@@ -203,6 +218,130 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// HandlePATWhoami resolves identity for a validated PAT request.
+// The PAT middleware authenticates the token and injects user/org fields into context.
+func (h *Handler) HandlePATWhoami(w http.ResponseWriter, r *http.Request) {
+	requestID := ctxutils.GetRequestID(r.Context())
+
+	authHeader := r.Header.Get(httpheader.Authorization)
+	if strings.HasPrefix(authHeader, "Bearer mc_pat_") {
+		h.handlePATWhoami(w, r, requestID, authHeader)
+		return
+	}
+
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		h.handlePlatformWhoami(w, r, requestID, strings.TrimPrefix(authHeader, "Bearer "))
+		return
+	}
+
+	logfacade.GetLogger(r.Context()).
+		Warnf(r.Context(), "whoami rejected: invalid auth header requestId=%s", requestID)
+	writeAuthError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", "valid bearer token required")
+}
+
+func (h *Handler) handlePATWhoami(w http.ResponseWriter, r *http.Request, requestID, authHeader string) {
+	if h.apiTokenSvc == nil {
+		logfacade.GetLogger(r.Context()).Errorf(r.Context(), nil, "PAT whoami unavailable: api token service is nil")
+		writeAuthError(w, http.StatusInternalServerError, requestID, "SYSTEM_ERROR", "Internal server error")
+		return
+	}
+
+	plaintext := strings.TrimPrefix(authHeader, "Bearer ")
+	token, err := h.apiTokenSvc.ValidateToken(r.Context(), plaintext)
+	if err != nil || token == nil {
+		msg := "valid PAT token required"
+		if err != nil {
+			msg = err.Error()
+		}
+		logfacade.GetLogger(r.Context()).
+			Warnf(r.Context(), "PAT whoami validation failed requestId=%s err=%v", requestID, err)
+		writeAuthError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", msg)
+		return
+	}
+
+	go func() {
+		if updateErr := h.apiTokenSvc.UpdateLastUsedAt(r.Context(), token.ID, time.Now()); updateErr != nil {
+			logfacade.GetLogger(r.Context()).Warnf(r.Context(), "PAT whoami update last_used_at failed: %v", updateErr)
+		}
+	}()
+
+	isAdmin := false
+	if h.isOrgAdminFn != nil {
+		if ok, adminErr := h.isOrgAdminFn(r.Context(), token.OrgName, token.EndUserID); adminErr == nil {
+			isAdmin = ok
+		}
+	}
+
+	// Issue a short-lived JWT so the gateway can replace the raw PAT bearer
+	// token before forwarding to downstream GraphQL endpoints.
+	var accessToken string
+	if h.tokenService != nil {
+		var jwtErr error
+		accessToken, jwtErr = h.tokenService.IssueToken(token.EndUserID, token.OrgName, isAdmin)
+		if jwtErr != nil {
+			logfacade.GetLogger(r.Context()).Warnf(r.Context(),
+				"PAT whoami jwt issue failed requestId=%s err=%v", requestID, jwtErr)
+		}
+	}
+
+	memberships, membershipsErr := h.tokenService.GetUserMembershipSnapshots(r.Context(), token.EndUserID)
+	if membershipsErr != nil {
+		logfacade.GetLogger(r.Context()).Warnf(r.Context(),
+			"PAT whoami memberships load failed requestId=%s err=%v", requestID, membershipsErr)
+	}
+
+	resp := map[string]any{
+		"requestId":   requestID,
+		"userId":      token.EndUserID,
+		"orgName":     token.OrgName,
+		"isAdmin":     isAdmin,
+		"memberships": buildWhoamiMemberships(memberships),
+	}
+	if accessToken != "" {
+		resp["accessToken"] = accessToken
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *Handler) handlePlatformWhoami(w http.ResponseWriter, r *http.Request, requestID, token string) {
+	claims, err := h.tokenService.ParsePlatformToken(token)
+	if err != nil {
+		logfacade.GetLogger(r.Context()).
+			Warnf(r.Context(), "platform whoami validation failed requestId=%s err=%v", requestID, err)
+		writeAuthError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", "valid bearer token required")
+		return
+	}
+
+	memberships, membershipsErr := h.tokenService.GetUserMembershipSnapshots(r.Context(), claims.UserID)
+	if membershipsErr != nil {
+		logfacade.GetLogger(r.Context()).
+			Warnf(r.Context(), "platform whoami memberships load failed requestId=%s err=%v", requestID, membershipsErr)
+	}
+
+	resp := map[string]any{
+		"requestId":   requestID,
+		"userId":      claims.UserID,
+		"orgName":     claims.OrgName,
+		"isAdmin":     claims.IsAdmin,
+		"memberships": buildWhoamiMemberships(memberships),
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func buildWhoamiMemberships(items []appAuth.UserMembershipSnapshot) []map[string]any {
+	memberships := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		memberships = append(memberships, map[string]any{
+			"orgId":       item.OrgID,
+			"orgName":     item.OrgName,
+			"displayName": item.DisplayName,
+			"role":        item.Role,
+			"joinedAt":    item.JoinedAt.UnixMilli(),
+		})
+	}
+	return memberships
+}
+
 // handleBusinessError maps a BusinessError to the appropriate HTTP error response.
 // This is the error conversion point — logfacade.Stack(err) is logged here per architecture rules.
 func (h *Handler) handleBusinessError(
@@ -215,13 +354,13 @@ func (h *Handler) handleBusinessError(
 	bizErr, ok := err.(*bizerrors.BusinessError)
 	if !ok {
 		// Not a BusinessError — unexpected system error
-		logfacade.GetLogger(r.Context()).Error(r.Context(), logMsg, logfacade.Err(err), logfacade.Stack(err))
+		logfacade.GetLogger(r.Context()).Errorf(r.Context(), err, logMsg)
 		writeAuthError(w, http.StatusInternalServerError, requestID, "SYSTEM_ERROR", "Internal server error")
 		return
 	}
 
 	// Log with stack at the Interfaces layer error conversion point
-	logfacade.GetLogger(r.Context()).Error(r.Context(), logMsg, logfacade.Err(err), logfacade.Stack(err))
+	logfacade.GetLogger(r.Context()).Errorf(r.Context(), err, logMsg)
 
 	statusCode := bizErr.GetHTTPStatusCode()
 	code := bizErr.Info().GetCode()
@@ -232,7 +371,7 @@ func (h *Handler) handleBusinessError(
 
 // writeAuthError writes a structured error response matching the OpenAPI error schemas.
 func writeAuthError(w http.ResponseWriter, statusCode int, requestID, code, message string) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 	w.WriteHeader(statusCode)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"requestId": requestID,
@@ -245,7 +384,7 @@ func writeAuthError(w http.ResponseWriter, statusCode int, requestID, code, mess
 
 // writeJSON is a helper to write JSON responses.
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
 }

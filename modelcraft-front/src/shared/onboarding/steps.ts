@@ -53,7 +53,7 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
   },
   {
     id: 'design_model',
-    label: '创建模型',
+    label: '导入模型',
     steps: [
       {
         kind: 'nav',
@@ -75,8 +75,8 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
       },
       {
         kind: 'nav',
-        id: 'nav_create_model',
-        label: '点击新建模型',
+        id: 'nav_import_model',
+        label: '点击导入模型',
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/model-editor`

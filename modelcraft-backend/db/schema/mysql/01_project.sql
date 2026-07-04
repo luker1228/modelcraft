@@ -34,3 +34,27 @@ CREATE TABLE IF NOT EXISTS `projects` (
   KEY `idx_project_live_org` (`org_name`, `deleted_at`) COMMENT '组织活跃项目查询索引'
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='项目信息表（多租户，复合主键，只归档不删除）';
+
+
+-- project_auth_schemas 表 SQL 定义
+-- 每个项目的认证变量配置表（每个项目只有一份）
+
+CREATE TABLE IF NOT EXISTS `project_auth_schemas` (
+  `id`           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `org_name`     VARCHAR(36) NOT NULL COMMENT '所属组织名称',
+  `project_slug` VARCHAR(64) NOT NULL COMMENT '所属项目标识符',
+
+  -- 扩展变量配置（JSON 数组）
+  `variables`    JSON NOT NULL COMMENT '认证变量列表 [{name, source, type}]',
+
+  -- 时间戳字段
+  `created_at`   DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `updated_at`   DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+
+  -- 唯一约束：每个项目只有一份 auth schema
+  UNIQUE KEY `uk_auth_schemas_project` (`org_name`, `project_slug`),
+
+  KEY `idx_auth_schemas_project` (`org_name`, `project_slug`) COMMENT '项目查询索引'
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Project 认证变量配置';

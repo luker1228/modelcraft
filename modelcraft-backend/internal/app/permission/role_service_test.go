@@ -184,14 +184,9 @@ func (m *MockUserRoleRepository) DeleteUserRolesByRole(ctx context.Context, role
 // testContext creates a properly initialized context for testing
 func testContext() context.Context {
 	ctx := context.Background()
-	cv := &ctxutils.HttpRequestContext{
-		RequestId: "test-request-id",
-		Lang:      "en",
-		Method:    "TEST",
-		Path:      "/test",
-		ClientIP:  "127.0.0.1",
-	}
-	return ctxutils.NewHttpContext(ctx, cv)
+	ctx = ctxutils.SetRequestID(ctx, "test-request-id")
+	ctx = ctxutils.SetLang(ctx, "en")
+	return ctx
 }
 
 // Test CreateCustomRole

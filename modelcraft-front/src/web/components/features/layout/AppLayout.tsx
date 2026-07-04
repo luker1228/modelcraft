@@ -18,19 +18,21 @@ import { useOrganizationStore } from '@shared/stores/organization'
 import { TENANT_LOGIN_PATH } from '@shared/constants/routes'
 import { getCachedMemberships } from '@shared/cache/memberships-cache'
 import { useProjectStore } from '@web/stores/project'
+import { useAppStore } from '@web/stores/app'
 import { getToken, getUserInfoFromToken, removeToken } from '@api-client/auth/public'
-import {
-  refreshEndUserAccessToken,
-} from '@api-client/end-user/end-user-auth-client'
-import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
+import { clearApolloCache } from '@web/providers/apollo-wrapper'
+import { clearAllScopedCaches } from '@api-client/apollo/develop-client'
 import {
   Search,
+  RefreshCw,
   HelpCircle,
   ChevronRight,
   Check,
+  KeyRound,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { buildAppLayoutBreadcrumbs } from './app-layout-breadcrumbs'
+import { buildModelEditorPath } from '@shared/routes/model-editor-path'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -74,20 +76,7 @@ export function AppLayout({
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [orgSearchQuery, setOrgSearchQuery] = useState('')
-  const [hasEndUserSession, setHasEndUserSession] = useState(() => {
-    const s = useEndUserAuthStore.getState()
-    return !!s.accessToken && !s.isTokenExpired()
-  })
-
-  // Attempt silent refresh only when no valid session was found synchronously
-  useEffect(() => {
-    if (hasEndUserSession) return
-    // Attempt silent refresh — fire-and-forget, no redirect
-    refreshEndUserAccessToken({ orgName }).then((token) => {
-      if (token) setHasEndUserSession(true)
-    }).catch(() => { /* ignore */ })
-  }, [orgName, hasEndUserSession])
-
+  const [contentRefreshKey, setContentRefreshKey] = useState(0)
   const storedMemberships = useOrganizationStore((state) => state.memberships)
   const loadMembershipsStore = useOrganizationStore((state) => state.loadMemberships)
 
@@ -117,6 +106,7 @@ export function AppLayout({
 
   const storeProjects = useProjectStore((state) => state.projects)
   const selectedProject = useProjectStore((state) => state.selectedProject)
+  const selectedDatabase = useAppStore((state) => state.selectedDatabase)
 
   const filteredOrgs = useMemo(() => {
     if (!orgSearchQuery) return memberships
@@ -172,6 +162,15 @@ export function AppLayout({
     setSidebarCollapsed((prev) => !prev)
   }, [])
 
+  const handleRefreshContent = useCallback(() => {
+    // Clear all Apollo caches so the subsequent re-mount forces
+    // every useQuery to fetch fresh data from the network.
+    clearApolloCache()
+    clearAllScopedCaches()
+    setContentRefreshKey((prev) => prev + 1)
+    router.refresh()
+  }, [router])
+
   // ── Navigation structure ──────────────────────────────────────────────────
 
   const workspaceNavSections: NavSection[] = [
@@ -179,13 +178,13 @@ export function AppLayout({
       header: '工作区',
       items: [
         { label: '项目', icon: '/icons/icon-folder-open.svg', href: `/org/${orgName}/dashboard` },
-        { label: '终端用户', icon: '/icons/icon-key-round.svg', href: `/org/${orgName}/end-users` },
       ],
     },
     {
       header: '设置',
       items: [
-        { label: '组织设置', icon: '/icons/icon-settings.svg', href: `/org/${orgName}/settings` },
+        { label: '组织设置', icon: '/icons/icon-settings.svg', href: `/org/${orgName}/settings/general` },
+        { label: 'API Token', icon: KeyRound, href: `/org/${orgName}/api-tokens` },
       ],
     },
   ]
@@ -196,7 +195,14 @@ export function AppLayout({
       items: [
         { label: '数据模型', icon: '/icons/icon-table2.svg', href: `/org/${orgName}/project/${projectSlug}/model-editor`, children: [
           { label: '模型管理', href: `/org/${orgName}/project/${projectSlug}/model-editor`, tabParam: 'view=schema' },
-          { label: '数据管理', href: `/org/${orgName}/project/${projectSlug}/model-editor?view=data`, tabParam: 'view=data' },
+          {
+            label: '数据管理',
+            href: buildModelEditorPath(orgName, projectSlug, {
+              view: 'data',
+              databaseName: selectedDatabase,
+            }),
+            tabParam: 'view=data',
+          },
         ]},
         { label: '数据库', icon: '/icons/icon-list.svg', href: `/org/${orgName}/project/${projectSlug}/databases` },
         { label: '枚举管理', icon: '/icons/icon-list.svg', href: `/org/${orgName}/project/${projectSlug}/enums` },
@@ -205,12 +211,7 @@ export function AppLayout({
     {
       header: '权限管理',
       items: [
-        { label: '访问控制', icon: '/icons/icon-shield.svg', href: `/org/${orgName}/project/${projectSlug}/access-control`, children: [
-          { label: '角色', href: `/org/${orgName}/project/${projectSlug}/access-control?tab=roles`, tabParam: 'tab=roles' },
-          { label: '权限包', href: `/org/${orgName}/project/${projectSlug}/access-control?tab=bundles`, tabParam: 'tab=bundles' },
-          { label: '权限点', href: `/org/${orgName}/project/${projectSlug}/access-control?tab=permissions`, tabParam: 'tab=permissions' },
-        ]},
-        { label: '用户授权', icon: '/icons/icon-key-round.svg', href: `/org/${orgName}/project/${projectSlug}/end-user-access` },
+        { label: '访问控制', icon: '/icons/icon-shield.svg', href: `/org/${orgName}/project/${projectSlug}/access-control` },
       ],
     },
     {
@@ -310,25 +311,18 @@ export function AppLayout({
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Right actions: Help + User only */}
+        {/* Right actions */}
         <div className="flex items-center gap-1">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="h-8 px-3 text-xs"
-            onClick={() => {
-              const s = useEndUserAuthStore.getState()
-              if (s.accessToken && !s.isTokenExpired()) {
-                router.push(`/end-user/${orgName}/dashboard`)
-                return
-              }
-              void refreshEndUserAccessToken({ orgName }).then((token) => {
-                router.push(token ? `/end-user/${orgName}/dashboard` : `/end-user/${orgName}/login`)
-              })
-            }}
+            className="size-8 p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
+            title="刷新"
+            onClick={handleRefreshContent}
           >
-            切换到用户视图
+            <RefreshCw className="size-4" strokeWidth={1.5} />
           </Button>
+
           <Button
             variant="ghost"
             size="sm"
@@ -359,7 +353,7 @@ export function AppLayout({
 
         {/* Content area */}
         <main className="flex-1 overflow-hidden bg-card">
-          <div className="h-full overflow-y-auto">
+          <div key={contentRefreshKey} className="h-full overflow-y-auto">
             {children}
           </div>
         </main>

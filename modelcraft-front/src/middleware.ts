@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { END_USER_LOGIN_PATH, END_USER_REFRESH_COOKIE, TENANT_LOGIN_PATH, TENANT_REGISTER_PATH } from '@shared/constants/routes'
+import { TENANT_LOGIN_PATH, TENANT_REGISTER_PATH } from '@shared/constants/routes'
 
 /**
  * Next.js Middleware — Single auth gate for all protected routes.
@@ -11,13 +11,6 @@ import { END_USER_LOGIN_PATH, END_USER_REFRESH_COOKIE, TENANT_LOGIN_PATH, TENANT
  *  - We do NOT validate the token here (that would require calling the backend on every
  *    request). We only check presence. The actual token exchange happens client-side via
  *    silent refresh (/api/bff/auth/refresh) after the page loads.
- *
- * End-User Auth:
- *  - All /end-user/* routes are handled separately before developer auth.
- *  - Public end-user paths (login) are allowed through.
- *  - Protected end-user paths (/end-user/[orgName]/dashboard, /end-user/[orgName]/[projectSlug]/*)
- *    require the mc_refresh_token HttpOnly cookie.
- *    If missing, redirect to /end-user/[orgName]/login.
  */
 
 // ============================================
@@ -26,56 +19,11 @@ import { END_USER_LOGIN_PATH, END_USER_REFRESH_COOKIE, TENANT_LOGIN_PATH, TENANT
 const DEV_PUBLIC_PATHS = [TENANT_LOGIN_PATH, TENANT_REGISTER_PATH, '/login']
 const DEV_REFRESH_COOKIE = 'mc_refresh_token'
 
-// ============================================
-// 终端用户认证配置
-// ============================================
-
-/**
- * 终端用户公开路径（仅这两类）：
- *   /end-user/{orgName}/login
- *   /end-user/{orgName}/no-project-access
- */
-const END_USER_PUBLIC_PATH_RE = /^\/end-user(?:\/login|\/[^/]+\/(login|no-project-access))\/?$/
-
-/**
- * 终端用户受保护路径（仅真实业务路由）：
- *   /end-user/{orgName}/dashboard
- *   /end-user/{orgName}/projects/{projectSlug}/...
- */
-const END_USER_WORKSPACE_RE = /^\/end-user\/([^/]+)\/dashboard\/?$/
-const END_USER_PROJECT_RE = /^\/end-user\/([^/]+)\/projects\/[^/]+(\/.*)?$/
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Allow /api/* and /auth/* unconditionally (BFF endpoints, rewrites, etc.)
   if (pathname.startsWith('/api/') || pathname.startsWith('/auth/')) {
-    return NextResponse.next()
-  }
-
-  // ===== END USER AUTH =====
-
-  if (pathname.startsWith('/end-user/')) {
-    // 公开路径（login / no-project-access）
-    if (END_USER_PUBLIC_PATH_RE.test(pathname)) {
-      return NextResponse.next()
-    }
-
-    // 受保护路径：仅 workspace 与 projects/*
-    const workspaceMatch = END_USER_WORKSPACE_RE.exec(pathname)
-    const projectMatch = END_USER_PROJECT_RE.exec(pathname)
-    const protectedOrgName = workspaceMatch?.[1] ?? projectMatch?.[1]
-    if (protectedOrgName) {
-      const hasToken = request.cookies.has(END_USER_REFRESH_COOKIE)
-      if (!hasToken) {
-        const loginUrl = new URL(END_USER_LOGIN_PATH, request.url)
-        loginUrl.searchParams.set('redirect', pathname)
-        return NextResponse.redirect(loginUrl)
-      }
-      return NextResponse.next()
-    }
-
-    // 其余 /end-user/* 路径直接放行，让 Next.js 返回 404
     return NextResponse.next()
   }
 

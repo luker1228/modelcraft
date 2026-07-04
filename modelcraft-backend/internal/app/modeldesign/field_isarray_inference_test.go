@@ -78,10 +78,8 @@ func (m *MockEnumRepo) ExistsByName(orgName, projectSlug, name string) (bool, er
 // newTestContextForIsArray creates a context with required values for testing.
 func newTestContextForIsArray() context.Context {
 	ctx := context.Background()
-	ctx = ctxutils.NewHttpContext(ctx, &ctxutils.HttpRequestContext{
-		RequestId: "test-req-id",
-		Lang:      "en",
-	})
+	ctx = ctxutils.SetRequestID(ctx, "test-req-id")
+	ctx = ctxutils.SetLang(ctx, "en")
 	ctx = ctxutils.SetContextValue(ctx, ctxutils.ContextKeyOrgName, "test-org")
 	return ctx
 }

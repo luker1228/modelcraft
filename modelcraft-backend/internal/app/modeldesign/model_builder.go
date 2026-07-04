@@ -76,6 +76,7 @@ func newModelFromCommand(ctx context.Context, cmd CreateModelCommand) (*modeldes
 			Status:           "draft",
 			DeploymentStatus: modeldesign.DeploymentPending, // 新创建的模型待同步
 			CreatedVia:       modeldesign.ModelCreationSourceNew,
+			IsReadOnly:       false,
 			LastSyncAt:       nil,
 			SyncError:        "",
 			CreatedAt:        now,
@@ -109,6 +110,7 @@ func BuildModelFromTable(
 	orgName string,
 	projectSlug string,
 	databaseName string,
+	isReadOnly bool,
 ) (*BuildModelFromTableResult, error) {
 	now := time.Now()
 
@@ -145,6 +147,7 @@ func BuildModelFromTable(
 			CreatedAt:        now,
 			UpdatedAt:        now,
 			CreatedVia:       modeldesign.ModelCreationSourceImported,
+			IsReadOnly:       isReadOnly,
 		},
 		Fields: make([]*modeldesign.FieldDefinition, 0),
 	}
@@ -226,4 +229,10 @@ func formatModelTitle(tableName string) string {
 	}
 
 	return regexp.MustCompile(`\s+`).ReplaceAllString(fmt.Sprintf("%s", parts), " ")
+}
+
+// NormalizeModelName is the public wrapper for normalizeModelName.
+// Used by SyncModelsAppService to compute model names from table names.
+func NormalizeModelName(tableName string) string {
+	return normalizeModelName(tableName)
 }

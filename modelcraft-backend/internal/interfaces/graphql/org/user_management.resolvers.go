@@ -6,7 +6,6 @@ package orggraphql
 
 import (
 	"context"
-
 	appRole "modelcraft/internal/app/role"
 	"modelcraft/internal/interfaces/graphql/org/adapter"
 	"modelcraft/internal/interfaces/graphql/org/generated"
@@ -103,7 +102,7 @@ func (r *mutationResolver) DeleteRole(ctx context.Context, id string) (*generate
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*generated.CurrentUser, error) {
 	// Extract user info from context using standard methods
-	userIDStr, _ := ctxutils.GetTenantUserIDFromContext(ctx)
+	userIDStr, _ := ctxutils.GetUserIDFromContext(ctx)
 	orgNameStr, _ := ctxutils.GetOrgNameFromContext(ctx)
 
 	perms, _ := ctxutils.GetPermissionsFromContext(ctx)
@@ -137,7 +136,7 @@ func (r *queryResolver) Me(ctx context.Context) (*generated.CurrentUser, error) 
 // MyOrganizations is the resolver for the myOrganizations field.
 func (r *queryResolver) MyOrganizations(ctx context.Context) ([]*generated.Organization, error) {
 	// Get current user's external ID from context
-	userIDStr, err := ctxutils.GetTenantUserIDFromContext(ctx)
+	userIDStr, err := ctxutils.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}

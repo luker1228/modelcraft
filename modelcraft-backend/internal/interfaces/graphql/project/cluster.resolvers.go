@@ -41,10 +41,7 @@ func (r *mutationResolver) UpdateProjectCluster(ctx context.Context, input gener
 	clusterEntity, err := r.ClusterAppService.UpdateProjectCluster(ctx, cmd)
 	if err != nil {
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-			logger.Error(ctx, "Failed to update project cluster",
-				logfacade.Err(bizErr),
-				logfacade.Stack(bizErr),
-			)
+			logger.Errorf(ctx, bizErr, "Failed to update project cluster")
 			return &generated.UpdateClusterPayload{
 				Cluster: nil,
 				Error:   errorAdapter.ConvertToUpdateClusterError(bizErr),
@@ -134,18 +131,18 @@ func (r *mutationResolver) TestDatabaseConnection(ctx context.Context, input gen
 	}, nil
 }
 
-// ModelDatabaseCatalog is the resolver for the modelDatabaseCatalog field.
-func (r *queryResolver) ModelDatabaseCatalog(ctx context.Context, input *generated.ModelDatabaseCatalogInput) (*generated.GetModelDatabaseCatalogPayload, error) {
+// RegisteredDatabases is the resolver for the registeredDatabases field.
+func (r *queryResolver) RegisteredDatabases(ctx context.Context, input *generated.RegisteredDatabasesInput) (*generated.GetRegisteredDatabasesPayload, error) {
 	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
 	if err != nil {
-		return &generated.GetModelDatabaseCatalogPayload{
+		return &generated.GetRegisteredDatabasesPayload{
 			Error: &generated.InvalidInput{Message: "organization context required"},
 		}, nil
 	}
 
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
-		return &generated.GetModelDatabaseCatalogPayload{
+		return &generated.GetRegisteredDatabasesPayload{
 			Error: &generated.InvalidInput{Message: "projectSlug not found in context"},
 		}, nil
 	}
@@ -181,7 +178,7 @@ func (r *queryResolver) ModelDatabaseCatalog(ctx context.Context, input *generat
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
 			switch bizErr.Info().GetCode() {
 			case bizerrors.ProjectNotFound.GetCode():
-				return &generated.GetModelDatabaseCatalogPayload{
+				return &generated.GetRegisteredDatabasesPayload{
 					Error: &generated.ResourceNotFound{Message: bizErr.Msg(), ResourceType: generated.ResourceTypeProject},
 				}, nil
 			case bizerrors.ParamInvalid.GetCode():
@@ -190,9 +187,9 @@ func (r *queryResolver) ModelDatabaseCatalog(ctx context.Context, input *generat
 					detail := bizErr.Detail()
 					gqlErr.Suggestion = &detail
 				}
-				return &generated.GetModelDatabaseCatalogPayload{Error: gqlErr}, nil
+				return &generated.GetRegisteredDatabasesPayload{Error: gqlErr}, nil
 			default:
-				return &generated.GetModelDatabaseCatalogPayload{
+				return &generated.GetRegisteredDatabasesPayload{
 					Error: &generated.InvalidInput{Message: bizErr.Msg()},
 				}, nil
 			}
@@ -209,8 +206,8 @@ func (r *queryResolver) ModelDatabaseCatalog(ctx context.Context, input *generat
 	pageSize32 := int32(pageSize)
 	totalCount32 := int32(totalCount)
 
-	return &generated.GetModelDatabaseCatalogPayload{
-		Data: &generated.ModelDatabaseCatalogPayload{
+	return &generated.GetRegisteredDatabasesPayload{
+		Data: &generated.RegisteredDatabasesPayload{
 			Databases:  items,
 			TotalCount: totalCount32,
 			Page:       page32,

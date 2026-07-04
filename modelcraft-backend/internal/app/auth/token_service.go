@@ -74,6 +74,14 @@ type TokenService struct {
 	systemDB           *sql.DB
 }
 
+type UserMembershipSnapshot struct {
+	OrgID       string
+	OrgName     string
+	DisplayName string
+	Role        string
+	JoinedAt    time.Time
+}
+
 // NewTokenService 创建新的 TokenService。
 func NewTokenService(
 	refreshTokenRepo domainauth.RefreshTokenRepository,
@@ -110,6 +118,42 @@ func (s *TokenService) WithEndUserSupport(factory EndUserRepositoryFactory, syst
 	s.endUserRepoFactory = factory
 	s.systemDB = systemDB
 	return s
+}
+
+// IssueToken 签发短效 JWT（用于 PAT → JWT 交换等场景）。
+// 由 APISIX 网关在验证 PAT 后通过 /api/tenant/auth/whoami 获取此 JWT，
+// 再转发给后端 GraphQL endpoint，从而避免 raw PAT 在内部链路中传播。
+func (s *TokenService) IssueToken(userID, orgName string, isAdmin bool) (string, error) {
+	return s.jwtSigner.IssueAccessToken(userID, orgName, isAdmin)
+}
+
+// ParsePlatformToken validates a tenant/end-user platform JWT and returns its claims.
+func (s *TokenService) ParsePlatformToken(token string) (*domainauth.PlatformClaims, error) {
+	return s.jwtSigner.ParsePlatformClaims(token)
+}
+
+// GetUserMembershipSnapshots returns the organizations available to the given user.
+// Current behavior matches the legacy /api/user/memberships endpoint: one primary org.
+func (s *TokenService) GetUserMembershipSnapshots(
+	ctx context.Context, userID string,
+) ([]UserMembershipSnapshot, error) {
+	u, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query user: %w", err)
+	}
+	if u == nil {
+		return []UserMembershipSnapshot{}, nil
+	}
+
+	return []UserMembershipSnapshot{
+		{
+			OrgID:       u.OrgName,
+			OrgName:     u.OrgName,
+			DisplayName: "",
+			Role:        "",
+			JoinedAt:    u.CreatedAt,
+		},
+	}, nil
 }
 
 // Register 手机号+密码注册新用户。
@@ -244,7 +288,7 @@ func (s *TokenService) registerWithTxOrgService(
 	err := s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
 		// Step 1: Create Org first to get orgName
 		var orgName string
-			var ownerRoleID int
+		var ownerRoleID int
 		if s.createOrgService != nil {
 			orgOutput, txErr := txOrgService.ExecuteWithQuerier(ctx, q, orgInput)
 			if txErr != nil {
@@ -254,7 +298,7 @@ func (s *TokenService) registerWithTxOrgService(
 				)
 			}
 			orgName = orgOutput.OrganizationName
-				ownerRoleID = int(orgOutput.RoleID)
+			ownerRoleID = int(orgOutput.RoleID)
 		} else {
 			orgName = bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
 		}
@@ -283,21 +327,21 @@ func (s *TokenService) registerWithTxOrgService(
 		// Step 4: Persist user + profile
 		userRepo := repository.NewSqlUserRepository(q)
 		profileRepo := repository.NewSqlProfileRepository(q)
-			if err := s.persistUserAndProfile(ctx, userRepo, profileRepo, u, initialProfile, phone.Masked()); err != nil {
-				return err
-			}
+		if err := s.persistUserAndProfile(ctx, userRepo, profileRepo, u, initialProfile, phone.Masked()); err != nil {
+			return err
+		}
 
-			// Step 5: Assign owner role (user must exist first for fk_user_roles_user FK)
-			if ownerRoleID != 0 {
-				userRoleRepo := repository.NewSqlCasbinUserRoleRepository(q)
-				userRole := &domainPermission.UserRole{
-					UserID: userID, RoleID: ownerRoleID, OrgName: orgName,
-				}
-				if err := userRoleRepo.AssignRole(ctx, userRole); err != nil {
-					return bizerrors.WrapError(err, bizerrors.SystemError, "assign owner role")
-				}
+		// Step 5: Assign owner role (user must exist first for fk_user_roles_user FK)
+		if ownerRoleID != 0 {
+			userRoleRepo := repository.NewSqlCasbinUserRoleRepository(q)
+			userRole := &domainPermission.UserRole{
+				UserID: userID, RoleID: ownerRoleID, OrgName: orgName,
 			}
-			return nil
+			if err := userRoleRepo.AssignRole(ctx, userRole); err != nil {
+				return bizerrors.WrapError(err, bizerrors.SystemError, "assign owner role")
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		if _, ok := err.(*bizerrors.BusinessError); ok {

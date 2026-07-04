@@ -12,20 +12,48 @@ import (
 	"time"
 )
 
+const countModelDatabaseCatalog = `-- name: CountModelDatabaseCatalog :one
+SELECT COUNT(*) FROM model_database
+WHERE org_name = ?
+  AND project_slug = ?
+  AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
+  AND ` + "`" + `model_database` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+`
+
+type CountModelDatabaseCatalogParams struct {
+	OrgName      string
+	ProjectSlug  string
+	SearchFilter interface{}
+	Search       interface{}
+}
+
+func (q *Queries) CountModelDatabaseCatalog(ctx context.Context, arg CountModelDatabaseCatalogParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countModelDatabaseCatalog,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.SearchFilter,
+		arg.Search,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createModelDatabase = `-- name: CreateModelDatabase :exec
-INSERT INTO model_database (id, org_name, project_slug, cluster_id, name, title, description, mode, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO model_database (id, org_name, project_slug, cluster_id, name, title, description, mode, latest_sync_job_id, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateModelDatabaseParams struct {
-	ID          string
-	OrgName     string
-	ProjectSlug string
-	ClusterID   string
-	Name        string
-	Title       string
-	Description sql.NullString
-	Mode        ModelDatabaseMode
+	ID              string
+	OrgName         string
+	ProjectSlug     string
+	ClusterID       string
+	Name            string
+	Title           string
+	Description     sql.NullString
+	Mode            ModelDatabaseMode
+	LatestSyncJobID sql.NullString
 }
 
 func (q *Queries) CreateModelDatabase(ctx context.Context, arg CreateModelDatabaseParams) error {
@@ -38,6 +66,7 @@ func (q *Queries) CreateModelDatabase(ctx context.Context, arg CreateModelDataba
 		arg.Title,
 		arg.Description,
 		arg.Mode,
+		arg.LatestSyncJobID,
 	)
 	return err
 }
@@ -183,7 +212,7 @@ func (q *Queries) GetActiveModelDatabaseSyncJobByDatabase(ctx context.Context, a
 }
 
 const getModelDatabaseByID = `-- name: GetModelDatabaseByID :one
-SELECT id, org_name, project_slug, cluster_id, name, title, description, mode, deleted_at, delete_token, created_at, updated_at FROM model_database
+SELECT id, org_name, project_slug, cluster_id, name, title, description, mode, latest_sync_job_id, deleted_at, delete_token, created_at, updated_at FROM model_database
 WHERE id = ? AND org_name = ? AND project_slug = ? AND ` + "`" + `model_database` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 LIMIT 1
 `
@@ -206,6 +235,7 @@ func (q *Queries) GetModelDatabaseByID(ctx context.Context, arg GetModelDatabase
 		&i.Title,
 		&i.Description,
 		&i.Mode,
+		&i.LatestSyncJobID,
 		&i.DeletedAt,
 		&i.DeleteToken,
 		&i.CreatedAt,
@@ -215,7 +245,7 @@ func (q *Queries) GetModelDatabaseByID(ctx context.Context, arg GetModelDatabase
 }
 
 const getModelDatabaseByName = `-- name: GetModelDatabaseByName :one
-SELECT id, org_name, project_slug, cluster_id, name, title, description, mode, deleted_at, delete_token, created_at, updated_at FROM model_database
+SELECT id, org_name, project_slug, cluster_id, name, title, description, mode, latest_sync_job_id, deleted_at, delete_token, created_at, updated_at FROM model_database
 WHERE org_name = ? AND project_slug = ? AND name = ? AND ` + "`" + `model_database` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 LIMIT 1
 `
@@ -238,6 +268,7 @@ func (q *Queries) GetModelDatabaseByName(ctx context.Context, arg GetModelDataba
 		&i.Title,
 		&i.Description,
 		&i.Mode,
+		&i.LatestSyncJobID,
 		&i.DeletedAt,
 		&i.DeleteToken,
 		&i.CreatedAt,
@@ -283,8 +314,57 @@ func (q *Queries) GetModelDatabaseSyncJobByID(ctx context.Context, arg GetModelD
 	return i, err
 }
 
+const listModelDatabaseCatalog = `-- name: ListModelDatabaseCatalog :many
+SELECT name FROM model_database
+WHERE org_name = ?
+  AND project_slug = ?
+  AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
+  AND ` + "`" + `model_database` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+ORDER BY name ASC
+LIMIT ? OFFSET ?
+`
+
+type ListModelDatabaseCatalogParams struct {
+	OrgName      string
+	ProjectSlug  string
+	SearchFilter interface{}
+	Search       interface{}
+	Limit        int32
+	Offset       int32
+}
+
+func (q *Queries) ListModelDatabaseCatalog(ctx context.Context, arg ListModelDatabaseCatalogParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listModelDatabaseCatalog,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.SearchFilter,
+		arg.Search,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		items = append(items, name)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listModelDatabasesByProject = `-- name: ListModelDatabasesByProject :many
-SELECT id, org_name, project_slug, cluster_id, name, title, description, mode, deleted_at, delete_token, created_at, updated_at FROM model_database
+SELECT id, org_name, project_slug, cluster_id, name, title, description, mode, latest_sync_job_id, deleted_at, delete_token, created_at, updated_at FROM model_database
 WHERE org_name = ? AND project_slug = ? AND ` + "`" + `model_database` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 ORDER BY created_at ASC
 `
@@ -312,6 +392,7 @@ func (q *Queries) ListModelDatabasesByProject(ctx context.Context, arg ListModel
 			&i.Title,
 			&i.Description,
 			&i.Mode,
+			&i.LatestSyncJobID,
 			&i.DeletedAt,
 			&i.DeleteToken,
 			&i.CreatedAt,
@@ -332,17 +413,18 @@ func (q *Queries) ListModelDatabasesByProject(ctx context.Context, arg ListModel
 
 const updateModelDatabase = `-- name: UpdateModelDatabase :exec
 UPDATE model_database
-SET title = ?, description = ?, mode = ?, updated_at = NOW(3)
+SET title = ?, description = ?, mode = ?, latest_sync_job_id = ?, updated_at = NOW(3)
 WHERE id = ? AND org_name = ? AND project_slug = ? AND ` + "`" + `model_database` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type UpdateModelDatabaseParams struct {
-	Title       string
-	Description sql.NullString
-	Mode        ModelDatabaseMode
-	ID          string
-	OrgName     string
-	ProjectSlug string
+	Title           string
+	Description     sql.NullString
+	Mode            ModelDatabaseMode
+	LatestSyncJobID sql.NullString
+	ID              string
+	OrgName         string
+	ProjectSlug     string
 }
 
 func (q *Queries) UpdateModelDatabase(ctx context.Context, arg UpdateModelDatabaseParams) error {
@@ -350,6 +432,30 @@ func (q *Queries) UpdateModelDatabase(ctx context.Context, arg UpdateModelDataba
 		arg.Title,
 		arg.Description,
 		arg.Mode,
+		arg.LatestSyncJobID,
+		arg.ID,
+		arg.OrgName,
+		arg.ProjectSlug,
+	)
+	return err
+}
+
+const updateModelDatabaseLatestSyncJob = `-- name: UpdateModelDatabaseLatestSyncJob :exec
+UPDATE model_database
+SET latest_sync_job_id = ?, updated_at = NOW(3)
+WHERE id = ? AND org_name = ? AND project_slug = ? AND ` + "`" + `model_database` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+`
+
+type UpdateModelDatabaseLatestSyncJobParams struct {
+	LatestSyncJobID sql.NullString
+	ID              string
+	OrgName         string
+	ProjectSlug     string
+}
+
+func (q *Queries) UpdateModelDatabaseLatestSyncJob(ctx context.Context, arg UpdateModelDatabaseLatestSyncJobParams) error {
+	_, err := q.db.ExecContext(ctx, updateModelDatabaseLatestSyncJob,
+		arg.LatestSyncJobID,
 		arg.ID,
 		arg.OrgName,
 		arg.ProjectSlug,

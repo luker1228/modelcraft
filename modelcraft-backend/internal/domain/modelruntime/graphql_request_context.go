@@ -21,15 +21,8 @@ type graphqlRequestContext struct {
 	OrgName string
 	// ProjectSlug 是请求的项目标识
 	ProjectSlug string
-	// CurrentEndUserID 是当前请求的 EndUser ID（从 JWT 提取）。
-	// 为空字符串表示请求来自 tenant admin（无 EndUser 身份）。
-	CurrentEndUserID string
-	// EndUserAdminID 是当前 org 的 end-user super-admin ID（从 JWT claim 提取）。
-	// 仅 tenant admin 请求有值，用于自动填充 END_USER_REF 字段的默认 owner。
-	EndUserAdminID string
-	// EndUserPerms 是当前 EndUser 在本次请求目标 model 上的权限快照。
-	// nil 表示请求来自 tenant admin，跳过所有权限检查。
-	EndUserPerms *ResolvedModelPermissions
+	// RLS 持有当前请求完整的 runtime 身份、权限和策略上下文。
+	RLS *RLSContext
 }
 
 // graphqlRequestContextKey 是 graphqlRequestContext 在 context 中的 key 类型。
@@ -38,17 +31,15 @@ type graphqlRequestContextKey struct{}
 // newGraphqlRequestContext 创建一个新的请求级上下文。
 func newGraphqlRequestContext(
 	clientRepo ClientDatabaseRepository,
-	orgName, projectSlug, currentEndUserID, endUserAdminID string,
-	endUserPerms *ResolvedModelPermissions,
+	orgName, projectSlug string,
+	rlsCtx *RLSContext,
 ) *graphqlRequestContext {
 	return &graphqlRequestContext{
-		ClientRepo:       clientRepo,
-		relationLoaders:  make(map[string]*dataloader.Loader[string, map[string]any]),
-		OrgName:          orgName,
-		ProjectSlug:      projectSlug,
-		CurrentEndUserID: currentEndUserID,
-		EndUserAdminID:   endUserAdminID,
-		EndUserPerms:     endUserPerms,
+		ClientRepo:      clientRepo,
+		relationLoaders: make(map[string]*dataloader.Loader[string, map[string]any]),
+		OrgName:         orgName,
+		ProjectSlug:     projectSlug,
+		RLS:             rlsCtx,
 	}
 }
 
@@ -57,10 +48,29 @@ func newGraphqlRequestContext(
 func WithGraphqlRequestContext(
 	ctx context.Context,
 	clientRepo ClientDatabaseRepository,
-	orgName, projectSlug, currentEndUserID, endUserAdminID string,
-	endUserPerms *ResolvedModelPermissions,
+	orgName, projectSlug string,
+	args ...any,
 ) context.Context {
-	rctx := newGraphqlRequestContext(clientRepo, orgName, projectSlug, currentEndUserID, endUserAdminID, endUserPerms)
+	rlsCtx := &RLSContext{}
+	switch len(args) {
+	case 1:
+		if args[0] != nil {
+			rlsCtx, _ = args[0].(*RLSContext)
+		}
+		if rlsCtx == nil {
+			rlsCtx = &RLSContext{}
+		}
+	case 3:
+		endUserID, _ := args[0].(string)
+		perms, _ := args[2].(*ResolvedModelPermissions)
+		rlsCtx = &RLSContext{
+			EndUserID:   endUserID,
+			Permissions: perms,
+		}
+	default:
+		rlsCtx = &RLSContext{}
+	}
+	rctx := newGraphqlRequestContext(clientRepo, orgName, projectSlug, rlsCtx)
 	return context.WithValue(ctx, graphqlRequestContextKey{}, rctx)
 }
 
@@ -85,14 +95,4 @@ func (rctx *graphqlRequestContext) getOrCreateLoader(
 	l := newRelationBatchLoader(rctx.ClientRepo, tableName, referenceKey)
 	rctx.relationLoaders[key] = l
 	return l
-}
-
-// resolveEndUserOwnerID returns the end-user ID to use for END_USER_REF field injection.
-// Priority: CurrentEndUserID (from end-user JWT) > EndUserAdminID (from tenant admin JWT claim).
-// Returns empty string if neither is available (tenant admin without admin claim).
-func (rctx *graphqlRequestContext) resolveEndUserOwnerID() string {
-	if rctx.CurrentEndUserID != "" {
-		return rctx.CurrentEndUserID
-	}
-	return rctx.EndUserAdminID
 }

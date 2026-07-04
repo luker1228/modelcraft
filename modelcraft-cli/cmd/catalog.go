@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"errors"
-	"net/http"
 	"os"
 
 	"modelcraft-cli/internal/app"
-	"modelcraft-cli/internal/client"
 	"modelcraft-cli/internal/config"
 	"modelcraft-cli/internal/output"
 
@@ -40,12 +38,12 @@ func newCatalogProjectsCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			items, err := (client.GraphQLClient{HTTPClient: http.DefaultClient}).CatalogProjects(
-				cmd.Context(),
-				creds.Server,
-				creds.OrgName,
-				creds.AccessToken,
-			)
+		items, err := newGraphQLClient(cmd).CatalogProjects(
+			cmd.Context(),
+			creds.Server,
+			creds.OrgName,
+			creds.AccessToken,
+		)
 			if err != nil {
 				return err
 			}
@@ -78,13 +76,13 @@ func newCatalogDatabasesCommand() *cobra.Command {
 				return output.NewCLIError("NO_PROJECT_CONTEXT", "No project context is selected.", true, "Use --project <slug> or run 'mc auth switch-project <slug>'.", nil)
 			}
 
-			items, err := (client.GraphQLClient{HTTPClient: http.DefaultClient}).CatalogDatabases(
-				cmd.Context(),
-				resolved.Server,
-				resolved.OrgName,
-				resolved.CurrentProject,
-				resolved.AccessToken,
-			)
+		items, err := newGraphQLClient(cmd).CatalogDatabases(
+			cmd.Context(),
+			resolved.Server,
+			resolved.OrgName,
+			resolved.CurrentProject,
+			resolved.AccessToken,
+		)
 			if err != nil {
 				return err
 			}
@@ -121,14 +119,14 @@ func newCatalogModelsCommand() *cobra.Command {
 				return output.NewCLIError("MISSING_REQUIRED_FLAG", "Missing required flag.", true, "Run 'mc catalog models --help' to inspect required flags.", map[string]any{"flag": "database"})
 			}
 
-			items, err := (client.GraphQLClient{HTTPClient: http.DefaultClient}).CatalogModels(
-				cmd.Context(),
-				resolved.Server,
-				resolved.OrgName,
-				resolved.CurrentProject,
-				database,
-				resolved.AccessToken,
-			)
+		items, err := newGraphQLClient(cmd).CatalogModels(
+			cmd.Context(),
+			resolved.Server,
+			resolved.OrgName,
+			resolved.CurrentProject,
+			database,
+			resolved.AccessToken,
+		)
 			if err != nil {
 				return err
 			}

@@ -3,14 +3,10 @@
 import { memo, useMemo, Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
-import { CopilotAvailableContext } from '@web/components/features/end-user-data/FilterCopilotActions'
 import { useAuthStore } from '@shared/stores/auth-store'
-import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { useAppStore } from '@web/stores/app'
 import { SharedCopilotActions } from './SharedCopilotActions'
 import { AdminCopilotKnowledge } from './AdminCopilotKnowledge'
-import { EndUserCopilotActions } from './EndUserCopilotActions'
-import { EndUserCopilotKnowledge } from './EndUserCopilotKnowledge'
 import { AIChipMessage } from './AIChipMessage'
 import { RoutePageKnowledge } from './RoutePageKnowledge'
 
@@ -101,85 +97,12 @@ export const CopilotWrapper = memo(({
   orgName,
 }: Omit<CopilotProviderProps, never>) => {
   return (
-    <CopilotAvailableContext.Provider value={true}>
-      <Suspense fallback={children}>
-        <CopilotProvider orgName={orgName}>
-          {children}
-        </CopilotProvider>
-      </Suspense>
-    </CopilotAvailableContext.Provider>
+    <Suspense fallback={children}>
+      <CopilotProvider orgName={orgName}>
+        {children}
+      </CopilotProvider>
+    </Suspense>
   )
 })
 
 CopilotWrapper.displayName = 'CopilotWrapper'
-
-interface EndUserCopilotWrapperProps {
-  children: React.ReactNode
-  orgName: string
-  projectSlug: string
-}
-
-/**
- * Wrapper for end-user routes — mounts enduser-specific tools, knowledge, and sidebar.
- *
- * Note: the current end-user data route does not use this wrapper on purpose.
- * The CopilotSidebar floating entry is more suitable for admin workflows and
- * currently blocks the end-user table view. Keep this wrapper as the reserved
- * integration point so end-user Copilot can be turned back on later.
- */
-export const EndUserCopilotWrapper = memo(({
-  children,
-  orgName,
-  projectSlug,
-}: EndUserCopilotWrapperProps) => {
-  const accessToken = useEndUserAuthStore((s) => s.accessToken)
-
-  const copilotContext = useMemo(() => ({
-    orgName,
-    projectSlug,
-  }), [orgName, projectSlug])
-
-  const headers = useMemo<Record<string, string> | undefined>(
-    () => accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-    [accessToken]
-  )
-
-  const initialMessage = useMemo(() => `你好！我是 ModelCraft AI 助手，当前项目：${projectSlug}。
-
-我可以帮助你：
-
-• 查询和筛选数据
-• 分析数据记录
-
-请问有什么可以帮助你的？`, [projectSlug])
-
-  return (
-    <CopilotAvailableContext.Provider value={true}>
-      <Suspense fallback={children}>
-        <CopilotKit
-          runtimeUrl="/api/copilotkit"
-          agent="modelcraft_enduser_agent"
-          headers={headers}
-          properties={copilotContext}
-          showDevConsole={false}
-        >
-          <SharedCopilotActions />
-          <EndUserCopilotKnowledge />
-          <EndUserCopilotActions orgName={orgName} projectSlug={projectSlug} />
-          {/* AICapabilityReadable intentionally omitted: end-user surface is read-only (data query/view), no page-action capability registration */}
-          {children}
-          <CopilotSidebar
-            labels={{
-              title: 'ModelCraft AI 助手',
-              initial: initialMessage,
-            }}
-            defaultOpen={false}
-            AssistantMessage={AIChipMessage}
-          />
-        </CopilotKit>
-      </Suspense>
-    </CopilotAvailableContext.Provider>
-  )
-})
-
-EndUserCopilotWrapper.displayName = 'EndUserCopilotWrapper'

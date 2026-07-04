@@ -7,13 +7,14 @@ import (
 
 func modelDatabaseToGQL(db *domainmodeldatabase.ModelDatabase) *generated.ModelDatabase {
 	return &generated.ModelDatabase{
-		ID:          db.ID,
-		Name:        db.Name,
-		Title:       db.Title,
-		Description: db.Description,
-		Mode:        domainDatabaseModeToGQL(db.Mode),
-		CreatedAt:   db.CreatedAt,
-		UpdatedAt:   db.UpdatedAt,
+		ID:              db.ID,
+		Name:            db.Name,
+		Title:           db.Title,
+		Description:     db.Description,
+		Mode:            domainDatabaseModeToGQL(db.Mode),
+		LatestSyncJobID: db.LatestSyncJobID,
+		CreatedAt:       db.CreatedAt,
+		UpdatedAt:       db.UpdatedAt,
 	}
 }
 
@@ -44,6 +45,54 @@ func derefStringOrEmpty(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+func modelSyncJobToGQL(job *domainmodeldatabase.ModelSyncJob) *generated.ModelSyncJob {
+	failedTables := make([]*generated.ModelSyncFailedTable, len(job.FailedTables))
+	for i, ft := range job.FailedTables {
+		ft := ft
+		failedTables[i] = &generated.ModelSyncFailedTable{
+			TableName: ft.TableName,
+			Message:   ft.Message,
+		}
+	}
+	tableNames := job.TableNames
+	if tableNames == nil {
+		tableNames = []string{}
+	}
+	return &generated.ModelSyncJob{
+		ID:              job.ID,
+		BatchID:         job.BatchID,
+		DatabaseID:      job.DatabaseID,
+		DatabaseName:    job.DatabaseName,
+		TableNames:      tableNames,
+		Status:          domainModelSyncJobStatusToGQL(job.Status),
+		TotalTables:     int32(job.TotalTables),
+		ProcessedTables: int32(job.ProcessedTables),
+		CreatedModels:   int32(job.CreatedModels),
+		SyncedModels:    int32(job.SyncedModels),
+		FailedCount:     int32(job.FailedCount),
+		FailedTables:    failedTables,
+		StartedAt:       job.StartedAt,
+		FinishedAt:      job.FinishedAt,
+		CreatedAt:       job.CreatedAt,
+		UpdatedAt:       job.UpdatedAt,
+	}
+}
+
+func domainModelSyncJobStatusToGQL(
+	status domainmodeldatabase.ModelSyncJobStatus,
+) generated.ModelSyncJobStatus {
+	switch status {
+	case domainmodeldatabase.ModelSyncJobStatusPending:
+		return generated.ModelSyncJobStatusPending
+	case domainmodeldatabase.ModelSyncJobStatusRunning:
+		return generated.ModelSyncJobStatusRunning
+	case domainmodeldatabase.ModelSyncJobStatusSucceeded:
+		return generated.ModelSyncJobStatusSucceeded
+	default:
+		return generated.ModelSyncJobStatusFailed
+	}
 }
 
 func modelDatabaseSyncJobToGQL(job *domainmodeldatabase.ModelDatabaseSyncJob) *generated.ModelDatabaseSyncJob {

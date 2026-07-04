@@ -1,0 +1,51 @@
+server:
+  port: "8080"
+  mode: "release"
+
+database:
+  type: "mysql"
+  host: "mysql"
+  port: 3306
+  username: "modelcraft"
+  password: "modelcraft123"
+  database: "modelcraft"
+  charset: "utf8mb4"
+  max_open_conns: 100
+  max_idle_conns: 10
+  conn_max_lifetime: 3600
+  log_level: "info"
+  migrate_on_startup: true
+
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+
+jwt:
+  secret: "modelcraft_dev_secret_please_change_in_production"
+  private_key: "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIKDDrR2NGbLrNf9Ap2TTF0jIlwSx7ExEiCsF5Z0N4y4AoAoGCCqGSM49\nAwEHoUQDQgAEw1SV3/9qLTugs2eF1dw963KpTNtktbdCtuciyI3OJ01MclvPTFE/\nThqti3TegWLdaxidmpPQ5pemawUXIqu6Yg==\n-----END EC PRIVATE KEY-----"
+  expiration: 21600s
+  issuer: "modelcraft"
+
+auth:
+  cookie:
+    domain: ""
+    secure: false
+    same_site: "strict"
+  design:
+    jwt_public_key_path: ""
+    jwt_public_key: ""
+    accept_modelcraft_jwt: true
+  runtime:
+    optional_for_projects: []
+
+crypto:
+  aes_key: "m7Qx2Nf9Lp4Vt8Kc1Hs6Zd3Rw5By0JgA"
+
+logger:
+  level: "info"
+  output_path: "logs/server.log"
+  max_size: 100
+  max_backups: 10
+  max_age: 7
+  compress: true

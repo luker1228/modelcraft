@@ -7,13 +7,54 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"modelcraft-cli/internal/output"
 )
 
+// Impersonation carries end-user identity headers that override the
+// authenticated caller's RLS context on the backend. When non-empty,
+// the corresponding X-MC-Auth-* headers are injected into every request.
+type Impersonation struct {
+	UserID   string
+	UserName string
+	Roles    string
+}
+
+func (i Impersonation) Enabled() bool {
+	return i.UserID != "" || i.UserName != "" || i.Roles != ""
+}
+
+// HeaderName constants for impersonation, mirroring the backend's
+// pkg/httpheader definitions.
+const (
+	hdrMCAuthUserIDInt  = "X-MC-Auth-Userid-Int"
+	hdrMCAuthUserIDStr  = "X-MC-Auth-Userid-Str"
+	hdrMCAuthUserName   = "X-MC-Auth-Username"
+	hdrMCAuthRoles      = "X-MC-Auth-Roles"
+)
+
+// SetHeaders injects impersonation headers onto the request.
+func (i Impersonation) SetHeaders(req *http.Request) {
+	if i.UserID != "" {
+		if _, err := strconv.ParseInt(i.UserID, 10, 64); err == nil {
+			req.Header.Set(hdrMCAuthUserIDInt, i.UserID)
+		} else {
+			req.Header.Set(hdrMCAuthUserIDStr, i.UserID)
+		}
+	}
+	if i.UserName != "" {
+		req.Header.Set(hdrMCAuthUserName, i.UserName)
+	}
+	if i.Roles != "" {
+		req.Header.Set(hdrMCAuthRoles, i.Roles)
+	}
+}
+
 type GraphQLClient struct {
-	HTTPClient *http.Client
+	HTTPClient    *http.Client
+	Impersonation Impersonation
 }
 
 type graphQLRequest struct {
@@ -63,6 +104,9 @@ func (c GraphQLClient) Execute(ctx context.Context, endpoint, token, query strin
 	req.Header.Set("Content-Type", "application/json")
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	if c.Impersonation.Enabled() {
+		c.Impersonation.SetHeaders(req)
 	}
 	// Set X-Action header when the query has a named operation — required by the
 	// backend's ChiGraphQLActionMiddleware on project-level GraphQL routes.

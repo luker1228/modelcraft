@@ -9,12 +9,15 @@ import (
 type contextKey string
 
 const (
-	// HttpRequestContextKey is the key for storing HTTP request context
-	HttpRequestContextKey contextKey = "http_request_context"
+	// RequestIDKey is the context key for the request ID (set by ChiLoggerMiddleware).
+	RequestIDKey contextKey = "request_id"
+	// LangKey is the context key for the client language preference (set by ChiLoggerMiddleware).
+	LangKey contextKey = "lang"
 
 	// User context keys - these are the standard keys for storing user data in context
 	// Use the typed Set*/Get* functions below rather than these constants directly.
 	ContextKeyUserID      contextKey = "user_id"
+	ContextKeyEndUserID   contextKey = "end_user_id"
 	ContextKeyOrgName     contextKey = "org_name"
 	ContextKeyPermissions contextKey = "permissions"
 
@@ -24,51 +27,30 @@ const (
 
 	// ContextKeyProjectSlug is the key for storing the project slug in context.
 	ContextKeyProjectSlug contextKey = "project_slug"
-
-	// ContextKeyUserType distinguishes "end_user" from "tenant" (developer) callers.
-	ContextKeyUserType contextKey = "user_type"
-
-	// ContextKeyIsAdmin stores whether the end-user is an org admin, derived from the
-	// is_admin JWT claim injected by APISIX as X-Is-Admin header.
-	ContextKeyIsAdmin contextKey = "is_admin"
-
-	// ContextKeyTenantUserID stores the tenant admin's user ID.
-	// Set from X-Tenant-User-Id header (injected by APISIX for tenant tokens).
-	ContextKeyTenantUserID contextKey = "tenant_user_id"
 )
 
-const UserTypeEndUser = "end_user"
-
-// HttpRequestContext encapsulates HTTP request-related data
-// This is for HTTP layer concerns, not business logic
-type HttpRequestContext struct {
-	RequestId string // Unique request identifier for tracing
-	Method    string // HTTP method (GET, POST, etc.)
-	Path      string // Request path
-	ClientIP  string // Client IP address
-	Lang      string // Client language preference
+// SetRequestID stores the request ID in context.
+func SetRequestID(ctx context.Context, requestID string) context.Context {
+	return context.WithValue(ctx, RequestIDKey, requestID)
 }
 
-// NewHttpContext creates a new context with HttpRequestContext
-func NewHttpContext(parent context.Context, hrc *HttpRequestContext) context.Context {
-	return context.WithValue(parent, HttpRequestContextKey, hrc)
-}
-
-// FromContext extracts HttpRequestContext from context
-func FromContext(ctx context.Context) *HttpRequestContext {
-	val, ok := ctx.Value(HttpRequestContextKey).(*HttpRequestContext)
-	if !ok {
-		return nil
-	}
+// GetRequestID extracts the request ID from context.
+// Returns empty string if not set.
+func GetRequestID(ctx context.Context) string {
+	val, _ := ctx.Value(RequestIDKey).(string)
 	return val
 }
 
-// GetRequestID extracts request ID from context
-func GetRequestID(ctx context.Context) string {
-	if hrc := FromContext(ctx); hrc != nil {
-		return hrc.RequestId
-	}
-	return ""
+// SetLang stores the client language preference in context.
+func SetLang(ctx context.Context, lang string) context.Context {
+	return context.WithValue(ctx, LangKey, lang)
+}
+
+// GetLang extracts the client language preference from context.
+// Returns empty string if not set (callers should default to English).
+func GetLang(ctx context.Context) string {
+	val, _ := ctx.Value(LangKey).(string)
+	return val
 }
 
 // SetContextValue sets a value in context using the standard context key
@@ -80,6 +62,11 @@ func SetContextValue(parent context.Context, key contextKey, value any) context.
 // SetUserID stores the user ID in context.
 func SetUserID(ctx context.Context, userID string) context.Context {
 	return context.WithValue(ctx, ContextKeyUserID, userID)
+}
+
+// SetEndUserID stores the end-user ID in context.
+func SetEndUserID(ctx context.Context, endUserID string) context.Context {
+	return context.WithValue(ctx, ContextKeyEndUserID, endUserID)
 }
 
 // SetOrgName stores the organization name in context.
@@ -140,6 +127,19 @@ func GetUserIDFromContext(ctx context.Context) (string, error) {
 	return userID, nil
 }
 
+// GetEndUserIDFromContext extracts end-user ID from context.
+func GetEndUserIDFromContext(ctx context.Context) (string, error) {
+	val := ctx.Value(ContextKeyEndUserID)
+	if val == nil {
+		return "", fmt.Errorf("end-user ID not found in context")
+	}
+	endUserID, ok := val.(string)
+	if !ok || endUserID == "" {
+		return "", fmt.Errorf("end-user ID not found in context")
+	}
+	return endUserID, nil
+}
+
 // GetPermissionsFromContext extracts permissions from context.
 // This is the recommended way to get permissions - use standard context.Context.
 func GetPermissionsFromContext(ctx context.Context) ([]string, error) {
@@ -154,49 +154,10 @@ func GetPermissionsFromContext(ctx context.Context) ([]string, error) {
 	return permissions, nil
 }
 
-// SetUserType stores the user type ("end_user" or "tenant") in context.
-func SetUserType(ctx context.Context, userType string) context.Context {
-	return context.WithValue(ctx, ContextKeyUserType, userType)
-}
-
-// SetIsAdmin stores the end-user admin flag in context.
-// This is populated from the X-Is-Admin header injected by APISIX.
-func SetIsAdmin(ctx context.Context, isAdmin bool) context.Context {
-	return context.WithValue(ctx, ContextKeyIsAdmin, isAdmin)
-}
-
-// GetIsAdminFromContext returns whether the current end-user is an org admin.
-// Returns false if the flag is not set in context.
-func GetIsAdminFromContext(ctx context.Context) bool {
-	val, _ := ctx.Value(ContextKeyIsAdmin).(bool)
-	return val
-}
-
-// IsEndUser returns true if the request is from an EndUser caller.
-func IsEndUser(ctx context.Context) bool {
-	val, _ := ctx.Value(ContextKeyUserType).(string)
-	return val == UserTypeEndUser
-}
-
 // SetUseCache stores the useCache flag in context.
 // When false, the runtime GraphQL handler bypasses the schema cache.
 func SetUseCache(ctx context.Context, useCache bool) context.Context {
 	return context.WithValue(ctx, ContextKeyUseCache, useCache)
-}
-
-// SetTenantUserID stores the tenant admin's user ID in context.
-func SetTenantUserID(ctx context.Context, tenantUserID string) context.Context {
-	return context.WithValue(ctx, ContextKeyTenantUserID, tenantUserID)
-}
-
-// GetTenantUserIDFromContext extracts the tenant admin's user ID from context.
-// Returns ("", error) if not set — only present for tenant (developer/admin) callers.
-func GetTenantUserIDFromContext(ctx context.Context) (string, error) {
-	val, _ := ctx.Value(ContextKeyTenantUserID).(string)
-	if val == "" {
-		return "", fmt.Errorf("tenant user ID not found in context")
-	}
-	return val, nil
 }
 
 // GetUseCache extracts the useCache flag from context.

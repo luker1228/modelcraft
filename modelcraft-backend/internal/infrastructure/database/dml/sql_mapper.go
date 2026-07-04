@@ -72,6 +72,7 @@ func convertFindUniqueInputToSQL(
 	}
 
 	ds := selectStep.From(input.TableName).Where(whereExpr)
+	ds = applyRawFilters(ds, input.RawFilters)
 	sql, args, err = ds.Prepared(true).ToSQL()
 	return
 }
@@ -92,6 +93,7 @@ func convertFindFirstInputToSQL(
 	if len(input.Where) == 0 {
 		// 如果没有where条件，返回不带where的查询
 		ds := selectStep.From(input.TableName).Limit(1)
+		ds = applyRawFilters(ds, input.RawFilters)
 		sql, args, err = ds.Prepared(true).ToSQL()
 		return
 	}
@@ -102,6 +104,7 @@ func convertFindFirstInputToSQL(
 	}
 
 	ds := selectStep.From(input.TableName).Where(whereExpr).Limit(1)
+	ds = applyRawFilters(ds, input.RawFilters)
 	sql, args, err = ds.Prepared(true).ToSQL()
 	return
 }
@@ -137,6 +140,7 @@ func convertFindManyInputToSQL(
 	}
 
 	if len(input.Where) == 0 {
+		ds = applyRawFilters(ds, input.RawFilters)
 		sql, args, err = ds.Prepared(true).ToSQL()
 		return
 	}
@@ -148,6 +152,7 @@ func convertFindManyInputToSQL(
 	}
 
 	ds = ds.Where(whereExpr)
+	ds = applyRawFilters(ds, input.RawFilters)
 	sql, args, err = ds.Prepared(true).ToSQL()
 	return
 }
@@ -195,6 +200,7 @@ func convertUpdateManyInputToSQL(
 	if len(input.Where) == 0 {
 		// 如果没有where条件，返回不带where的查询
 		ds := dialect.Update(input.TableName).Set(goquSetRecord).Limit(input.Take)
+		ds = applyRawFilters(ds, input.RawFilters)
 		sql, args, err = ds.Prepared(true).ToSQL()
 		return
 	}
@@ -206,6 +212,7 @@ func convertUpdateManyInputToSQL(
 	}
 
 	ds := dialect.Update(input.TableName).Set(goquSetRecord).Where(whereExpr).Limit(input.Take)
+	ds = applyRawFilters(ds, input.RawFilters)
 	sql, args, err = ds.Prepared(true).ToSQL()
 	return
 }
@@ -221,6 +228,7 @@ func convertDeleteManyInputToSQL(
 	if len(input.Where) == 0 {
 		// 如果没有where条件，返回不带where的查询
 		ds := dialect.Delete(input.TableName).Limit(input.Take)
+		ds = applyRawFilters(ds, input.RawFilters)
 		sql, args, err = ds.Prepared(true).ToSQL()
 		return
 	}
@@ -232,6 +240,7 @@ func convertDeleteManyInputToSQL(
 	}
 
 	ds := dialect.Delete(input.TableName).Where(whereExpr).Limit(input.Take)
+	ds = applyRawFilters(ds, input.RawFilters)
 	sql, args, err = ds.Prepared(true).ToSQL()
 	return
 }
@@ -272,6 +281,7 @@ func convertUpdateOneInputToSQL(
 	}
 
 	ds := goqu.Dialect("mysql").Update(input.TableName).Set(input.Data).Where(whereExpr)
+	ds = applyRawFilters(ds, input.RawFilters)
 	sql, args, err = ds.Prepared(true).ToSQL()
 	return
 }
@@ -292,8 +302,19 @@ func convertDeleteOneInputToSQL(
 	}
 
 	ds := goqu.Dialect("mysql").Delete(input.TableName).Where(whereExpr).Limit(1)
+	ds = applyRawFilters(ds, input.RawFilters)
 	sql, args, err = ds.Prepared(true).ToSQL()
 	return
+}
+
+func applyRawFilters[T interface{ Where(...exp.Expression) T }](ds T, filters []modelruntime.RawSQLFilter) T {
+	for _, filter := range filters {
+		if filter.SQL == "" {
+			continue
+		}
+		ds = ds.Where(goqu.L(filter.SQL, filter.Params...))
+	}
+	return ds
 }
 
 func convertCreateManyInputToSQL(
@@ -372,6 +393,7 @@ func convertAggregateInputToSQL(
 		}
 		ds = ds.Where(whereExpr)
 	}
+	ds = applyRawFilters(ds, input.RawFilters)
 
 	sql, args, err = ds.Prepared(true).ToSQL()
 	return
@@ -451,6 +473,7 @@ func convertListByCursorInputToSQL(
 		}
 		ds = ds.Where(whereExpr)
 	}
+	ds = applyRawFilters(ds, input.RawFilters)
 
 	sql, args, err = ds.Prepared(true).ToSQL()
 	return
@@ -489,6 +512,7 @@ func convertCountInputToSQL(ctx context.Context, input *modelruntime.CountInput)
 		}
 		ds = ds.Where(whereExpr)
 	}
+	ds = applyRawFilters(ds, input.RawFilters)
 
 	sql, args, err = ds.Prepared(true).ToSQL()
 	return

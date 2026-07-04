@@ -9,7 +9,7 @@ import { ModelRecordForm } from './index'
 import { ModelRecordInsertMenu } from './ModelRecordInsertMenu'
 import { ModelRecordTable } from './ModelRecordTable'
 import { RecordRelationManagerDialog } from './RecordRelationManagerDialog'
-import type { ModelRecordTableFieldInfo } from './ModelRecordTable'
+import type { ModelRecordSort, ModelRecordTableFieldInfo } from './ModelRecordTable'
 import { getFieldProtocols } from './runtime/field-protocol'
 import {
   buildFindUniqueQuery,
@@ -47,13 +47,18 @@ import {
   Loader2,
   TerminalSquare,
   RefreshCw,
+  HelpCircle,
+  ShieldCheck,
 } from 'lucide-react'
 import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from './access-adapter'
 import { useWorkspaceAIRef } from '@web/contexts/workspace-ai-ref-context'
-import { FilterBar } from '@web/components/features/end-user-data/FilterPanel'
+import { FilterBar } from '@web/components/shared/data-workspace/FilterBar'
 import { getRecordPageCountText } from '@web/components/shared/data-workspace/recordPageCount'
-import { useRuntimeListByPage } from '@web/components/shared/data-workspace/useRuntimeListByPage'
+import {
+  buildListByPageOrderBy,
+  useRuntimeListByPage,
+} from '@web/components/shared/data-workspace/useRuntimeListByPage'
 
 export interface DevelopRecordWorkspaceAIRef {
   openCreate: (prefill: Record<string, unknown>) => void
@@ -84,9 +89,15 @@ interface GetModelQueryData {
       description?: string | null
       databaseName?: string | null
       createdVia?: 'NEW' | 'IMPORTED' | null
+      isReadOnly?: boolean | null
       jsonSchema?: string | null
       fields?: Array<{
         name: string
+        title?: string | null
+        format?: string | null
+        schemaType?: string | null
+        storageHint?: string | null
+        isPrimary?: boolean | null
         isDeprecated?: boolean | null
       }> | null
     } | null
@@ -165,6 +176,9 @@ export default function DevelopRecordWorkspace({
   const [removeFieldTarget, setRemoveFieldTarget] = useState<ModelRecordTableFieldInfo | null>(null)
   const [relationManagerOpen, setRelationManagerOpen] = useState(false)
   const [relationRecordId, setRelationRecordId] = useState<string | null>(null)
+  const [sortOverride, setSortOverride] = useState<ModelRecordSort | null>(null)
+  const [stableSortEnabled, setStableSortEnabled] = useState(true)
+  const [confirmDisableStableSort, setConfirmDisableStableSort] = useState(false)
 
   // 新增数据状态
   const [createDataOpen, setCreateDataOpen] = useState(false)
@@ -201,7 +215,7 @@ export default function DevelopRecordWorkspace({
   const model = modelData?.model?.model
   const modelError = modelData?.model?.error
   const modelName = model?.name
-  const isManagedReadOnlyModel = model?.createdVia === 'IMPORTED'
+  const isManagedReadOnlyModel = model?.isReadOnly === true
 
   // develop workspace 始终拥有字段生命周期能力（托管模型除外）
   const canManageFieldLifecycle = !isManagedReadOnlyModel
@@ -232,19 +246,21 @@ export default function DevelopRecordWorkspace({
   const runtimeFields = useMemo(() => {
     if (jsonSchema?.properties) {
       const props = jsonSchema.properties as Record<string, unknown>
+      const modelFieldByName = new Map((model?.fields ?? []).map((field) => [field.name, field]))
       const schemaFieldDefs: FieldDefinition[] = Object.entries(props).flatMap(([name, rawProp]) => {
         if (!isRecord(rawProp)) return []
         const prop = rawProp
+        const modelField = modelFieldByName.get(name)
         const labelFieldName = resolveEnumLabelFieldName(prop)
         const hasLabelFieldInSchema = Object.prototype.hasOwnProperty.call(props, labelFieldName)
         const schemaType = typeof prop.type === 'string' ? prop.type.toUpperCase() : undefined
-        const format = typeof prop.format === 'string' ? prop.format.toUpperCase() : undefined
+        const format = modelField?.format ?? undefined
         const baseDef: FieldDefinition = {
           name,
-          type: schemaType ?? 'string',
+          type: modelField?.schemaType ?? schemaType ?? 'string',
           format,
-          schemaType,
-          storageHint: deriveStorageHintFromSchemaProp(prop) ?? undefined,
+          schemaType: modelField?.schemaType ?? schemaType,
+          storageHint: modelField?.storageHint ?? deriveStorageHintFromSchemaProp(prop) ?? undefined,
         }
 
         if (!isEnumSchemaProp(prop)) {
@@ -268,7 +284,7 @@ export default function DevelopRecordWorkspace({
 
     if (!jsonSchema) return ['id']
     return extractFieldsFromSchema(jsonSchema as { properties?: Record<string, unknown> })
-  }, [jsonSchema])
+  }, [jsonSchema, model?.fields])
 
   const writableFieldNames = useMemo(
     () => extractWritableFieldNamesFromSchema(jsonSchema as { properties?: Record<string, unknown> } | null | undefined),
@@ -283,20 +299,23 @@ export default function DevelopRecordWorkspace({
           .filter((field) => field?.isDeprecated === true)
           .map((field) => field.name)
       )
+      const modelFieldByName = new Map((model?.fields ?? []).map((field) => [field.name, field]))
 
       return Object.entries(props).flatMap(([name, rawProp]) => {
         if (!isRecord(rawProp)) return []
         const prop = rawProp
+        const modelField = modelFieldByName.get(name)
         const labelFieldName = resolveEnumLabelFieldName(prop)
         const hasLabelFieldInSchema = Object.prototype.hasOwnProperty.call(props, labelFieldName)
         const xmc = getXMC(prop)
         const baseInfo: ModelRecordTableFieldInfo = {
           name,
-          title: typeof prop.title === 'string' ? prop.title : null,
-          isPrimary: xmc?.isPrimary === true,
+          title: modelField?.title ?? (typeof prop.title === 'string' ? prop.title : null),
+          isPrimary: modelField?.isPrimary === true || xmc?.isPrimary === true,
           isDeprecated: deprecatedFieldNames.has(name),
-          storageHint: deriveStorageHintFromSchemaProp(prop),
-          schemaType: typeof prop.type === 'string' ? prop.type.toUpperCase() : null,
+          format: modelField?.format ?? null,
+          storageHint: modelField?.storageHint ?? deriveStorageHintFromSchemaProp(prop),
+          schemaType: modelField?.schemaType ?? (typeof prop.type === 'string' ? prop.type.toUpperCase() : null),
         }
 
         if (!isEnumSchemaProp(prop)) {
@@ -314,6 +333,7 @@ export default function DevelopRecordWorkspace({
             title: null,
             isPrimary: false,
             isDeprecated: deprecatedFieldNames.has(name),
+            format: null,
             storageHint: 'TEXT',
             schemaType: 'STRING',
           },
@@ -331,6 +351,35 @@ export default function DevelopRecordWorkspace({
     return runtimeFields.map((f) => typeof f === 'string' ? f : f.name)
   }, [tableFieldInfos, runtimeFields])
 
+  const sortableFieldNames = useMemo(() => {
+    const runtimeFieldNames = runtimeFields.map((field) =>
+      typeof field === 'string' ? field : field.name
+    )
+    return runtimeFieldNames.length > 0 ? runtimeFieldNames : displayFields
+  }, [displayFields, runtimeFields])
+
+  const defaultSort = useMemo<ModelRecordSort | null>(() => {
+    const field = sortableFieldNames.includes('id') ? 'id' : sortableFieldNames[0]
+    return field ? { field, direction: field === 'id' ? 'desc' : 'asc' } : null
+  }, [sortableFieldNames])
+
+  const currentSort = useMemo<ModelRecordSort | null>(() => {
+    if (!sortOverride) return defaultSort
+    const sortableFields = new Set(sortableFieldNames)
+    return sortableFields.has(sortOverride.field) ? sortOverride : defaultSort
+  }, [defaultSort, sortableFieldNames, sortOverride])
+
+  const orderBy = useMemo(
+    () => buildListByPageOrderBy(currentSort, stableSortEnabled, sortableFieldNames),
+    [currentSort, sortableFieldNames, stableSortEnabled]
+  )
+
+  const canUseStableSort = sortableFieldNames.includes('id')
+
+  useEffect(() => {
+    setConfirmDisableStableSort(false)
+  }, [currentSort?.field, currentSort?.direction, modelId, canUseStableSort])
+
   const propByName = useMemo(() => {
     if (!jsonSchema) return {}
     const protocols = getFieldProtocols(jsonSchema as import('@rjsf/utils').RJSFSchema)
@@ -346,7 +395,7 @@ export default function DevelopRecordWorkspace({
 
   const getFieldTypeDisplay = useCallback((fieldInfo: ModelRecordTableFieldInfo | null) => {
     if (!fieldInfo) return ''
-    return fieldInfo.storageHint || fieldInfo.schemaType || ''
+    return fieldInfo.format || ''
   }, [])
 
   const findUniqueQuery = useMemo(() => {
@@ -411,8 +460,9 @@ export default function DevelopRecordWorkspace({
     runtimeFields,
     runtimeClient,
     whereInput: whereFilter ?? undefined,
+    orderBy,
     pageSize: PAGE_SIZE,
-    resetDeps: [modelId, whereFilter],
+    resetDeps: [modelId, whereFilter, currentSort?.field, currentSort?.direction, stableSortEnabled],
   })
 
   const deleteMutation = useMemo(() => {
@@ -745,6 +795,42 @@ export default function DevelopRecordWorkspace({
 
           <div className="flex items-center gap-2">
             <Button
+              variant={stableSortEnabled ? 'default' : 'outline'}
+              size="sm"
+              className={`h-[26px] px-2.5 text-xs ${
+                stableSortEnabled
+                  ? 'border-0 bg-primary text-white hover:bg-primary/90'
+                  : ''
+              }`}
+              onClick={() => {
+                if (!stableSortEnabled) {
+                  setStableSortEnabled(true)
+                  setConfirmDisableStableSort(false)
+                  setCurrentPage(1)
+                  return
+                }
+
+                if (!confirmDisableStableSort) {
+                  setConfirmDisableStableSort(true)
+                  return
+                }
+
+                setStableSortEnabled(false)
+                setConfirmDisableStableSort(false)
+                setCurrentPage(1)
+              }}
+              disabled={!canUseStableSort}
+              title={
+                confirmDisableStableSort
+                  ? '再次点击关闭稳定排序'
+                  : '开启后会在当前排序后追加 id desc，保证分页结果顺序稳定'
+              }
+            >
+              <ShieldCheck className="mr-1.5 size-3.5" />
+              {confirmDisableStableSort ? '确认关闭?' : '稳定排序'}
+              <HelpCircle className="ml-0.5 size-3 text-white/80" />
+            </Button>
+            <Button
               variant="outline"
               size="sm"
               className="h-[26px] w-7 p-0"
@@ -780,6 +866,11 @@ export default function DevelopRecordWorkspace({
           canDeleteRecord={canDeleteRecord}
           highlightedIds={highlightedIds}
           highlightReasons={highlightReasons}
+          sort={currentSort}
+          onSortChange={(nextSort) => {
+            setSortOverride(nextSort)
+            setCurrentPage(1)
+          }}
           pagination={pagination}
         />
 

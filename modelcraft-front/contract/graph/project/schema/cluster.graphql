@@ -72,27 +72,35 @@ type DatabaseConnectionInfo {
   password: String! # Will be masked in responses
 }
 
-# Database type
+# Database: 集群直查返回的数据库（来自 information_schema.SCHEMATA）。
+# 表示数据库集群中实际存在的所有 database（排除系统库）。
+# 区别于 DatabaseLite — DatabaseLite 仅包含项目中已注册过模型的 database。
 type Database {
   name: String!
 }
 
+# DatabaseLite: 已接管的数据库（来自 model_database 注册表）。
+# 区别于 Database 类型 — Database 来自集群直查（information_schema），
+# DatabaseLite 来自项目元数据（model_database 表），只包含项目已纳管的 database。
 type DatabaseLite {
   name: String!
 }
 
-type ModelDatabaseCatalogPayload {
+# 已接管数据库列表 — 查询 model_database 注册表，只返回项目已纳管的 database。
+# 数据来源：项目元数据 model_database 表（非集群直查）。
+# 对比 listDatabases：后者直连集群查询 information_schema，返回集群中全部数据库。
+type RegisteredDatabasesPayload {
   databases: [DatabaseLite!]!
   totalCount: Int!
   page: Int!
   pageSize: Int!
 }
 
-union ModelDatabaseCatalogError = InvalidInput | ResourceNotFound
+union RegisteredDatabasesError = InvalidInput | ResourceNotFound
 
-type GetModelDatabaseCatalogPayload {
-  data: ModelDatabaseCatalogPayload
-  error: ModelDatabaseCatalogError
+type GetRegisteredDatabasesPayload {
+  data: RegisteredDatabasesPayload
+  error: RegisteredDatabasesError
 }
 
 # Table info type
@@ -168,14 +176,17 @@ input UpdateClusterConnectionInput {
   skipConnectionTest: Boolean # Default false; set true to skip connection validation
 }
 
-# List databases input type
+# 集群直查：查询 information_schema.SCHEMATA，返回集群中全部数据库（排除系统库）。
+# 使用 relay 分页（offset/limit），返回 Database（非 DatabaseLite）。
 input ListDatabasesInput {
   offset: Int
   limit: Int
   search: String # Search by database name
 }
 
-input ModelDatabaseCatalogInput {
+# 已接管数据库列表：查询 model_database 注册表，只返回已纳管的 database。
+# 使用 page/pageSize 分页，返回 DatabaseLite。
+input RegisteredDatabasesInput {
   search: String
   page: Int = 1
   pageSize: Int = 20
@@ -209,8 +220,14 @@ enum ProjectStatus {
 # ============================================
 
 extend type Query {
-  modelDatabaseCatalog(input: ModelDatabaseCatalogInput): GetModelDatabaseCatalogPayload! @hasPermission(action: "project:read", allowEndUser: true)
+  # 已接管数据库列表：查询 model_database 注册表，只返回已纳管的 database。
+  # 数据来源为项目元数据 model_database 表，非集群直查。
+  # 场景：选择数据库来筛选模型（如 RLS 策略管理页、模型列表页）。
+  registeredDatabases(input: RegisteredDatabasesInput): GetRegisteredDatabasesPayload! @hasPermission(action: "project:read", allowEndUser: true)
   databaseCluster: GetClusterPayload! @hasPermission(action: "project:read")
+  # 集群数据库列表：直连数据库集群查询 information_schema.SCHEMATA。
+  # 返回集群中实际存在的所有 database（排除系统库），无论是否已注册模型。
+  # 场景：注册新数据库、查看集群中所有可用的 database。
   listDatabases(input: ListDatabasesInput!): DatabaseConnection! @hasPermission(action: "project:read")
   listTables(input: ListTablesInput!): TableListConnection! @hasPermission(action: "project:read")
 }

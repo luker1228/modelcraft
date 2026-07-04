@@ -259,6 +259,32 @@ func TestNewFindManyInput(t *testing.T) {
 			wantOffset: 0,
 			wantErr:    false,
 		},
+		{
+			name:      "explicit take=0 returns empty set",
+			tableName: "users",
+			args: map[string]any{
+				"take": 0,
+			},
+			wantLimit: 0,
+			wantErr:   false,
+		},
+		{
+			name:      "take at max boundary 1000",
+			tableName: "users",
+			args: map[string]any{
+				"take": MaxFindManyLimit,
+			},
+			wantLimit: MaxFindManyLimit,
+			wantErr:   false,
+		},
+		{
+			name:      "take exceeds max 1000",
+			tableName: "users",
+			args: map[string]any{
+				"take": MaxFindManyLimit + 1,
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

@@ -30,6 +30,8 @@ paths:
     $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1refresh"
   /api/tenant/auth/demo:
     $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1demo"
+  /api/tenant/auth/whoami:
+    $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1whoami"
 
   # ========================
   # End-User Auth Endpoints
@@ -48,7 +50,6 @@ paths:
   # ========================
   /api/user/memberships:
     $ref: "user.yaml#/paths/~1api~1user~1memberships"
-
 
 components:
   securitySchemes:
@@ -83,30 +84,9 @@ components:
       $ref: "auth.yaml#/schemas/LoginResponse"
     RefreshResponse:
       $ref: "auth.yaml#/schemas/RefreshResponse"
-
-    # -- End-User Auth --
-    EndUserLoginRequest:
-      $ref: "end-user-auth.yaml#/schemas/EndUserLoginRequest"
-    EndUserLogoutRequest:
-      $ref: "end-user-auth.yaml#/schemas/EndUserLogoutRequest"
-    EndUserRefreshRequest:
-      $ref: "end-user-auth.yaml#/schemas/EndUserRefreshRequest"
-    EndUserTokenResponse:
-      $ref: "end-user-auth.yaml#/schemas/EndUserTokenResponse"
-    EndUserLoginResponse:
-      $ref: "end-user-auth.yaml#/schemas/EndUserLoginResponse"
-    EndUserMeResponse:
-      $ref: "end-user-auth.yaml#/schemas/EndUserMeResponse"
-    EndUserProfile:
-      $ref: "end-user-auth.yaml#/schemas/EndUserProfile"
-    EndUserAccessibleProject:
-      $ref: "end-user-auth.yaml#/schemas/EndUserAccessibleProject"
-    EndUserAuthError:
-      $ref: "end-user-auth.yaml#/schemas/EndUserAuthError"
-
-    # -- User --
-    GetMembershipsResponse:
-      $ref: "user.yaml#/components/schemas/GetMembershipsResponse"
-    MembershipInfo:
-      $ref: "user.yaml#/components/schemas/MembershipInfo"
-
+    WhoamiResponse:
+      $ref: "auth.yaml#/schemas/WhoamiResponse"
+    WhoamiMembershipInfo:
+      $ref: "auth.yaml#/schemas/WhoamiMembershipInfo"
+    WhoamiUnauthorizedError:
+      $ref: "auth.yaml#/schemas/WhoamiUnauthorizedError"

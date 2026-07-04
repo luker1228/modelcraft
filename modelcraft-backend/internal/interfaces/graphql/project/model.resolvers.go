@@ -7,6 +7,7 @@ package projectgraphql
 import (
 	"context"
 	"fmt"
+	appmodeldatabase "modelcraft/internal/app/modeldatabase"
 	appmodeldesign "modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/interfaces/graphql/project/adapter"
@@ -82,11 +83,6 @@ func (r *mutationResolver) CreateModel(ctx context.Context, input generated.Crea
 		graphqlModel, err = adapter.ModelMapper.ConvertToGraphQLModel(modelEntity)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
-		}
-		if r.FieldSelectionChecker.IsFieldSelected(ctx, "model.rlsPolicy") {
-			if err := attachModelRLSPolicy(ctx, r.RLSPolicyAppService, graphqlModel); err != nil {
-				return nil, fmt.Errorf("failed to attach model rls policy: %w", err)
-			}
 		}
 	}
 
@@ -547,6 +543,56 @@ func (r *mutationResolver) MoveModelToGroup(ctx context.Context, input generated
 	return &generated.MoveModelToGroupPayload{Success: true}, nil
 }
 
+// StartModelSync is the resolver for the startModelSync field.
+func (r *mutationResolver) StartModelSync(ctx context.Context, targets []*generated.ModelSyncTargetInput) (*generated.StartModelSyncPayload, error) {
+	syncTargets := make([]appmodeldatabase.SyncTarget, len(targets))
+	for i, t := range targets {
+		tableNames := make([]string, len(t.TableNames))
+		copy(tableNames, t.TableNames)
+		syncTargets[i] = appmodeldatabase.SyncTarget{
+			DatabaseID: t.DatabaseID,
+			TableNames: tableNames,
+		}
+	}
+	batchID, jobs, err := r.SyncModelsAppService.StartModelSync(ctx, syncTargets)
+	if err != nil {
+		return nil, err
+	}
+	refs := make([]*generated.ModelSyncJobRef, len(jobs))
+	for i, job := range jobs {
+		refs[i] = &generated.ModelSyncJobRef{
+			DatabaseID: job.DatabaseID,
+			JobID:      job.ID,
+		}
+	}
+	return &generated.StartModelSyncPayload{
+		BatchID: batchID,
+		Jobs:    refs,
+	}, nil
+}
+
+// SyncModelsFromDb is the resolver for the syncModelsFromDB field.
+func (r *mutationResolver) SyncModelsFromDb(ctx context.Context, input generated.SyncModelsFromDBInput) (*generated.SyncModelsFromDBPayload, error) {
+	tableNames := make([]string, 0)
+	if input.TableNames != nil {
+		tableNames = input.TableNames
+	}
+	syncAll := false
+	if input.SyncAll != nil {
+		syncAll = *input.SyncAll
+	}
+
+	job, err := r.SyncModelsAppService.StartSync(ctx, appmodeldatabase.SyncModelsFromDBCommand{
+		DatabaseName: input.DatabaseName,
+		TableNames:   tableNames,
+		SyncAll:      syncAll,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &generated.SyncModelsFromDBPayload{JobID: job.ID}, nil
+}
+
 // Model is the resolver for the model field.
 func (r *queryResolver) Model(ctx context.Context, id string, withActualSchema *bool) (*generated.GetModelPayload, error) {
 	errorAdapter := adapter.NewModelErrorAdapter(ctx)
@@ -588,10 +634,7 @@ func (r *queryResolver) Model(ctx context.Context, id string, withActualSchema *
 		}
 		actualResult, err = r.ActualSchemaQueryUseCase.Query(ctx, modelEntity, orgName)
 		if err != nil {
-			logfacade.GetLogger(ctx).Error(ctx, "Failed to query actual schema",
-				logfacade.Err(err),
-				logfacade.Stack(err),
-			)
+			logfacade.GetLogger(ctx).Errorf(ctx, err, "Failed to query actual schema")
 			return nil, fmt.Errorf("failed to query actual schema: %w", err)
 		}
 	}
@@ -607,19 +650,10 @@ func (r *queryResolver) Model(ctx context.Context, id string, withActualSchema *
 		generator := modeldesign.NewJSONSchemaGenerator()
 		schemaJSON, err := generator.GenerateSchema(modelEntity)
 		if err != nil {
-			logfacade.GetLogger(ctx).Error(ctx, "failed to generate jsonSchema",
-				logfacade.Err(err),
-				logfacade.Stack(err),
-			)
+			logfacade.GetLogger(ctx).Errorf(ctx, err, "failed to generate jsonSchema")
 			return nil, fmt.Errorf("failed to generate JSON Schema: %w", err)
 		}
 		graphqlModel.JSONSchema = &schemaJSON
-	}
-
-	if r.FieldSelectionChecker.IsFieldSelected(ctx, "model.rlsPolicy") {
-		if err := attachModelRLSPolicy(ctx, r.RLSPolicyAppService, graphqlModel); err != nil {
-			return nil, fmt.Errorf("failed to attach model rls policy: %w", err)
-		}
 	}
 
 	return &generated.GetModelPayload{
@@ -705,11 +739,6 @@ func (r *queryResolver) Models(ctx context.Context, input *generated.ModelQueryI
 			if err != nil {
 				return fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
 			}
-			if r.FieldSelectionChecker.IsFieldSelected(ctx, "items.rlsPolicy") {
-				if err := attachModelRLSPolicy(ctx, r.RLSPolicyAppService, graphqlModel); err != nil {
-					return fmt.Errorf("failed to attach model rls policy: %w", err)
-				}
-			}
 			items[i] = graphqlModel
 		}
 
@@ -788,11 +817,6 @@ func (r *queryResolver) ModelByName(ctx context.Context, name string, databaseNa
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
 	}
-	if r.FieldSelectionChecker != nil && r.FieldSelectionChecker.IsFieldSelected(ctx, "model.rlsPolicy") {
-		if err := attachModelRLSPolicy(ctx, r.RLSPolicyAppService, graphqlModel); err != nil {
-			return nil, fmt.Errorf("failed to attach model rls policy: %w", err)
-		}
-	}
 
 	return &generated.GetModelPayload{
 		Model: graphqlModel,
@@ -859,4 +883,33 @@ func (r *queryResolver) ModelGroups(ctx context.Context) ([]*generated.ModelGrou
 		result = append(result, adapter.GroupMapper.ConvertToGraphQLGroup(g))
 	}
 	return result, nil
+}
+
+// ModelSyncJobs is the resolver for the modelSyncJobs field.
+func (r *queryResolver) ModelSyncJobs(ctx context.Context, jobIds []string, batchID *string) ([]*generated.ModelSyncJob, error) {
+	bID := ""
+	if batchID != nil {
+		bID = *batchID
+	}
+	jobs, err := r.SyncModelsAppService.GetJobs(ctx, jobIds, bID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*generated.ModelSyncJob, len(jobs))
+	for i, job := range jobs {
+		result[i] = modelSyncJobToGQL(job)
+	}
+	return result, nil
+}
+
+// ModelSyncJob is the resolver for the modelSyncJob field.
+func (r *queryResolver) ModelSyncJob(ctx context.Context, jobID string) (*generated.ModelSyncJob, error) {
+	job, err := r.SyncModelsAppService.GetJob(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+	if job == nil {
+		return nil, nil
+	}
+	return modelSyncJobToGQL(job), nil
 }

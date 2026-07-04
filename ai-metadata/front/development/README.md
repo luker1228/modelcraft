@@ -10,15 +10,14 @@
   - 目录结构（`app/` / `web/` / `bff/` / `shared/` / `types/` / `generated/`）
   - `features/` vs `common/` 组件分类
   - 页面私有 `_components/` + `_hooks/` 拆分规范
-  - BFF 双体系路由（Developer / EndUser）
+  - BFF 路由
   - GraphQL Codegen 流程
   - Types / Hooks 按业务域组织约定
 - **[API Client 层设计](./api-client-design.md)** - GraphQL 文档组织、Apollo 客户端、BFF 双体系路由约定
   - `src/api-client/**` 分层与门面导出
-  - Developer / EndUser 路由到 Gateway 的映射关系
+  - Developer 路由到 Gateway 的映射关系
   - 禁止前端直连 Backend 的约束
-- **[Workspace 模式边界](./workspace-mode-boundary.md)** - Design 与 End User 复用组件的能力隔离
-  - `workspaceMode` 模式定义（`design` / `end_user`）
+- **[Workspace 模式边界](./workspace-mode-boundary.md)** - 通过 `workspaceMode` 定义能力边界
   - 能力矩阵（插入列、字段生命周期管理）
   - 调用方强制显式传参约定
 

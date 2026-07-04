@@ -18,7 +18,7 @@ func ChiGraphQLOrgMiddleware() func(http.Handler) http.Handler {
 
 			orgName := chi.URLParam(r, "orgName")
 			if orgName == "" {
-				logger.Errorf(r.Context(), "No organization specified in URL path")
+				logger.Errorf(r.Context(), nil, "No organization specified in URL path")
 				writeJSONError(w, http.StatusBadRequest,
 					"organization not specified in URL path", "TENANT_ORG_REQUIRED")
 				return

@@ -2,9 +2,8 @@ package graphql
 
 import (
 	"html/template"
+	"modelcraft/pkg/httpheader"
 	"net/http"
-
-	"github.com/gin-gonic/gin"
 )
 
 // PlaygroundConfig 配置 GraphQL Playground
@@ -48,33 +47,6 @@ const playgroundTemplate = `<!DOCTYPE html>
 </body>
 </html>`
 
-// Handler returns a Gin handler for GraphQL Playground.
-func Handler(config PlaygroundConfig) gin.HandlerFunc {
-	// 解析模板
-	tmpl, err := template.New("playground").Parse(playgroundTemplate)
-	if err != nil {
-		// 如果模板解析失败,返回错误处理器
-		return func(c *gin.Context) {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to initialize GraphQL Playground",
-			})
-		}
-	}
-
-	return func(c *gin.Context) {
-		// 设置响应头
-		c.Header("Content-Type", "text/html; charset=utf-8")
-		c.Status(http.StatusOK)
-
-		// 渲染模板
-		if err := tmpl.Execute(c.Writer, config); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to render GraphQL Playground",
-			})
-		}
-	}
-}
-
 // HTTPHandler returns a net/http handler for GraphQL Playground.
 func HTTPHandler(config PlaygroundConfig) http.HandlerFunc {
 	tmpl, err := template.New("playground").Parse(playgroundTemplate)
@@ -85,7 +57,7 @@ func HTTPHandler(config PlaygroundConfig) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set(httpheader.ContentType, httpheader.ContentTypeTextHTMLUTF8)
 		w.WriteHeader(http.StatusOK)
 		if err := tmpl.Execute(w, config); err != nil {
 			http.Error(w, "Failed to render GraphQL Playground", http.StatusInternalServerError)

@@ -90,8 +90,6 @@ run *FLAGS:
     PID=$!
     echo "✅ Application started in background"
     echo "   PID: $PID"
-    echo "   Logs: tail -f logs/server.log"
-    echo "   Or use: just logs"
     sleep 2
     if ps -p $PID > /dev/null; then
         echo "✅ Process is running"
@@ -169,32 +167,11 @@ status:
             fi
             echo ""
             echo "💡 建议:"
-            echo "   - 查看日志: just logs"
             echo "   - 重启服务: just run --force"
         else
             echo "💡 启动服务: just run"
         fi
     fi
-
-# 查看日志
-[doc("View server logs")]
-logs:
-    tail -f logs/server.log
-
-# 按 reqId 查看日志
-[doc("Show logs for a specific request ID")]
-log-cat reqId:
-    #!/usr/bin/env bash
-    if [ -z "{{reqId}}" ]; then
-        echo "❌ 请指定 reqId，例如: just log-cat VM-32-8-tencentos/FjPXpJqnCU-000001"
-        exit 1
-    fi
-    # 提取 reqId 值（支持 "reqId=xxx" 格式）
-    reqIdRaw="{{reqId}}"
-    reqIdValue="${reqIdRaw#reqId=}"
-    echo "🔍 查找 request_id: $reqIdValue"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    grep "\"$reqIdValue\"" logs/server.log | jq '.' || echo "No logs found for this request ID"
 
 # 清理构建产物
 [doc("Clean build artifacts")]
@@ -524,6 +501,15 @@ test-user-cleanup user_id="487101d6-92bb-459e-b4f1-426255126d27":
     echo "✅ Test user cleanup completed!"
 
 # ========================
+# 🧪 测试 - CLI BDD 环境
+# ========================
+
+# 初始化 CLI BDD 测试所需的 demo_ecommerce 数据库
+[doc("Set up demo_ecommerce database for CLI BDD tests")]
+setup-cli-test-env host="127.0.0.1" port="3307" user="root" password="modelcraft123":
+    ../tests-bdd/fixtures/sql/setup-cli-test-env.sh {{host}} {{port}} {{user}} {{password}}
+
+# ========================
 # 🐳 Docker 命令
 # ========================
 
@@ -546,11 +532,6 @@ docker-compose-up:
 [doc("Stop Docker Compose services")]
 docker-compose-down:
     docker-compose down
-
-# 查看 Docker Compose 日志
-[doc("View Docker Compose logs")]
-docker-compose-logs:
-    docker-compose logs -f
 
 # 构建 Docker Compose 服务
 [doc("Build Docker Compose services")]
@@ -585,16 +566,6 @@ docker-status:
 [doc("Access application container shell")]
 docker-shell:
     docker-compose exec modelcraft sh
-
-# 查看应用日志
-[doc("View application logs")]
-docker-app-logs:
-    docker-compose logs -f modelcraft
-
-# 查看数据库日志
-[doc("View database logs")]
-docker-db-logs:
-    docker-compose logs -f mysql
 
 # ========================
 # 🚀 部署管理
@@ -962,6 +933,10 @@ db action="up" env_file=".env" print_sql="0":
             exit 1
             ;;
     esac
+
+[doc("Merge db/schema/mysql/*.sql into a single file")]
+db-merge-schema output="db/schema/merged/mysql_schema.sql":
+    ./scripts/merge-schema-sql.sh "{{output}}"
 
 # EndUser v2 数据回填（tasks 1.4）
 [doc("Backfill enduser-v2 data (merge duplicate usernames and generate project access)")]

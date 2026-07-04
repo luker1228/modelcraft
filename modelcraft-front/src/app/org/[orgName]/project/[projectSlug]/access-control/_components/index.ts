@@ -1,6 +1,2 @@
-export { BundlesTab } from './bundles/BundlesTab'
-export { ColumnPolicyEditor } from './permissions/ColumnPolicyEditor'
-export { CreatePermissionSheet } from './permissions/CreatePermissionSheet'
-export { PermissionsTab } from './permissions/PermissionsTab'
-export { RolesContent } from './roles/RolesContent'
-export { RowScopeSelector } from './permissions/RowScopeSelector'
+export { RlsPolicyContent } from './rls-policy/RlsPolicyContent'
+export { PolicyEditorDialog } from './rls-policy/PolicyEditorDialog'

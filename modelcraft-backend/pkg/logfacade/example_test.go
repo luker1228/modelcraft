@@ -2,11 +2,10 @@ package logfacade
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
-
-	pkgerrors "github.com/pkg/errors"
 )
 
 // TestWriteToFile 测试将日志写入文件
@@ -39,11 +38,11 @@ func TestWriteToFile(t *testing.T) {
 		t.Fatalf("Failed to create JSON logger: %v", err)
 	}
 
-	jsonLogger.Info(context.Background(), "JSON 格式日志",
+	jsonLogger.With(
 		String("type", "json"),
 		Int("count", 42),
 		String("test", "write_to_file"),
-	)
+	).Infof(context.Background(), "JSON 格式日志")
 
 	// 确保日志写入
 	err = jsonLogger.Sync()
@@ -83,10 +82,10 @@ func TestWriteToStdout(t *testing.T) {
 		t.Fatalf("Failed to create JSON logfacade: %v", err)
 	}
 
-	jsonLogger.Info(context.Background(), "JSON 格式日志",
+	jsonLogger.With(
 		String("type", "json"),
 		Int("count", 42),
-	)
+	).Infof(context.Background(), "JSON 格式日志")
 
 	// Console 格式
 	consoleConfig := Config{
@@ -99,10 +98,10 @@ func TestWriteToStdout(t *testing.T) {
 		t.Fatalf("Failed to create console logfacade: %v", err)
 	}
 
-	consoleLogger.Info(context.Background(), "Console 格式日志",
+	consoleLogger.With(
 		String("type", "console"),
 		Int("count", 42),
-	)
+	).Infof(context.Background(), "Console 格式日志")
 }
 
 // TestLogLevels 测试不同的日志级别
@@ -117,10 +116,10 @@ func TestLogLevels(t *testing.T) {
 		t.Fatalf("Failed to create logfacade: %v", err)
 	}
 
-	logger.Debug(context.Background(), "这是调试信息")
-	logger.Info(context.Background(), "这是信息日志")
-	logger.Warn(context.Background(), "这是警告日志")
-	logger.Error(context.Background(), "这是错误日志")
+	logger.Debugf(context.Background(), "这是调试信息")
+	logger.Infof(context.Background(), "这是信息日志")
+	logger.Warnf(context.Background(), "这是警告日志")
+	logger.Errorf(context.Background(), nil, "这是错误日志")
 	// logfacade.Fatal("这是致命错误") // 会退出程序，测试时注释掉
 }
 
@@ -142,16 +141,16 @@ func TestContextualLogging(t *testing.T) {
 	ctx = context.WithValue(ctx, "user_id", 999)
 
 	// 使用 ctx 进行日志
-	logger.Info(ctx, "请求开始处理")
-	logger.Info(ctx, "数据库查询", String("table", "users"))
-	logger.Info(ctx, "请求处理完成", Int("status_code", 200))
+	logger.Infof(ctx, "请求开始处理")
+	logger.With(String("table", "users")).Infof(ctx, "数据库查询")
+	logger.With(Int("status_code", 200)).Infof(ctx, "请求处理完成")
 
 	// 测试 With 和 ctx 的组合使用
-	logger.With(String("module", "auth")).Info(ctx, "认证模块日志")
+	logger.With(String("module", "auth")).Infof(ctx, "认证模块日志")
 }
 
-// TestErrorLoggingWithStack 测试错误日志与堆栈跟踪
-func TestErrorLoggingWithStack(t *testing.T) {
+// TestErrorLogging 测试错误日志
+func TestErrorLogging(t *testing.T) {
 	config := Config{
 		Level:      ErrorLevel,
 		OutputPath: "stdout",
@@ -162,26 +161,22 @@ func TestErrorLoggingWithStack(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 
-	// Example 1: Log with error message only (no stack)
-	simpleErr := pkgerrors.New("simple error")
-	logger.Error(context.Background(), "Operation failed", Err(simpleErr))
+	// Example 1: Log with error message
+	simpleErr := fmt.Errorf("simple error")
+	logger.Errorf(context.Background(), simpleErr, "Operation failed")
 
-	// Example 2: Log with stack trace
-	dbErr := pkgerrors.New("database connection timeout")
-	wrappedErr := pkgerrors.Wrap(dbErr, "failed to initialize database pool")
-	logger.Error(context.Background(), "Database initialization failed", Stack(wrappedErr))
+	// Example 2: Log with wrapped error
+	dbErr := fmt.Errorf("database connection timeout")
+	wrappedErr := fmt.Errorf("failed to initialize database pool: %w", dbErr)
+	logger.Errorf(context.Background(), wrappedErr, "Database initialization failed")
 
-	// Example 3: Log with both error message and stack trace
-	// This is useful when you want error message in 'error' field
-	// and full stack trace in 'stack' field
-	apiErr := pkgerrors.New("API endpoint not found")
-	contextErr := pkgerrors.Wrap(apiErr, "failed to process request")
-	logger.Error(context.Background(), "Request processing failed",
-		Err(contextErr),   // Error message (with stack if available)
-		Stack(contextErr), // Full stack trace
+	// Example 3: Log with additional fields
+	apiErr := fmt.Errorf("API endpoint not found")
+	contextErr := fmt.Errorf("failed to process request: %w", apiErr)
+	logger.With(
 		String("endpoint", "/api/v1/users"),
 		Int("status", 404),
-	)
+	).Errorf(context.Background(), contextErr, "Request processing failed")
 }
 
 // BenchmarkLogging 性能基准测试
@@ -199,11 +194,11 @@ func BenchmarkLogging(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			logger.Info(context.Background(), "性能测试日志",
+			logger.With(
 				String("operation", "benchmark"),
 				Int("iteration", 1),
 				Duration("duration", time.Microsecond),
-			)
+			).Infof(context.Background(), "性能测试日志")
 		}
 	})
 }

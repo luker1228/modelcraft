@@ -147,18 +147,8 @@ func NewError(code ErrorDefinition, params ...any) *BusinessError {
 // NewErrorFromContext 从上下文创建业务错误，自动提取请求ID和语言设置
 // params 用于填充错误消息模板中的占位符，消息在创建时生成
 func NewErrorFromContext(ctx context.Context, errorInfo ErrorDefinition, params ...any) *BusinessError {
-	contextV := ctxutils.FromContext(ctx)
-
-	// Handle case where context value is nil (e.g., in tests or non-HTTP contexts)
-	var lang string
-	var requestId string
-	if contextV != nil {
-		lang = contextV.Lang
-		requestId = contextV.RequestId
-	} else {
-		lang = "" // Will default to English in GetMessageWithParams
-		requestId = ""
-	}
+	lang := ctxutils.GetLang(ctx)
+	requestId := ctxutils.GetRequestID(ctx)
 
 	msg := GetMessageWithParams(errorInfo, lang, params)
 

@@ -42,6 +42,6 @@ func (s *CleanupService) Start(ctx context.Context) {
 func (s *CleanupService) runCleanup(ctx context.Context) {
 	logger := logfacade.GetLogger(ctx)
 	if err := s.refreshTokenRepo.DeleteExpired(ctx); err != nil {
-		logger.Errorf(ctx, "cleanup refresh tokens failed: %v", err)
+		logger.Errorf(ctx, err, "cleanup refresh tokens failed")
 	}
 }

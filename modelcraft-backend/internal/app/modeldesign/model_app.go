@@ -17,8 +17,6 @@ import (
 	"modelcraft/pkg/logfacade"
 	"strings"
 
-	rlsdomain "modelcraft/internal/domain/rls"
-
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 )
@@ -64,7 +62,7 @@ func (s *ModelDesignAppService) getLogger(ctx context.Context) logfacade.Logger 
 }
 
 func (s *ModelDesignAppService) denyIfManagedModelReadOnly(ctx context.Context, model *modeldesign.DataModel) error {
-	if model == nil || !model.IsManagedReadOnlyModel() {
+	if model == nil || !model.IsReadOnly {
 		return nil
 	}
 	return bizerrors.NewErrorFromContext(ctx, bizerrors.ManagedModelReadOnly, model.ModelName)
@@ -154,20 +152,8 @@ func (s *ModelDesignAppService) transactionDeployModel(
 			return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, model.ID)
 		}
 
-		if hasOwnerField {
-			policy := &modeldesign.ModelRLSPolicy{ModelID: model.ID}
-			policy.ApplyPreset(rlsdomain.RLSPresetReadWriteOwner)
-			if err := q.UpsertModelRLSPolicy(ctx, dbgen.UpsertModelRLSPolicyParams{
-				ModelID:         model.ID,
-				SelectPredicate: string(policy.SelectPredicate),
-				InsertCheck:     string(policy.InsertCheck),
-				UpdatePredicate: string(policy.UpdatePredicate),
-				UpdateCheck:     string(policy.UpdateCheck),
-				DeletePredicate: string(policy.DeletePredicate),
-			}); err != nil {
-				return fmt.Errorf("failed to upsert default rls policy: %w", err)
-			}
-		}
+		// RLS V2: Default policy auto-creation removed. Use new multi-policy CRUD API.
+		_ = hasOwnerField
 
 		return s.deployRepo.DeployModelToCreate(ctx, createdModel)
 	})
@@ -540,7 +526,7 @@ func (s *ModelDesignAppService) addPhysicFields(
 		log.Warnf(ctx, "部署字段失败，执行回滚: modelID=%s, fields=%v, err=%v", model.ID, fieldNames, err)
 		rollbackErr := s.modelRepo.DeleteFields(ctx, model.ID, fieldNames)
 		if rollbackErr != nil {
-			log.Errorf(ctx, "回滚字段失败: modelID=%s, fields=%v, err=%v", model.ID, fieldNames, rollbackErr)
+			log.Errorf(ctx, rollbackErr, "回滚字段失败: modelID=%s, fields=%v", model.ID, fieldNames)
 			// 返回组合错误：包含部署失败和回滚失败
 			return bizerrors.Wrapf(errors.Join(err, rollbackErr),
 				"部署模型到客户DB失败且回滚失败: modelID=%s, fields=%v", model.ID, fieldNames)
@@ -572,8 +558,9 @@ func (s *ModelDesignAppService) addPhysicFields(
 				DatabaseName: model.DatabaseName,
 			}
 			if err := enumAssocRepo.Create(ctx, association); err != nil {
-				log.Errorf(ctx, "创建枚举关联失败: modelID=%s, fieldName=%s, enumName=%s, err=%v",
-					model.ID, field.Name, field.EnumName, err)
+				log.Errorf(ctx, err,
+					"创建枚举关联失败: modelID=%s, fieldName=%s, enumName=%s",
+					model.ID, field.Name, field.EnumName)
 				return fmt.Errorf("创建枚举关联失败: %w", err)
 			}
 			log.Infof(ctx, "创建枚举关联成功: modelID=%s, fieldName=%s, enumName=%s",
@@ -1415,5 +1402,85 @@ func (s *ModelDesignAppService) assignDisplayOrders(
 		field.DisplayOrder = order
 		prev = order
 	}
+	return nil
+}
+
+// SyncFieldsFromDB performs a full sync of a model's DB-backed fields.
+// Only fields with a non-nil StorageHint participate:
+//   - DB has column, model has field (matched by StorageHint) → overwrite all attributes
+//   - DB has column, model doesn't have field → add field
+//   - model has field (StorageHint non-nil), DB doesn't have column → delete field
+//   - model fields with StorageHint == nil are untouched (logical/relation fields)
+func (s *ModelDesignAppService) SyncFieldsFromDB(
+	ctx context.Context,
+	modelID string,
+	dbFields []*modeldesign.FieldDefinition,
+) error {
+	opts := modeldesign.NewModelQueryOptions().WithFields()
+	existingModel, err := s.modelRepo.GetByID(ctx, modelID, opts)
+	if err != nil {
+		return err
+	}
+	if existingModel == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, modelID)
+	}
+
+	// Build DB-side lookup: storageHint → field
+	dbFieldByHint := make(map[string]*modeldesign.FieldDefinition, len(dbFields))
+	for _, f := range dbFields {
+		if f.StorageHint != nil && *f.StorageHint != "" {
+			dbFieldByHint[*f.StorageHint] = f
+		}
+	}
+
+	// Classify existing fields
+	var toDelete []string
+	var toUpdate []*modeldesign.FieldDefinition
+	var toAdd []*modeldesign.FieldDefinition
+
+	existingByHint := make(map[string]*modeldesign.FieldDefinition)
+	for _, ef := range existingModel.Fields {
+		if ef.StorageHint == nil || *ef.StorageHint == "" {
+			continue // logical field — skip
+		}
+		hint := *ef.StorageHint
+		existingByHint[hint] = ef
+		if _, inDB := dbFieldByHint[hint]; !inDB {
+			toDelete = append(toDelete, ef.Name)
+		}
+	}
+
+	for hint, dbField := range dbFieldByHint {
+		if ef, exists := existingByHint[hint]; exists {
+			// Overwrite: copy DB attributes onto existing field record
+			dbField.ModelID = modelID
+			dbField.ModelLocator = existingModel.GetModelLocator()
+			dbField.Name = ef.Name // preserve field name
+			dbField.DisplayOrder = ef.DisplayOrder
+			toUpdate = append(toUpdate, dbField)
+		} else {
+			dbField.ModelID = modelID
+			dbField.ModelLocator = existingModel.GetModelLocator()
+			toAdd = append(toAdd, dbField)
+		}
+	}
+
+	if len(toDelete) > 0 {
+		if err := s.modelRepo.DeleteFields(ctx, modelID, toDelete); err != nil {
+			return bizerrors.Wrapf(err, "SyncFieldsFromDB: delete fields")
+		}
+	}
+	if len(toUpdate) > 0 {
+		if err := s.modelRepo.BulkUpdateFields(ctx, toUpdate); err != nil {
+			return bizerrors.Wrapf(err, "SyncFieldsFromDB: update fields")
+		}
+	}
+	if len(toAdd) > 0 {
+		addCmd := AddFieldCommand{ModelID: modelID, Fields: toAdd}
+		if err := s.AddFieldSync(ctx, addCmd); err != nil {
+			return bizerrors.Wrapf(err, "SyncFieldsFromDB: add fields")
+		}
+	}
+
 	return nil
 }

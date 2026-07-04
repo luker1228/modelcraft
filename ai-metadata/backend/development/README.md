@@ -12,7 +12,7 @@
 |------|------|----------|
 | [architecture.md](./architecture.md) | 架构分层详解 | 理解整体架构 |
 | [gateway-architecture.md](./gateway-architecture.md) | Gateway 架构与代理链路说明 ⭐ | 修改 `modelcraft-gateway/**` 或联调认证/网关路由时 |
-| [developer-enduser-system.md](./developer-enduser-system.md) | Developer / EndUser 双体系说明 ⭐ | 需要区分两套认证链路、路由与边界时 |
+| [user-vs-end-user.md](./user-vs-end-user.md) | 用户身份体系全览 ⭐（Developer/EndUser 双层 + RLS end-user 角色） | 涉及认证链路、路由边界、RLS、`X-MC-Auth-*`、context 命名时 |
 | [domain-development.md](./domain-development.md) | Domain 层开发规范 ⭐ | `internal/domain/**/*.go`，定义 Repository 接口时 |
 | [repo-develop.md](./repo-develop.md) | Repository 层开发规范 ⭐ | `internal/infrastructure/**/*.go` |
 | [error-handling.md](./error-handling.md) | 错误处理规范 | 跨层错误处理 |

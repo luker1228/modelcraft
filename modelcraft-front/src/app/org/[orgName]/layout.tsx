@@ -67,8 +67,8 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
         // isAdmin guard: non-admin users must not access the admin (tenant) UI
         const adminFlag = useAuthStore.getState().isAdmin
         if (adminFlag === false) {
-          console.warn("[OrgLayout] Non-admin user, redirecting to end-user dashboard")
-          router.replace(`/end-user/${orgName}/dashboard`)
+          console.warn("[OrgLayout] Non-admin user, redirecting to login")
+          router.replace(TENANT_LOGIN_PATH)
           return
         }
 

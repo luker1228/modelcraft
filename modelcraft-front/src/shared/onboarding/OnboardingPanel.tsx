@@ -37,7 +37,7 @@ export function OnboardingPanel({ orgName, className }: { orgName: string; class
   /** True if this step requires a project but none is available */
   const needsProject = (stepId: string): boolean => {
     const projectScopedIds = [
-      'goto_model_editor', 'select_database_nav', 'nav_create_model',
+      'goto_model_editor', 'select_database_nav', 'nav_import_model',
       'goto_end_user_access', 'nav_assign_role',
     ]
     return projectScopedIds.includes(stepId) && !projectSlug
@@ -273,7 +273,7 @@ export function OnboardingPanel({ orgName, className }: { orgName: string; class
                               const actionNavMap: Record<string, OnboardingPendingAction> = {
                                 select_database_nav: 'select_database',
                                 nav_create_project: 'nav_create_project',
-                                nav_create_model: 'nav_create_model',
+                                nav_import_model: 'nav_import_model',
                                 nav_add_end_user: 'nav_add_end_user',
                                 nav_assign_role: 'nav_assign_role',
                               }
@@ -308,19 +308,9 @@ export function OnboardingPanel({ orgName, className }: { orgName: string; class
                           </div>
                         )
                       }
-                      // end_user_login: show login URL before confirm button
-                      const isLoginStep = step.id === 'end_user_login'
                       return (
                         <div key={step.id} className="py-1">
                           <div className="rounded-md border border-border bg-[#F6F8FA] px-2.5 py-2">
-                            {isLoginStep && (
-                              <>
-                                <p className="mb-1 text-[10px] text-muted-foreground">终端用户登录地址：</p>
-                                <code className="mb-2 block break-all font-mono text-[10px] text-foreground">
-                                  /end-user/{orgName}/login
-                                </code>
-                              </>
-                            )}
                             <Button
                               size="sm"
                               variant="outline"

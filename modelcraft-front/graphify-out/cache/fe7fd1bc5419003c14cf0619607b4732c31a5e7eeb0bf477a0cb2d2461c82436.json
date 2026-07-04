@@ -1,1 +1,0 @@
-{"nodes": [{"id": "src_types_model_ts", "label": "model.ts", "file_type": "code", "source_file": "src/types/model.ts", "source_location": "L1"}], "edges": [{"source": "src_types_model_ts", "target": "src_types_enum", "relation": "imports_from", "confidence": "EXTRACTED", "source_file": "src/types/model.ts", "source_location": "L1", "weight": 1.0}]}

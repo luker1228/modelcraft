@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"modelcraft/pkg/httpheader"
 	"net/http"
 )
 
@@ -27,8 +28,8 @@ type jsonResponseWriter struct {
 func (w *jsonResponseWriter) WriteHeader(statusCode int) {
 	if !w.headerWritten {
 		// Only set Content-Type if not already set
-		if w.Header().Get("Content-Type") == "" {
-			w.Header().Set("Content-Type", "application/json")
+		if w.Header().Get(httpheader.ContentType) == "" {
+			w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 		}
 		w.headerWritten = true
 	}
@@ -39,8 +40,8 @@ func (w *jsonResponseWriter) WriteHeader(statusCode int) {
 func (w *jsonResponseWriter) Write(b []byte) (int, error) {
 	if !w.headerWritten {
 		// Set default Content-Type before first write
-		if w.Header().Get("Content-Type") == "" {
-			w.Header().Set("Content-Type", "application/json")
+		if w.Header().Get(httpheader.ContentType) == "" {
+			w.Header().Set(httpheader.ContentType, httpheader.ContentTypeApplicationJSON)
 		}
 		w.headerWritten = true
 	}

@@ -6,9 +6,8 @@ import (
 	"database/sql"
 	"fmt"
 	"modelcraft/internal/domain/modeldesign"
+	"modelcraft/pkg/bizerrors"
 	"strings"
-
-	pkgerrors "modelcraft/pkg/bizerrors"
 )
 
 // Column key constants from INFORMATION_SCHEMA.
@@ -55,7 +54,7 @@ func (s *ActualSchemaServiceImpl) QueryActualSchema(
 ) (*modeldesign.ActualSchemaResult, error) {
 	columns, err := s.queryColumns(ctx, db, databaseName, tableName)
 	if err != nil {
-		return nil, pkgerrors.Wrapf(err, "query columns for %s.%s", databaseName, tableName)
+		return nil, bizerrors.Wrapf(err, "query columns for %s.%s", databaseName, tableName)
 	}
 
 	// Table does not exist when INFORMATION_SCHEMA returns no columns.
@@ -65,7 +64,7 @@ func (s *ActualSchemaServiceImpl) QueryActualSchema(
 
 	foreignKeys, err := s.queryForeignKeys(ctx, db, databaseName, tableName)
 	if err != nil {
-		return nil, pkgerrors.Wrapf(err, "query foreign keys for %s.%s", databaseName, tableName)
+		return nil, bizerrors.Wrapf(err, "query foreign keys for %s.%s", databaseName, tableName)
 	}
 
 	// Build field definition index for conflict detection.

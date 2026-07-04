@@ -1,62 +1,94 @@
 set shell := ["bash", "-cu"]
 
-COMPOSE_FILE := "compose/docker-compose.local.yml"
-COMPOSE := `if docker compose version >/dev/null 2>&1; then echo "docker compose"; else echo "docker-compose"; fi`
-MYSQL_ENV_FILE := "env/mysql.local.env"
+COMPOSE_RUNNER := "./scripts/compose-env.sh"
 SCHEMA_DIR := "../modelcraft-backend/db/schema/mysql"
+MIGRATION_DIR := "../modelcraft-backend/db/migrations"
+DEV_BACKEND_CONFIG := "configs/dev/backend.yaml"
+DEV_MYSQL_CONFIG := "configs/dev/mysql.yaml"
 
 _default:
     @just --list
 
-# Build and start all local deploy services
-deploy:
-    {{COMPOSE}} -f {{COMPOSE_FILE}} up -d --build
+# Build images and start the default service set in the background
+deploy env="dev":
+    {{COMPOSE_RUNNER}} {{env}} up -d --build
 
-# Start all local deploy services without rebuilding
-up:
-    {{COMPOSE}} -f {{COMPOSE_FILE}} up -d
+# Validate the unified compose file for a target environment
+check env="dev":
+    {{COMPOSE_RUNNER}} {{env}} config >/dev/null
+    @echo "compose config valid for {{env}}"
 
-# Stop and remove local deploy containers
-down:
-    {{COMPOSE}} -f {{COMPOSE_FILE}} down
+# Build all services for a target environment
+build env="dev":
+    {{COMPOSE_RUNNER}} {{env}} build
 
-# Show local deploy service status
-ps:
-    {{COMPOSE}} -f {{COMPOSE_FILE}} ps
+# Build one service for a target environment
+build-service service env="dev":
+    {{COMPOSE_RUNNER}} {{env}} build {{service}}
 
-# Follow logs for all local deploy services
-logs:
-    {{COMPOSE}} -f {{COMPOSE_FILE}} logs -f
+# Build, tag, and push one service image to a remote registry
+publish-service service image_ref env="cloudrun":
+    #!/usr/bin/env bash
+    set -euo pipefail
 
-# Restart all local deploy services
-restart:
-    {{COMPOSE}} -f {{COMPOSE_FILE}} restart
+    if [ -z "{{service}}" ] || [ -z "{{image_ref}}" ]; then
+        echo "usage: just publish-service <service> <image_ref> [env]"
+        exit 1
+    fi
+
+    local_image="modelcraft-{{service}}:{{env}}"
+
+    {{COMPOSE_RUNNER}} {{env}} build {{service}}
+
+    if ! docker image inspect "${local_image}" >/dev/null 2>&1; then
+        echo "构建完成后未找到本地镜像: ${local_image}"
+        exit 1
+    fi
+
+    docker tag "${local_image}" "{{image_ref}}"
+    docker push "{{image_ref}}"
+
+    echo "pushed {{service}} -> {{image_ref}}"
+
+# Build and push the backend image in one command
+publish-backend image_ref env="cloudrun":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just publish-service backend "{{image_ref}}" "{{env}}"
+
+# Start the default service set for a target environment
+up env="dev":
+    {{COMPOSE_RUNNER}} {{env}} up
+
+# Start the dev tools profile on top of the dev stack
+tools:
+    {{COMPOSE_RUNNER}} dev up -d mysql phpmyadmin
+
+# Stop and remove containers
+down env="dev":
+    {{COMPOSE_RUNNER}} {{env}} down
+
+# Show service status
+ps env="dev":
+    {{COMPOSE_RUNNER}} {{env}} ps
+
+# Follow service logs
+logs env="dev":
+    {{COMPOSE_RUNNER}} {{env}} logs -f
+
+# Restart running services
+restart env="dev":
+    {{COMPOSE_RUNNER}} {{env}} restart
 
 # Stop containers and remove volumes. This clears MySQL data.
-clean:
-    {{COMPOSE}} -f {{COMPOSE_FILE}} down -v
+clean env="dev":
+    {{COMPOSE_RUNNER}} {{env}} down -v
 
-# Build and restart backend service
-backend:
-    {{COMPOSE}} -f {{COMPOSE_FILE}} up -d --build backend
+# Rebuild and restart one service
+service name env="dev":
+    {{COMPOSE_RUNNER}} {{env}} up -d --build {{name}}
 
-# Build and restart frontend service
-frontend:
-    {{COMPOSE}} -f {{COMPOSE_FILE}} up -d --build frontend
-
-# Build and restart agent service
-agent:
-    {{COMPOSE}} -f {{COMPOSE_FILE}} up -d --build modelcraft-agent
-
-# Restart APISIX service
-apisix:
-    {{COMPOSE}} -f {{COMPOSE_FILE}} restart apisix
-
-# Start tools profile services
-tools:
-    {{COMPOSE}} -f {{COMPOSE_FILE}} --profile tools up -d
-
-# Apply backend MySQL schema to the local deploy database via Atlas
+# Apply backend MySQL schema to the dev database via Atlas
 db-up:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -66,8 +98,8 @@ db-up:
         exit 1
     fi
 
-    if [ ! -f "{{MYSQL_ENV_FILE}}" ]; then
-        echo "找不到 MySQL 配置文件: {{MYSQL_ENV_FILE}}"
+    if [ ! -f "{{DEV_BACKEND_CONFIG}}" ] || [ ! -f "{{DEV_MYSQL_CONFIG}}" ]; then
+        echo "缺少 dev 配置文件"
         exit 1
     fi
 
@@ -76,15 +108,20 @@ db-up:
         exit 1
     fi
 
-    set -a
-    source "{{MYSQL_ENV_FILE}}"
-    set +a
-
     DB_HOST="127.0.0.1"
     DB_PORT="6033"
-    DB_NAME="${MYSQL_DATABASE:-modelcraft}"
+    DB_NAME="$(awk '
+        /^database:/ {in_db=1; next}
+        /^[^[:space:]]/ {in_db=0}
+        in_db && /^[[:space:]]+database:/ {
+            sub(/^[^:]+:[[:space:]]*/, "", $0)
+            gsub(/"/, "", $0)
+            print
+            exit
+        }
+    ' "{{DEV_BACKEND_CONFIG}}")"
     DB_USER="root"
-    DB_PASSWORD="${MYSQL_ROOT_PASSWORD}"
+    DB_PASSWORD="$(awk -F': ' '/^MYSQL_ROOT_PASSWORD:/ {gsub(/"/, "", $2); print $2; exit}' "{{DEV_MYSQL_CONFIG}}")"
     DB_URL="mysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
     DB_DEV_URL="mysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}_dev"
 
@@ -96,38 +133,148 @@ db-up:
     mysql -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" \
         -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`; CREATE DATABASE IF NOT EXISTS \`${DB_NAME}_dev\`;"
 
-    echo "🗄️  Applying schema with Atlas..."
-    echo "   - DB_URL: ${DB_URL}"
-    echo "   - Schema Dir: {{SCHEMA_DIR}}"
-
     atlas schema apply -u "${DB_URL}" --to "file://{{SCHEMA_DIR}}/" --dev-url "${DB_DEV_URL}" --auto-approve
 
-# Drop and recreate local deploy MySQL databases
-db-reset:
+# Print Atlas SQL diff for the dev database without applying changes
+db-diff:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    if [ ! -f "{{MYSQL_ENV_FILE}}" ]; then
-        echo "找不到 MySQL 配置文件: {{MYSQL_ENV_FILE}}"
+    if ! command -v atlas >/dev/null 2>&1; then
+        echo "atlas 未安装，请先安装 atlas CLI"
         exit 1
     fi
 
-    set -a
-    source "{{MYSQL_ENV_FILE}}"
-    set +a
+    if [ ! -f "{{DEV_BACKEND_CONFIG}}" ] || [ ! -f "{{DEV_MYSQL_CONFIG}}" ]; then
+        echo "缺少 dev 配置文件"
+        exit 1
+    fi
+
+    if [ ! -d "{{SCHEMA_DIR}}" ]; then
+        echo "找不到 schema 目录: {{SCHEMA_DIR}}"
+        exit 1
+    fi
 
     DB_HOST="127.0.0.1"
     DB_PORT="6033"
-    DB_NAME="${MYSQL_DATABASE:-modelcraft}"
-    DB_DEV_NAME="${DB_NAME}_dev"
+    DB_NAME="$(awk '
+        /^database:/ {in_db=1; next}
+        /^[^[:space:]]/ {in_db=0}
+        in_db && /^[[:space:]]+database:/ {
+            sub(/^[^:]+:[[:space:]]*/, "", $0)
+            gsub(/"/, "", $0)
+            print
+            exit
+        }
+    ' "{{DEV_BACKEND_CONFIG}}")"
     DB_USER="root"
-    DB_PASSWORD="${MYSQL_ROOT_PASSWORD}"
+    DB_PASSWORD="$(awk -F': ' '/^MYSQL_ROOT_PASSWORD:/ {gsub(/"/, "", $2); print $2; exit}' "{{DEV_MYSQL_CONFIG}}")"
+    DB_URL="mysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+    DB_DEV_URL="mysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}_dev"
 
     if [ -z "${DB_PASSWORD}" ]; then
         echo "MYSQL_ROOT_PASSWORD 未设置，无法连接数据库"
         exit 1
     fi
 
-    echo "Resetting databases: ${DB_NAME}, ${DB_DEV_NAME}"
+    mysql -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" \
+        -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`; CREATE DATABASE IF NOT EXISTS \`${DB_NAME}_dev\`;"
+
+    atlas schema diff \
+        --from "${DB_URL}" \
+        --to "file://{{SCHEMA_DIR}}/" \
+        --dev-url "${DB_DEV_URL}" \
+        --format '{{ "{{ sql . }}" }}'
+
+# Generate an Atlas migration diff from schema files for the dev database
+db-migrate-diff name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if ! command -v atlas >/dev/null 2>&1; then
+        echo "atlas 未安装，请先安装 atlas CLI"
+        exit 1
+    fi
+
+    if [ -z "{{name}}" ]; then
+        echo "usage: just db-migrate-diff <migration_name>"
+        exit 1
+    fi
+
+    if [ ! -f "{{DEV_BACKEND_CONFIG}}" ] || [ ! -f "{{DEV_MYSQL_CONFIG}}" ]; then
+        echo "缺少 dev 配置文件"
+        exit 1
+    fi
+
+    if [ ! -d "{{SCHEMA_DIR}}" ]; then
+        echo "找不到 schema 目录: {{SCHEMA_DIR}}"
+        exit 1
+    fi
+
+    if [ ! -d "{{MIGRATION_DIR}}" ]; then
+        echo "找不到 migration 目录: {{MIGRATION_DIR}}"
+        exit 1
+    fi
+
+    DB_HOST="127.0.0.1"
+    DB_PORT="6033"
+    DB_NAME="$(awk '
+        /^database:/ {in_db=1; next}
+        /^[^[:space:]]/ {in_db=0}
+        in_db && /^[[:space:]]+database:/ {
+            sub(/^[^:]+:[[:space:]]*/, "", $0)
+            gsub(/"/, "", $0)
+            print
+            exit
+        }
+    ' "{{DEV_BACKEND_CONFIG}}")"
+    DB_USER="root"
+    DB_PASSWORD="$(awk -F': ' '/^MYSQL_ROOT_PASSWORD:/ {gsub(/"/, "", $2); print $2; exit}' "{{DEV_MYSQL_CONFIG}}")"
+    DB_DEV_URL="mysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}_dev"
+
+    if [ -z "${DB_PASSWORD}" ]; then
+        echo "MYSQL_ROOT_PASSWORD 未设置，无法连接数据库"
+        exit 1
+    fi
+
+    mysql -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" \
+        -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME}_dev\`;"
+
+    atlas migrate diff "{{name}}" \
+        --dir "file://{{MIGRATION_DIR}}" \
+        --to "file://{{SCHEMA_DIR}}/" \
+        --dev-url "${DB_DEV_URL}"
+
+# Drop and recreate dev MySQL databases
+db-reset:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [ ! -f "{{DEV_BACKEND_CONFIG}}" ] || [ ! -f "{{DEV_MYSQL_CONFIG}}" ]; then
+        echo "缺少 dev 配置文件"
+        exit 1
+    fi
+
+    DB_HOST="127.0.0.1"
+    DB_PORT="6033"
+    DB_NAME="$(awk '
+        /^database:/ {in_db=1; next}
+        /^[^[:space:]]/ {in_db=0}
+        in_db && /^[[:space:]]+database:/ {
+            sub(/^[^:]+:[[:space:]]*/, "", $0)
+            gsub(/"/, "", $0)
+            print
+            exit
+        }
+    ' "{{DEV_BACKEND_CONFIG}}")"
+    DB_DEV_NAME="${DB_NAME}_dev"
+    DB_USER="root"
+    DB_PASSWORD="$(awk -F': ' '/^MYSQL_ROOT_PASSWORD:/ {gsub(/"/, "", $2); print $2; exit}' "{{DEV_MYSQL_CONFIG}}")"
+
+    if [ -z "${DB_PASSWORD}" ]; then
+        echo "MYSQL_ROOT_PASSWORD 未设置，无法连接数据库"
+        exit 1
+    fi
+
     mysql -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" \
         -e "DROP DATABASE IF EXISTS ${DB_NAME}; DROP DATABASE IF EXISTS ${DB_DEV_NAME}; CREATE DATABASE ${DB_NAME}; CREATE DATABASE ${DB_DEV_NAME};"

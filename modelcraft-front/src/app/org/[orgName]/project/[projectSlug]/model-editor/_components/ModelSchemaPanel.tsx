@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import {
   Loader2,
   Edit,
@@ -12,6 +13,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
+import { buildModelEditorPath } from '@shared/routes/model-editor-path'
 import { Input } from '@web/components/ui/input'
 import { Alert, AlertDescription } from '@web/components/ui/alert'
 import {
@@ -60,9 +62,13 @@ export function ModelSchemaPanel({
   const displayFieldOptions = (state.editModelData?.fields || []).filter(
     (field) => field.format !== 'RELATION'
   )
+  const orderedFields = [...(state.editModelData?.fields ?? [])].sort(
+    (a, b) => Number(b.isPrimary === true) - Number(a.isPrimary === true)
+  )
   const displayFieldSelectValue = state.metaDisplayField || '__display_field_none__'
   const isDisplayFieldUnset = state.metaDisplayField.trim() === ''
-  const isManagedReadOnlyModel = state.editModelData?.createdVia === 'IMPORTED'
+  const isManagedReadOnlyModel = state.editModelData?.isReadOnly === true
+  const router = useRouter()
 
   if (!state.editModelData) {
     return (
@@ -75,7 +81,7 @@ export function ModelSchemaPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
-      {/* InsertFieldSheet — same z-index nesting as ModelDetailPanel */}
+      {/* 插入字段仅限关联关系（RELATION），物理字段由数据库同步 */}
       <InsertFieldSheet
         open={state.insertFieldOpen}
         onOpenChange={state.setInsertFieldOpen}
@@ -92,7 +98,7 @@ export function ModelSchemaPanel({
 
       {/* Header */}
       <div className="flex shrink-0 items-start border-b border-border px-6 py-4">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="text-base font-semibold text-foreground">
             {state.editModelData?.title || state.editModelData?.name || '模型详情'}
           </h2>
@@ -100,6 +106,20 @@ export function ModelSchemaPanel({
             {state.editModelData?.name}
           </p>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs text-muted-foreground hover:text-foreground"
+          onClick={() =>
+            router.push(buildModelEditorPath(orgName, projectSlug, {
+              view: 'data',
+              databaseName: state.selectedDatabase || null,
+            }))
+          }
+        >
+          <Table2 className="mr-1.5 size-3.5" />
+          前往数据表
+        </Button>
       </div>
 
       {/* Scrollable body */}
@@ -273,7 +293,7 @@ export function ModelSchemaPanel({
                 </div>
                 <button
                   type="button"
-                  title={isManagedReadOnlyModel ? '托管模型仅支持查看' : '新增字段'}
+                  title={isManagedReadOnlyModel ? '托管模型仅支持查看' : '新增关联字段'}
                   className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={() => state.setInsertFieldOpen(true)}
                   disabled={isManagedReadOnlyModel}
@@ -307,7 +327,7 @@ export function ModelSchemaPanel({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
-                        {state.editModelData.fields.map((field) => {
+                        {orderedFields.map((field) => {
                           const enumDisplayFieldName = getEnumDisplayFieldName(field)
                           const isSystemField = isSystemGeneratedLabelField(
                             field,
@@ -454,7 +474,7 @@ export function ModelSchemaPanel({
                   <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                     <Table2 className="mb-2 size-8 opacity-30" />
                     <p className="text-sm">暂无字段</p>
-                    <p className="mt-1 text-xs">点击上方按钮添加字段</p>
+                    <p className="mt-1 text-xs">从数据库同步获取物理字段，或点击上方按钮添加关联字段</p>
                   </div>
                 )}
               </div>

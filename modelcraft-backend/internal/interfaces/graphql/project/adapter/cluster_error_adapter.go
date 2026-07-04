@@ -42,7 +42,7 @@ func (a *ClusterErrorAdapter) ConvertToGetClusterError(err *bizerrors.BusinessEr
 			ResourceType: generated.ResourceTypeCluster,
 		}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for GetCluster: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for GetCluster: %s", err.Info().GetCode())
 		return &generated.ResourceNotFound{
 			Message:      err.Msg(),
 			ResourceType: generated.ResourceTypeCluster,
@@ -83,7 +83,7 @@ func (a *ClusterErrorAdapter) ConvertToUpdateClusterError(err *bizerrors.Busines
 			Suggestion: &suggestion,
 		}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for UpdateCluster: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for UpdateCluster: %s", err.Info().GetCode())
 		return &generated.ResourceNotFound{
 			Message:      err.Msg(),
 			ResourceType: generated.ResourceTypeCluster,
@@ -109,7 +109,7 @@ func (a *ClusterErrorAdapter) ConvertToDeleteClusterError(err *bizerrors.Busines
 			ResourceType: generated.ResourceTypeCluster,
 		}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for DeleteCluster: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for DeleteCluster: %s", err.Info().GetCode())
 		return &generated.ResourceNotFound{
 			Message:      err.Msg(),
 			ResourceType: generated.ResourceTypeCluster,
@@ -141,7 +141,7 @@ func (a *ClusterErrorAdapter) ConvertToTestConnectionError(err *bizerrors.Busine
 			Suggestion: &suggestion,
 		}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown error code for TestConnection: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown error code for TestConnection: %s", err.Info().GetCode())
 		return &generated.DatabaseConnectionFailed{
 			Message: err.Msg(),
 		}

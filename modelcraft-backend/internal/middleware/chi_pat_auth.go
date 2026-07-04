@@ -1,8 +1,9 @@
 package middleware
 
 import (
-	"modelcraft/internal/app/enduser"
+	"modelcraft/internal/app/apitoken"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/httpheader"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strings"
@@ -14,13 +15,23 @@ const patPrefix = "mc_pat_"
 // ChiPATAuthMiddleware identifies Bearer mc_pat_xxx tokens, validates them,
 // and injects EndUser identity into context. Non-PAT requests pass through unchanged.
 func ChiPATAuthMiddleware(
-	svc *enduser.APITokenService, logger logfacade.Logger,
+	svc *apitoken.APITokenService, logger logfacade.Logger,
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			bearer := r.Header.Get("Authorization")
+			if logger == nil {
+				logger = logfacade.GetLogger(r.Context())
+			}
+
+			bearer := r.Header.Get(httpheader.Authorization)
 			if !strings.HasPrefix(bearer, "Bearer "+patPrefix) {
 				next.ServeHTTP(w, r)
+				return
+			}
+
+			if svc == nil {
+				logger.Warnf(r.Context(), "PAT validation unavailable: api token service is nil")
+				writeJSONError(w, http.StatusUnauthorized, "invalid or expired token", "UNAUTHENTICATED")
 				return
 			}
 
@@ -38,9 +49,9 @@ func ChiPATAuthMiddleware(
 				}
 			}()
 
-			ctx := ctxutils.SetUserID(r.Context(), token.EndUserID)
+			ctx := ctxutils.SetEndUserID(r.Context(), token.EndUserID)
 			ctx = ctxutils.SetOrgName(ctx, token.OrgName)
-			ctx = ctxutils.SetUserType(ctx, "end_user")
+			ctx = ctxutils.SetUserID(ctx, token.EndUserID)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

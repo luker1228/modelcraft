@@ -91,7 +91,7 @@ func assertErrorCode(t *testing.T, v map[string]any, wantCode string) {
 	}
 }
 
-// futureExpiry returns an RFC 3339 timestamp one day from now (no refresh needed).
+// futureExpiry returns an RFC 3339 timestamp one day from now.
 func futureExpiry() string {
 	return time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339)
 }
@@ -113,7 +113,6 @@ func credPath(t *testing.T) string {
 }
 
 // writeValidCreds writes a ready-to-use credentials file pointing to serverURL.
-// The token is not expired so no refresh will be attempted.
 func writeValidCreds(t *testing.T, path, serverURL, project string) {
 	t.Helper()
 	writeCredJSON(t, path, map[string]any{
@@ -121,18 +120,13 @@ func writeValidCreds(t *testing.T, path, serverURL, project string) {
 		"orgName":        "acme",
 		"userId":         "u1",
 		"accessToken":    "at-valid",
-		"refreshToken":   "rt-valid",
-		"expiresAt":      futureExpiry(),
 		"currentProject": project,
-		"projects":       []map[string]any{{"slug": project, "title": "Test Project"}},
 	})
 }
 
 // newAuthServer returns an httptest.Server whose handler:
-//   - GET  /api/cli/end-user/auth/whoami  → whoamiResp with projects
-//   - POST /api/cli/end-user/auth/logout  → 204
-//   - POST /api/cli/end-user/auth/refresh → refreshResp
-//   - all other paths                     → graphqlHandler (if non-nil)
+//   - GET  /api/tenant/auth/whoami  → whoamiResp with projects
+//   - all other paths        → graphqlHandler (if non-nil)
 func newAuthServer(t *testing.T, projects []map[string]any, graphqlHandler http.HandlerFunc) *httptest.Server {
 	t.Helper()
 	whoami := map[string]any{
@@ -141,22 +135,11 @@ func newAuthServer(t *testing.T, projects []map[string]any, graphqlHandler http.
 		"isAdmin":  false,
 		"projects": projects,
 	}
-	refresh := map[string]any{
-		"userId":       "u1",
-		"orgName":      "acme",
-		"accessToken":  "at-refreshed",
-		"refreshToken": "rt-refreshed",
-		"expiresAt":    futureExpiry(),
-	}
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/api/cli/end-user/auth/whoami":
+		case r.Method == http.MethodGet && r.URL.Path == "/api/tenant/auth/whoami":
 			_ = json.NewEncoder(w).Encode(whoami)
-		case r.Method == http.MethodPost && r.URL.Path == "/api/cli/end-user/auth/refresh":
-			_ = json.NewEncoder(w).Encode(refresh)
-		case r.Method == http.MethodPost && r.URL.Path == "/api/cli/end-user/auth/logout":
-			w.WriteHeader(http.StatusNoContent)
 		default:
 			if graphqlHandler != nil {
 				graphqlHandler(w, r)

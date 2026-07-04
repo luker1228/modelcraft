@@ -12,7 +12,6 @@ import {
 } from '@web/components/ui/dialog'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
-import { Label } from '@web/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -20,18 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@web/components/ui/select'
-import { HelpCircle, Loader2, Plus, Trash2 } from 'lucide-react'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@web/components/ui/tooltip'
+import { Loader2, Plus, Trash2 } from 'lucide-react'
 import {
   useClusterRawDatabases,
   useBatchRegisterModelDatabase,
   type ModelDatabase,
-  type DatabaseMode,
   type RegisterModelDatabaseInput,
 } from '@web/hooks/model-database/use-model-databases'
 
@@ -40,7 +32,6 @@ interface DbRow {
   name: string
   title: string
   description: string
-  mode: DatabaseMode
   error?: string
 }
 
@@ -90,39 +81,6 @@ function DbRowForm({ row, options, onUpdate, onRemove }: DbRowFormProps) {
           placeholder="描述（可选）"
           className="flex-1"
         />
-        <div className="flex shrink-0 items-center gap-1">
-          {/* TODO: 自建模式暂未开放，后续按需启用
-          <Select
-            value={row.mode}
-            onValueChange={(v) => onUpdate({ mode: v as DatabaseMode })}
-          >
-            <SelectTrigger className="w-24">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="MANAGED">托管</SelectItem>
-              <SelectItem value="SELF_HOSTED">自建</SelectItem>
-            </SelectContent>
-          </Select>
-          */}
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <HelpCircle className="size-4 shrink-0 cursor-default text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-56 text-center leading-relaxed">
-                <p>
-                  <span className="font-medium">托管</span>：由 ModelCraft 托管，自动处理连接与凭据。
-                </p>
-                {/* TODO: 自建模式暂未开放
-                <p className="mt-1">
-                  <span className="font-medium">自建</span>：你自己部署的数据库，需手动配置连接信息。
-                </p>
-                */}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
         <Button
           variant="ghost"
           size="icon"
@@ -157,7 +115,7 @@ export function RegisterDatabaseDialog({
   const addRow = () => {
     setRows((prev) => [
       ...prev,
-      { id: generateUUID(), name: '', title: '', description: '', mode: 'MANAGED' },
+      { id: generateUUID(), name: '', title: '', description: '' },
     ])
   }
 
@@ -181,7 +139,7 @@ export function RegisterDatabaseDialog({
       name: r.name,
       title: r.title,
       description: r.description || undefined,
-      mode: r.mode,
+      mode: 'SELF_HOSTED',
     }))
     const result = await batchRegister(inputs)
     const successNames = new Set(result.succeeded.map((d) => d.name))
@@ -204,9 +162,12 @@ export function RegisterDatabaseDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>批量接管数据库</DialogTitle>
+          <DialogTitle>批量注册数据库</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3 py-2">
+          <p className="text-sm text-muted-foreground">
+            数据库统一按可写模式注册，支持导入和后续模型维护。
+          </p>
           {rawLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" /> 加载数据库列表...
@@ -215,7 +176,7 @@ export function RegisterDatabaseDialog({
             <>
               {rows.length === 0 && (
                 <p className="py-4 text-center text-sm text-muted-foreground">
-                  点击下方按钮添加要接管的数据库
+                  点击下方按钮添加要注册的数据库
                 </p>
               )}
               <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
@@ -230,7 +191,7 @@ export function RegisterDatabaseDialog({
                 ))}
               </div>
               {unregistered.length === 0 ? (
-                <p className="text-center text-sm text-muted-foreground">所有数据库已接管</p>
+                <p className="text-center text-sm text-muted-foreground">所有数据库已注册</p>
               ) : (
                 <Button
                   variant="outline"
@@ -251,7 +212,7 @@ export function RegisterDatabaseDialog({
           </Button>
           <Button onClick={handleSubmit} disabled={!canSubmit}>
             {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-            确认接管
+            确认注册
           </Button>
         </DialogFooter>
       </DialogContent>

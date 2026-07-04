@@ -13,11 +13,17 @@ type Selection struct {
 	FieldNames map[string]bool
 }
 
+type RawSQLFilter struct {
+	SQL    string
+	Params []any
+}
+
 // FindUniqueInput 查找唯一记录的输入参数
 type FindUniqueInput struct {
-	TableName string
-	Selection *Selection
-	Where     map[string]any
+	TableName  string
+	Selection  *Selection
+	Where      map[string]any
+	RawFilters []RawSQLFilter
 }
 
 func newFindUniqueInput(tableName string, param graphql.ResolveParams) (*FindUniqueInput, error) {
@@ -46,14 +52,22 @@ func getWhere(param map[string]any) (map[string]any, error) {
 
 // FindManyInput 查找多个记录的输入参数，支持过滤、分页
 type FindManyInput struct {
-	TableName string
-	Selection *Selection
-	Where     map[string]any
-	OrderBy   []OrderBy
-	Limit     uint
+	TableName  string
+	Selection  *Selection
+	Where      map[string]any
+	RawFilters []RawSQLFilter
+	OrderBy    []OrderBy
+	Limit      uint
 	// ExplicitLimit indicates the caller explicitly passed a take value (including 0).
 	// When false and Limit==0, the query uses the default limit.
 	// When true and Limit==0, LIMIT 0 is applied (returns empty result set).
+	//
+	// take=0 的工程意义——LIMIT 0 不是"查数据"，而是"问结构 / 验查询 / 测接口 / 省资源"：
+	//   - 问结构：数据库只返回字段元信息，不搬运任何行数据；
+	//   - 验查询：验证 where / orderBy 语法是否合法、RLS 策略是否生效；
+	//   - 测接口：前端联调时探测接口可用性与返回 shape；
+	//   - 省资源：对大表做"零成本"探测，避免全表扫描风险。
+	// 这是数据库和工程系统里一个非常成熟、非常有用的设计，因此显式 take=0 被保留。
 	ExplicitLimit bool
 	Offset        uint
 }
@@ -79,10 +93,11 @@ type ListByCursorInput struct {
 	TableName           string
 	Selection           *Selection
 	Where               map[string]any // extra WHERE (RLS etc.)
-	SortField           string         // required: field to sort by
-	SortDirection       string         // "asc" or "desc"
-	InsertionOrderField string         // optional: monotonically increasing field name
-	After               *CursorData    // nil = first page
+	RawFilters          []RawSQLFilter
+	SortField           string      // required: field to sort by
+	SortDirection       string      // "asc" or "desc"
+	InsertionOrderField string      // optional: monotonically increasing field name
+	After               *CursorData // nil = first page
 	Limit               uint
 }
 
@@ -98,6 +113,12 @@ func newFindManyInput(tableName string, param graphql.ResolveParams) (*FindManyI
 	take, err := cast.ToUintE(takeRaw)
 	if err != nil {
 		return nil, bizerrors.Errorf("take must be an integer, val = %v type = %T", takeRaw, takeRaw)
+	}
+	// 验证 take 上限。
+	// take=0 显式返回空集（LIMIT 0），用于"问结构 / 验查询 / 测接口 / 省资源"，允许；
+	// take > MaxFindManyLimit 拒绝，避免大表全量扫描。
+	if take > MaxFindManyLimit {
+		return nil, bizerrors.Errorf("take must be between 0 and %d, got %d", MaxFindManyLimit, take)
 	}
 	skipRaw, ok := param.Args[FieldSkip]
 	if !ok {
@@ -164,9 +185,10 @@ func getOrderBy(param map[string]any) ([]OrderBy, error) {
 
 // FindFirstInput 查找第一个匹配记录的输入参数
 type FindFirstInput struct {
-	TableName string
-	Selection *Selection
-	Where     map[string]any
+	TableName  string
+	Selection  *Selection
+	Where      map[string]any
+	RawFilters []RawSQLFilter
 }
 
 func newFindFirstInput(tableName string, param graphql.ResolveParams) (*FindFirstInput, error) {
@@ -186,6 +208,7 @@ type CreateOneInput struct {
 	TableName  string
 	Id         string
 	Data       map[string]any
+	RawFilters []RawSQLFilter
 }
 
 func newCreateOneInput(tableName string, param graphql.ResolveParams) (*CreateOneInput, error) {
@@ -208,6 +231,7 @@ type UpdateOneInput struct {
 	UpdatedObj bool
 	Where      map[string]any
 	Data       map[string]any
+	RawFilters []RawSQLFilter
 }
 
 func newUpdateOneInput(tableName string, param graphql.ResolveParams) (*UpdateOneInput, error) {
@@ -236,6 +260,7 @@ type DeleteOneInput struct {
 	DeletedObj bool
 	TableName  string
 	Where      map[string]any
+	RawFilters []RawSQLFilter
 }
 
 func newDeleteOneInput(tableName string, param graphql.ResolveParams) (*DeleteOneInput, error) {
@@ -306,10 +331,11 @@ func newCreateManyInput(tableName string, param graphql.ResolveParams) (*CreateM
 
 // UpdateManyInput 批量更新记录的输入参数
 type UpdateManyInput struct {
-	TableName string
-	Where     map[string]any
-	Data      map[string]any
-	Take      uint
+	TableName  string
+	Where      map[string]any
+	Data       map[string]any
+	Take       uint
+	RawFilters []RawSQLFilter
 }
 
 func newUpdateManyInput(tableName string, param graphql.ResolveParams) (*UpdateManyInput, error) {
@@ -351,9 +377,10 @@ func newUpdateManyInput(tableName string, param graphql.ResolveParams) (*UpdateM
 
 // DeleteManyInput 批量删除记录的输入参数
 type DeleteManyInput struct {
-	TableName string
-	Where     map[string]any
-	Take      uint
+	TableName  string
+	Where      map[string]any
+	Take       uint
+	RawFilters []RawSQLFilter
 }
 
 func newDeleteManyInput(tableName string, param graphql.ResolveParams) (*DeleteManyInput, error) {
@@ -408,13 +435,14 @@ func hasSelectedField(p graphql.ResolveParams, fieldName string) bool {
 
 // AggregateInput 聚合查询的输入参数
 type AggregateInput struct {
-	TableName string
-	Where     map[string]any
-	Count     map[string]bool // field name -> true, 或 "_all" -> true
-	Avg       map[string]bool // field name -> true
-	Sum       map[string]bool // field name -> true
-	Min       map[string]bool // field name -> true
-	Max       map[string]bool // field name -> true
+	TableName  string
+	Where      map[string]any
+	RawFilters []RawSQLFilter
+	Count      map[string]bool // field name -> true, 或 "_all" -> true
+	Avg        map[string]bool // field name -> true
+	Sum        map[string]bool // field name -> true
+	Min        map[string]bool // field name -> true
+	Max        map[string]bool // field name -> true
 }
 
 func newAggregateInput(tableName string, param graphql.ResolveParams) (*AggregateInput, error) {
@@ -503,9 +531,10 @@ func parseSelectArg(selectArg any) (map[string]bool, error) {
 
 // CountInput count查询的输入参数
 type CountInput struct {
-	TableName string
-	Where     map[string]any
-	Select    map[string]bool // field name -> true, 或 "_all" -> true（如果为nil表示简单计数）
+	TableName  string
+	Where      map[string]any
+	RawFilters []RawSQLFilter
+	Select     map[string]bool // field name -> true, 或 "_all" -> true（如果为nil表示简单计数）
 }
 
 func newCountInput(tableName string, param graphql.ResolveParams) (*CountInput, error) {

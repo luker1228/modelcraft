@@ -78,24 +78,20 @@ type CookieConfig struct {
 
 // AuthConfig 认证配置
 type AuthConfig struct {
-	InternalToken string            `mapstructure:"internal_token"` // 内网接口共享令牌（X-Internal-Token）
-	Cookie        CookieConfig      `mapstructure:"cookie"`         // 刷新令牌 Cookie 配置
-	Design        DesignAuthConfig  `mapstructure:"design"`         // 设计时API认证配置
-	Runtime       RuntimeAuthConfig `mapstructure:"runtime"`        // 运行时API认证配置
+	Cookie  CookieConfig      `mapstructure:"cookie"`  // 刷新令牌 Cookie 配置
+	Design  DesignAuthConfig  `mapstructure:"design"`  // 设计时API认证配置
+	Runtime RuntimeAuthConfig `mapstructure:"runtime"` // 运行时API认证配置
 }
 
 // DesignAuthConfig 设计时API认证配置
 type DesignAuthConfig struct {
-	Enabled             bool   `mapstructure:"enabled"`               // 是否启用认证
 	JWTPublicKeyPath    string `mapstructure:"jwt_public_key_path"`   // JWT 公钥路径
 	JWTPublicKey        string `mapstructure:"jwt_public_key"`        // JWT 公钥内容
-	SkipJWTValidation   bool   `mapstructure:"skip_jwt_validation"`   // 是否跳过JWT验证
 	AcceptModelcraftJWT bool   `mapstructure:"accept_modelcraft_jwt"` // 是否接受 ModelCraft JWT (migration flag)
 }
 
 // RuntimeAuthConfig 运行态认证配置
 type RuntimeAuthConfig struct {
-	Enabled             bool     `mapstructure:"enabled"`
 	OptionalForProjects []string `mapstructure:"optional_for_projects"`
 }
 
@@ -143,7 +139,7 @@ func LoadConfigWithOptions(ctx context.Context, opts ConfigOptions) *Config {
 	// 解析配置到结构体
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
-		logger.Fatal(ctx, "❌ 配置解析失败", logfacade.Err(err))
+		logger.Fatalf(ctx, err, "配置解析失败")
 	}
 
 	logger.Infof(ctx, "✅ 配置加载完成: 服务端口=%s, 数据库=%s:%d/%s",
@@ -192,16 +188,13 @@ func setupEnvBindings(v *viper.Viper) {
 	_ = v.BindEnv("logger.compress", "LOG_COMPRESS")
 
 	// 认证配置环境变量绑定
-	_ = v.BindEnv("auth.internal_token", "INTERNAL_TOKEN")
 	_ = v.BindEnv("auth.cookie.domain", "AUTH_COOKIE_DOMAIN")
 	_ = v.BindEnv("auth.cookie.secure", "AUTH_COOKIE_SECURE")
 	_ = v.BindEnv("auth.cookie.same_site", "AUTH_COOKIE_SAME_SITE")
-	_ = v.BindEnv("auth.design.enabled", "AUTH_DESIGN_ENABLED")
 	_ = v.BindEnv("auth.design.jwt_public_key_path", "AUTH_JWT_PUBLIC_KEY_PATH")
 	_ = v.BindEnv("auth.design.jwt_public_key", "AUTH_JWT_PUBLIC_KEY")
 	_ = v.BindEnv("auth.design.skip_jwt_validation", "AUTH_SKIP_JWT_VALIDATION")
 	_ = v.BindEnv("auth.design.accept_modelcraft_jwt", "AUTH_ACCEPT_MODELCRAFT_JWT")
-	_ = v.BindEnv("auth.runtime.enabled", "AUTH_RUNTIME_ENABLED")
 }
 
 // loadEnvFile 使用 godotenv 加载环境变量文件

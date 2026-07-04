@@ -20,7 +20,7 @@ func (r *mutationResolver) UpdateMyProfile(ctx context.Context, input generated.
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "organization context required")
 	}
 
-	userID, err := ctxutils.GetTenantUserIDFromContext(ctx)
+	userID, err := ctxutils.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "user context required")
 	}
@@ -39,10 +39,7 @@ func (r *mutationResolver) UpdateMyProfile(ctx context.Context, input generated.
 	if err != nil {
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
 			logger := logfacade.GetLogger(ctx)
-			logger.Error(ctx, "failed to update my profile",
-				logfacade.Err(bizErr),
-				logfacade.Stack(bizErr),
-			)
+			logger.Errorf(ctx, bizErr, "failed to update my profile")
 
 			switch bizErr.Info().GetCode() {
 			case bizerrors.ProfileNotFound.GetCode():
@@ -79,7 +76,7 @@ func (r *queryResolver) MyUserProfile(ctx context.Context) (*generated.GetMyUser
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "organization context required")
 	}
 
-	userID, err := ctxutils.GetTenantUserIDFromContext(ctx)
+	userID, err := ctxutils.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "user context required")
 	}
@@ -95,10 +92,7 @@ func (r *queryResolver) MyUserProfile(ctx context.Context) (*generated.GetMyUser
 	if err != nil {
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
 			logger := logfacade.GetLogger(ctx)
-			logger.Error(ctx, "failed to query my user profile",
-				logfacade.Err(bizErr),
-				logfacade.Stack(bizErr),
-			)
+			logger.Errorf(ctx, bizErr, "failed to query my user profile")
 
 			switch bizErr.Info().GetCode() {
 			case bizerrors.UserNotFound.GetCode():

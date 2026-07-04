@@ -32,7 +32,7 @@ func (a *FKErrorAdapter) ConvertToCreateResult(err *bizerrors.BusinessError) gen
 	case bizerrors.FKFieldCountMismatch.GetCode():
 		return &generated.FKFieldCountMismatchError{Message: err.Msg()}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown FK create error code: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown FK create error code: %s", err.Info().GetCode())
 		return &generated.FKColumnsNotFoundError{Message: err.Msg()}
 	}
 }
@@ -50,7 +50,7 @@ func (a *FKErrorAdapter) ConvertToDeleteResult(err *bizerrors.BusinessError) gen
 	case bizerrors.FKNotDeletable.GetCode():
 		return &generated.FKNotDeletableError{Message: err.Msg()}
 	default:
-		a.logger.Errorf(a.ctx, "Unknown FK delete error code: %s", err.Info().GetCode())
+		a.logger.Errorf(a.ctx, nil, "Unknown FK delete error code: %s", err.Info().GetCode())
 		return &generated.FKNotFoundError{Message: err.Msg()}
 	}
 }

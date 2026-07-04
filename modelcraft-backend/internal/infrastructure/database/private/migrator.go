@@ -34,9 +34,9 @@ func (m *PrivateMigrator) Migrate(ctx context.Context, db *sql.DB, projectSlug s
 
 	dbName := fmt.Sprintf("mc_private_%s", projectSlug)
 
-	m.logger.Info(ctx, "starting private database migration",
+	m.logger.With(
 		logfacade.String("database", dbName),
-		logfacade.String("project_slug", projectSlug))
+		logfacade.String("project_slug", projectSlug)).Infof(ctx, "starting private database migration")
 
 	if err := m.createDatabase(ctx, db, dbName); err != nil {
 		return fmt.Errorf("create database %s: %w", dbName, err)
@@ -50,8 +50,7 @@ func (m *PrivateMigrator) Migrate(ctx context.Context, db *sql.DB, projectSlug s
 		return fmt.Errorf("create tables in %s: %w", dbName, err)
 	}
 
-	m.logger.Info(ctx, "private database migration completed",
-		logfacade.String("database", dbName))
+	m.logger.With(logfacade.String("database", dbName)).Infof(ctx, "private database migration completed")
 
 	return nil
 }
@@ -68,7 +67,7 @@ func (m *PrivateMigrator) createDatabase(ctx context.Context, db *sql.DB, dbName
 		return err
 	}
 
-	m.logger.Debug(ctx, "ensured database exists", logfacade.String("database", dbName))
+	m.logger.With(logfacade.String("database", dbName)).Debugf(ctx, "ensured database exists")
 	return nil
 }
 
@@ -90,7 +89,7 @@ func (m *PrivateMigrator) createTables(ctx context.Context, db *sql.DB, dbName s
 	if _, err := db.ExecContext(ctx, createUsersSQL); err != nil {
 		return fmt.Errorf("create users table: %w", err)
 	}
-	m.logger.Debug(ctx, "ensured users table exists", logfacade.String("database", dbName))
+	m.logger.With(logfacade.String("database", dbName)).Debugf(ctx, "ensured users table exists")
 
 	createAccountsSQL := `
 		CREATE TABLE IF NOT EXISTS accounts (
@@ -109,7 +108,7 @@ func (m *PrivateMigrator) createTables(ctx context.Context, db *sql.DB, dbName s
 	if _, err := db.ExecContext(ctx, createAccountsSQL); err != nil {
 		return fmt.Errorf("create accounts table: %w", err)
 	}
-	m.logger.Debug(ctx, "ensured accounts table exists", logfacade.String("database", dbName))
+	m.logger.With(logfacade.String("database", dbName)).Debugf(ctx, "ensured accounts table exists")
 
 	createRolesSQL := `
 		CREATE TABLE IF NOT EXISTS roles (
@@ -125,7 +124,7 @@ func (m *PrivateMigrator) createTables(ctx context.Context, db *sql.DB, dbName s
 	if _, err := db.ExecContext(ctx, createRolesSQL); err != nil {
 		return fmt.Errorf("create roles table: %w", err)
 	}
-	m.logger.Debug(ctx, "ensured roles table exists", logfacade.String("database", dbName))
+	m.logger.With(logfacade.String("database", dbName)).Debugf(ctx, "ensured roles table exists")
 
 	createRolesUsersSQL := `
 		CREATE TABLE IF NOT EXISTS roles_users (
@@ -143,7 +142,7 @@ func (m *PrivateMigrator) createTables(ctx context.Context, db *sql.DB, dbName s
 	if _, err := db.ExecContext(ctx, createRolesUsersSQL); err != nil {
 		return fmt.Errorf("create roles_users table: %w", err)
 	}
-	m.logger.Debug(ctx, "ensured roles_users table exists", logfacade.String("database", dbName))
+	m.logger.With(logfacade.String("database", dbName)).Debugf(ctx, "ensured roles_users table exists")
 
 	return nil
 }

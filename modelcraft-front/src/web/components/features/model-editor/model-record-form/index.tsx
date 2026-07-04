@@ -6,7 +6,7 @@ import validator from '@rjsf/validator-ajv8'
 import type { RJSFSchema, UiSchema } from '@rjsf/utils'
 import { buildUiSchema } from './build-ui-schema'
 import { filterJsonSchemaForForm } from './filter-json-schema-for-form'
-import { EnumSelect, EnumSchemaSelect, RelationSelector, EndUserSelectorWidget } from './widgets'
+import { EnumSelect, EnumSchemaSelect, RelationSelector } from './widgets'
 import { OneToManyRelationManagerSection } from './OneToManyRelationManagerSection'
 import { FieldTemplate, BaseInputTemplate, ObjectFieldTemplate } from './templates'
 import { Button } from '@web/components/ui/button'
@@ -27,10 +27,7 @@ interface ModelRecordFormProps {
   databaseName: string
   modelId: string
   recordId?: string
-  /** Controls which Apollo client EndUserSelectorWidget uses to fetch users.
-   *  - 'design'   → Tenant client via /graphql/org/ (default)
-   *  - 'end_user' → End-user client via /graphql/end-user/org/
-   */
+  /** @deprecated No longer used — EndUserSelectorWidget has been removed. */
   workspaceMode?: 'design' | 'end_user'
 }
 
@@ -38,7 +35,6 @@ const customWidgets = {
   EnumSelect,
   EnumSchemaSelect,
   RelationSelector,
-  EndUserSelectorWidget,
 }
 
 const customTemplates = {

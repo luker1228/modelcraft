@@ -9,7 +9,7 @@ import (
 
 func TestAuthClientWhoamiPopulatesCredentials(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/cli/end-user/auth/whoami" {
+		if r.URL.Path != "/api/tenant/auth/whoami" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 		if r.Header.Get("Authorization") != "Bearer mc_pat_test" {

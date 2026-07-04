@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"io"
-	"net/http"
 	"os"
 	"strings"
 
-	"modelcraft-cli/internal/client"
 	"modelcraft-cli/internal/output"
 
 	"github.com/spf13/cobra"
@@ -49,9 +47,9 @@ Examples:
 				return output.NewCLIError("MISSING_REQUIRED_FLAG", "No GraphQL query provided.", true, "Pass a query as the second argument or pipe it via stdin.", nil)
 			}
 
-			result, err := (client.GraphQLClient{HTTPClient: http.DefaultClient}).Run(
-				cmd.Context(), creds.Server, creds.OrgName, modelPath.Project, modelPath.Database, modelPath.Model, creds.AccessToken, gqlBody,
-			)
+		result, err := newGraphQLClient(cmd).Run(
+			cmd.Context(), creds.Server, creds.OrgName, modelPath.Project, modelPath.Database, modelPath.Model, creds.AccessToken, gqlBody,
+		)
 			if err != nil {
 				return err
 			}

@@ -2,12 +2,12 @@ package modeldatabase
 
 import (
 	"context"
+	"errors"
 	"modelcraft/internal/app/modeldesign"
 	domaindb "modelcraft/internal/domain/modeldatabase"
 	domainmodel "modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
-	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
 	"time"
@@ -18,10 +18,11 @@ import (
 const (
 	importGroupName    = "db_import"
 	defaultStalePeriod = 30 * time.Minute
+	syncJobTimeout     = 30 * time.Minute
 )
 
-type modelDatabaseSyncRunner interface {
-	Go(ctx context.Context, fn func(context.Context))
+type taskRunner interface {
+	Submit(name string, fn func() error) error
 }
 
 type modelDatabaseReverseEngineer interface {
@@ -52,16 +53,6 @@ type modelDatabaseGroupService interface {
 	MoveModelToGroup(ctx context.Context, modelID string, groupID *string) error
 }
 
-type backgroundRunner struct{}
-
-func (backgroundRunner) Go(ctx context.Context, fn func(context.Context)) {
-	// Detach from the request context so the job survives after the HTTP
-	// handler returns and its context is cancelled, while still carrying
-	// the request-scoped values (org, project, logger, etc.).
-	detached := context.WithoutCancel(ctx)
-	bizutils.GoWithCtx(detached, fn)
-}
-
 type ModelDatabaseSyncAppServiceDeps struct {
 	ModelDatabaseRepo domaindb.ModelDatabaseRepository
 	SyncJobRepo       domaindb.ModelDatabaseSyncJobRepository
@@ -69,7 +60,7 @@ type ModelDatabaseSyncAppServiceDeps struct {
 	ModelRepo         domainmodel.ModelRepository
 	SchemaSync        modelDatabaseSchemaSync
 	GroupService      modelDatabaseGroupService
-	Runner            modelDatabaseSyncRunner
+	Runner            taskRunner
 	Now               func() time.Time
 }
 
@@ -80,14 +71,13 @@ type ModelDatabaseSyncAppService struct {
 	modelRepo         domainmodel.ModelRepository
 	schemaSync        modelDatabaseSchemaSync
 	groupService      modelDatabaseGroupService
-	runner            modelDatabaseSyncRunner
+	runner            taskRunner
 	now               func() time.Time
 }
 
 func NewModelDatabaseSyncAppService(deps ModelDatabaseSyncAppServiceDeps) *ModelDatabaseSyncAppService {
-	runner := deps.Runner
-	if runner == nil {
-		runner = backgroundRunner{}
+	if deps.Runner == nil {
+		panic("ModelDatabaseSyncAppServiceDeps.Runner must not be nil; inject *taskpool.TaskPool")
 	}
 	nowFn := deps.Now
 	if nowFn == nil {
@@ -100,7 +90,7 @@ func NewModelDatabaseSyncAppService(deps ModelDatabaseSyncAppServiceDeps) *Model
 		modelRepo:         deps.ModelRepo,
 		schemaSync:        deps.SchemaSync,
 		groupService:      deps.GroupService,
-		runner:            runner,
+		runner:            deps.Runner,
 		now:               nowFn,
 	}
 }
@@ -141,15 +131,39 @@ func (s *ModelDatabaseSyncAppService) StartSync(
 	if err := s.syncJobRepo.Create(ctx, job); err != nil {
 		return nil, err
 	}
-	s.runner.Go(ctx, func(runCtx context.Context) {
-		if err := s.RunSyncJob(runCtx, job.ID); err != nil {
-			logfacade.GetLogger(runCtx).Error(runCtx, "sync job failed",
-				logfacade.String("job_id", job.ID),
-				logfacade.Err(err),
-			)
+	if err := s.submitJob(ctx, job); err != nil {
+		// Queue full: mark the already-persisted job as failed so it does not
+		// linger as a zombie pending job.
+		if failErr := s.failJob(ctx, job, err); failErr != nil {
+			return nil, failErr
 		}
-	})
+		return nil, err
+	}
 	return job, nil
+}
+
+// submitJob enqueues the sync job with a syncJobTimeout deadline. When the
+// deadline fires, the job is marked as failed using a non-cancelled context
+// so the status update is not itself killed by the expired context.
+func (s *ModelDatabaseSyncAppService) submitJob(ctx context.Context, job *domaindb.ModelDatabaseSyncJob) error {
+	return s.runner.Submit("model_database_sync", func() error {
+		// Detach from the request context so the job survives after the HTTP
+		// handler returns and its context is cancelled, while still carrying
+		// the request-scoped values (org, project, logger, etc.).
+		detached := context.WithoutCancel(ctx)
+		runCtx, cancel := context.WithTimeout(detached, syncJobTimeout)
+		defer cancel()
+
+		err := s.RunSyncJob(runCtx, job.ID)
+		if runCtx.Err() == context.DeadlineExceeded {
+			// The deadline fired: RunSyncJob's internal failJob (if any) used
+			// the expired context and likely failed to persist. Retry with a
+			// fresh context that preserves request-scoped values.
+			failCtx := context.WithoutCancel(runCtx)
+			return s.failJob(failCtx, job, errors.New("sync job timed out after 30 minutes"))
+		}
+		return err
+	})
 }
 
 // RecoverStaleJobs 将超过 stalePeriod 未更新的 pending/running job 全部标记为 failed。
@@ -190,7 +204,7 @@ func (s *ModelDatabaseSyncAppService) RunSyncJob(ctx context.Context, jobID stri
 
 	db, err := s.modelDatabaseRepo.GetByID(ctx, orgName, projectSlug, job.DatabaseID)
 	if err != nil {
-		logger.Error(ctx, "sync job: failed to get database", logfacade.String("job_id", jobID), logfacade.Err(err))
+		logger.Errorf(ctx, err, "sync job: failed to get database, job_id=%s", jobID)
 		return s.failJob(ctx, job, err)
 	}
 
@@ -204,8 +218,8 @@ func (s *ModelDatabaseSyncAppService) RunSyncJob(ctx context.Context, jobID stri
 
 	tableResult, err := s.reverseEngineer.ListTables(ctx, orgName, projectSlug, db.Name, false, 0, 0)
 	if err != nil {
-		logger.Error(ctx, "sync job: ListTables failed",
-			logfacade.String("job_id", jobID), logfacade.String("database", db.Name), logfacade.Err(err))
+		logger.Errorf(ctx, err, "sync job: ListTables failed, job_id=%s, database=%s",
+			jobID, db.Name)
 		return s.failJob(ctx, job, err)
 	}
 	job.TotalTables = tableResult.TotalCount
@@ -216,15 +230,15 @@ func (s *ModelDatabaseSyncAppService) RunSyncJob(ctx context.Context, jobID stri
 
 	group, err := s.groupService.EnsureImportGroup(ctx, orgName, projectSlug)
 	if err != nil {
-		logger.Error(ctx, "sync job: EnsureImportGroup failed",
-			logfacade.String("job_id", jobID), logfacade.Err(err))
+		logger.Errorf(ctx, err, "sync job: EnsureImportGroup failed, job_id=%s",
+			jobID)
 		return s.failJob(ctx, job, err)
 	}
 
 	for _, tableName := range tableResult.Tables {
 		if err := s.processTable(ctx, job, db, group, tableName); err != nil {
-			logger.Error(ctx, "sync job: processTable failed",
-				logfacade.String("job_id", jobID), logfacade.String("table", tableName), logfacade.Err(err))
+			logger.Errorf(ctx, err, "sync job: processTable failed, job_id=%s, table=%s",
+				jobID, tableName)
 			return err
 		}
 	}
@@ -325,11 +339,8 @@ func (s *ModelDatabaseSyncAppService) failJob(
 	job *domaindb.ModelDatabaseSyncJob,
 	err error,
 ) error {
-	logfacade.GetLogger(ctx).Error(ctx, "sync job failed",
-		logfacade.String("job_id", job.ID),
-		logfacade.String("database_id", job.DatabaseID),
-		logfacade.Err(err),
-	)
+	logfacade.GetLogger(ctx).Errorf(ctx, err, "sync job failed, job_id=%s, database_id=%s",
+		job.ID, job.DatabaseID)
 	now := s.now()
 	job.Status = domaindb.ModelDatabaseSyncJobStatusFailed
 	job.FinishedAt = &now

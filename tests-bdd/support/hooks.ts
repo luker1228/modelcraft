@@ -63,7 +63,8 @@ const DELETE_ENUM = `
 `
 
 // 每个 Scenario 前重置追踪列表
-Before(function (this: ModelCraftWorld) {
+Before(function (this: ModelCraftWorld, { pickle }) {
+  this.scenarioName = pickle.name
   this.createdModelIds = []
   this.createdEnumNames = []
   this.currentModelId = null

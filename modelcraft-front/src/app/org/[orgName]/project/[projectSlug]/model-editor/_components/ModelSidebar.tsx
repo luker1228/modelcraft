@@ -2,12 +2,12 @@
 
 import { useRef } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useRegisterAICapability } from '@web/hooks/ai/use-register-ai-capability'
 import {
   Table2,
   Search,
-  Plus,
+  // Plus, // 新建模型已禁用
   Download,
   MoreVertical,
   ChevronsUpDown,
@@ -34,6 +34,7 @@ import type { ModelEditorState, EditorModel } from '../_hooks'
 import type { ModelCRUD } from '../_hooks'
 import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 import { buildDatabaseManagementPath } from './database-management-path'
+import { buildModelEditorPath } from '@shared/routes/model-editor-path'
 
 interface DatabaseOption {
   name: string
@@ -60,27 +61,32 @@ export function ModelSidebar({
   viewMode,
 }: ModelSidebarProps) {
   const { pendingAction, setPendingAction } = useOnboarding()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const params = useParams<{ orgName: string; projectSlug: string }>()
   const hasDatabases = databases.length > 0
   const databaseManagementPath = buildDatabaseManagementPath(params.orgName, params.projectSlug)
+  const currentViewMode = (searchParams.get('view') === 'data' ? 'data' : 'schema') as
+    | 'schema'
+    | 'data'
 
   // AI capability refs for chip highlighting
-  const createModelBtnRef = useRef<HTMLButtonElement>(null)
+  const importModelBtnRef = useRef<HTMLButtonElement>(null)
   const selectDbBtnRef = useRef<HTMLButtonElement>(null)
 
-  useRegisterAICapability('create_model', '新建模型', createModelBtnRef, '点击打开新建模型表单')
+  useRegisterAICapability('import_model', '导入模型', importModelBtnRef, '点击打开导入模型表单')
   useRegisterAICapability('select_database', '选择数据库', selectDbBtnRef, '点击选择要操作的数据库')
 
   const handleModelDetailClick = (modelId: string) => {
     state.setSelectedModelId(modelId)
   }
 
-  const handleCreateModel = () => {
+  const handleImportModel = () => {
     if (!state.selectedDatabase) {
       alert('请先选择数据库')
       return
     }
-    state.setCreateModelOpen(true)
+    state.setImportDialogOpen(true)
   }
 
   // Clear pendingAction when user interacts with the spotlit sidebar elements
@@ -89,11 +95,17 @@ export function ModelSidebar({
     state.setSelectedDatabase(dbName)
     state.setSelectedModelId(null)
     state.setDatabaseOpen(false)
+    router.replace(
+      buildModelEditorPath(params.orgName, params.projectSlug, {
+        view: currentViewMode,
+        databaseName: dbName,
+      })
+    )
   }
 
-  const handleCreateModelClick = () => {
-    if (pendingAction === 'nav_create_model') setPendingAction(null)
-    handleCreateModel()
+  const handleImportModelClick = () => {
+    if (pendingAction === 'nav_import_model') setPendingAction(null)
+    handleImportModel()
   }
 
   return (
@@ -123,7 +135,7 @@ export function ModelSidebar({
                 ) : state.selectedDatabase ? (
                   <span className="truncate font-medium text-foreground">{state.selectedDatabase}</span>
                 ) : !hasDatabases ? (
-                  <span>接管数据库</span>
+                  <span>注册数据库</span>
                 ) : (
                   <span>选择数据库</span>
                 )}
@@ -136,12 +148,12 @@ export function ModelSidebar({
               <div className="p-3">
                 <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-4 text-center">
                   <Database className="mx-auto mb-2 size-4 text-muted-foreground" />
-                  <p className="text-sm font-medium text-foreground">暂无已接管数据库</p>
+                  <p className="text-sm font-medium text-foreground">暂无已注册数据库</p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    先去数据库管理页接管数据库，再回来创建和管理模型。
+                    先去数据库管理页注册数据库，再回来创建和管理模型。
                   </p>
                   <Button asChild size="sm" className="mt-3 h-8 w-full">
-                    <Link href={databaseManagementPath}>去接管数据库</Link>
+                    <Link href={databaseManagementPath}>去注册数据库</Link>
                   </Button>
                 </div>
               </div>
@@ -177,51 +189,39 @@ export function ModelSidebar({
         {/* Action buttons */}
         {viewMode === 'schema' && (
         <div className="flex flex-col gap-1 px-3 py-2.5">
-          {(() => {
-            const selectedDbMode = databases.find((db) => db.name === state.selectedDatabase)?.mode
-            const canWrite = !selectedDbMode || selectedDbMode === 'SELF_HOSTED'
-            return canWrite ? (
-              <>
-                <Button
-                  ref={createModelBtnRef}
-                  size="sm"
-                  variant="outline"
-                  className={cn(
-                    'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
-                    !state.selectedDatabase && 'pointer-events-none opacity-40',
-                    pendingAction === 'nav_create_model' && state.selectedDatabase && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
-                  )}
-                  onClick={handleCreateModelClick}
-                  disabled={!state.selectedDatabase}
-                >
-                  <Plus className="mr-1 size-3.5" />
-                  新建模型
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className={cn(
-                    'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
-                    !state.selectedDatabase && 'pointer-events-none opacity-40'
-                  )}
-                  onClick={() => state.setImportDialogOpen(true)}
-                  disabled={!state.selectedDatabase}
-                >
-                  <Download className="mr-1 size-3.5" strokeWidth={1.5} />
-                  导入模型
-                </Button>
-              </>
-            ) : state.selectedDatabase ? (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 w-full justify-start px-2.5 text-xs font-normal opacity-50"
-                disabled
-              >
-                同步模型（即将推出）
-              </Button>
-            ) : null
-          })()}
+          {/* 新建模型已禁用：系统不再支持直接创建模型，仅支持从数据库导入/同步 */}
+          {/*
+          <Button
+            ref={createModelBtnRef}
+            size="sm"
+            variant="outline"
+            className={cn(
+              'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
+              !state.selectedDatabase && 'pointer-events-none opacity-40',
+              pendingAction === 'nav_create_model' && state.selectedDatabase && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
+            )}
+            onClick={handleCreateModelClick}
+            disabled={!state.selectedDatabase}
+          >
+            <Plus className="mr-1 size-3.5" />
+            新建模型
+          </Button>
+          */}
+          <Button
+            ref={importModelBtnRef}
+            size="sm"
+            variant="outline"
+            className={cn(
+              'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
+              !state.selectedDatabase && 'pointer-events-none opacity-40',
+              pendingAction === 'nav_import_model' && state.selectedDatabase && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
+            )}
+            onClick={handleImportModelClick}
+            disabled={!state.selectedDatabase}
+          >
+            <Download className="mr-1 size-3.5" strokeWidth={1.5} />
+            导入模型
+          </Button>
         </div>
         )}
 
@@ -278,7 +278,7 @@ export function ModelSidebar({
                   {model.name}
                 </span>
 
-                {model.createdVia === 'IMPORTED' && (
+                {model.isReadOnly === true && (
                   <span className="border-warning/30 bg-warning/10 text-warning rounded border px-1 py-0 text-[10px]">
                     托管
                   </span>
@@ -313,19 +313,19 @@ export function ModelSidebar({
                     <DropdownMenuItem
                       className={cn(
                         'text-xs focus:bg-accent',
-                        model.createdVia === 'IMPORTED'
+                        model.isReadOnly === true
                           ? 'cursor-not-allowed text-muted-foreground/50 focus:text-muted-foreground/50'
                           : 'cursor-pointer text-destructive focus:text-destructive'
                       )}
                       onClick={(e) => {
                         e.stopPropagation()
-                        if (model.createdVia === 'IMPORTED') {
+                        if (model.isReadOnly === true) {
                           return
                         }
                         state.setModelToDelete(model)
                         state.setDeleteModelDialogOpen(true)
                       }}
-                      disabled={model.createdVia === 'IMPORTED'}
+                      disabled={model.isReadOnly === true}
                     >
                       删除模型
                     </DropdownMenuItem>
@@ -346,10 +346,10 @@ export function ModelSidebar({
                 <Database className="mb-3 size-8 opacity-20" />
                 <p className="text-sm font-medium text-foreground">当前项目还没有可用数据库</p>
                 <p className="mt-1 max-w-[180px] text-xs leading-5 text-muted-foreground">
-                  先完成数据库接管，模型编辑器才会出现可选择的数据库。
+                  先完成数据库注册，模型编辑器才会出现可选择的数据库。
                 </p>
                 <Button asChild size="sm" className="mt-4">
-                  <Link href={databaseManagementPath}>去接管数据库</Link>
+                  <Link href={databaseManagementPath}>去注册数据库</Link>
                 </Button>
               </div>
             )}

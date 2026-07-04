@@ -83,7 +83,53 @@ func (m *MockQuerierForFK) FindFieldsByRelateFKID(
 	return args.Get(0).([]dbgen.FindFieldsByRelateFKIDRow), args.Error(1)
 }
 
-func newTestLFRow(id, pairID, direction, modelID, modelName, refModelID, refModelName string) dbgen.LogicalForeignKey {
+func newTestLFModelRow(
+	id, pairID, direction, modelID, modelName, refModelID, refModelName string,
+) dbgen.FindLogicalForeignKeysByModelIDRow {
+	sf, _ := json.Marshal([]string{"userId"})
+	tf, _ := json.Marshal([]string{"id"})
+	return dbgen.FindLogicalForeignKeysByModelIDRow{
+		ID:              id,
+		PairID:          pairID,
+		OrgName:         "test-org",
+		Direction:       dbgen.LogicalForeignKeysDirection(direction),
+		ModelID:         modelID,
+		ModelName:       modelName,
+		RefModelID:      sql.NullString{String: refModelID, Valid: refModelID != ""},
+		RefModelName:    refModelName,
+		RefDatabaseName: sql.NullString{},
+		RefTableName:    sql.NullString{},
+		SourceFields:    json.RawMessage(sf),
+		TargetFields:    json.RawMessage(tf),
+		IsDeletable:     true,
+	}
+}
+
+func newTestLFPairRow(
+	id, pairID, direction, modelID, modelName, refModelID, refModelName string,
+) dbgen.FindLogicalForeignKeysByPairIDRow {
+	sf, _ := json.Marshal([]string{"userId"})
+	tf, _ := json.Marshal([]string{"id"})
+	return dbgen.FindLogicalForeignKeysByPairIDRow{
+		ID:              id,
+		PairID:          pairID,
+		OrgName:         "test-org",
+		Direction:       dbgen.LogicalForeignKeysDirection(direction),
+		ModelID:         modelID,
+		ModelName:       modelName,
+		RefModelID:      sql.NullString{String: refModelID, Valid: refModelID != ""},
+		RefModelName:    refModelName,
+		RefDatabaseName: sql.NullString{},
+		RefTableName:    sql.NullString{},
+		SourceFields:    json.RawMessage(sf),
+		TargetFields:    json.RawMessage(tf),
+		IsDeletable:     true,
+	}
+}
+
+func newTestLFRow(
+	id, pairID, direction, modelID, modelName, refModelID, refModelName string,
+) dbgen.LogicalForeignKey {
 	sf, _ := json.Marshal([]string{"userId"})
 	tf, _ := json.Marshal([]string{"id"})
 	return dbgen.LogicalForeignKey{
@@ -143,8 +189,8 @@ func TestSqlLogicalForeignKeyRepository_FindByModel(t *testing.T) {
 	repo := &SqlLogicalForeignKeyRepository{q: mockQ}
 	ctx := context.Background()
 
-	row := newTestLFRow("lf-001", "pair-001", "normal", "model-order", "Order", "model-user", "User")
-	rows := []dbgen.LogicalForeignKey{row}
+	row := newTestLFModelRow("lf-001", "pair-001", "normal", "model-order", "Order", "model-user", "User")
+	rows := []dbgen.FindLogicalForeignKeysByModelIDRow{row}
 	expectedArg := dbgen.FindLogicalForeignKeysByModelIDParams{
 		OrgName: "test-org",
 		ModelID: "model-order",
@@ -166,9 +212,9 @@ func TestSqlLogicalForeignKeyRepository_FindByPairID(t *testing.T) {
 	repo := &SqlLogicalForeignKeyRepository{q: mockQ}
 	ctx := context.Background()
 
-	rows := []dbgen.LogicalForeignKey{
-		newTestLFRow("lf-001", "pair-001", "normal", "model-order", "Order", "model-user", "User"),
-		newTestLFRow("lf-002", "pair-001", "reverse", "model-user", "User", "model-order", "Order"),
+	rows := []dbgen.FindLogicalForeignKeysByPairIDRow{
+		newTestLFPairRow("lf-001", "pair-001", "normal", "model-order", "Order", "model-user", "User"),
+		newTestLFPairRow("lf-002", "pair-001", "reverse", "model-user", "User", "model-order", "Order"),
 	}
 	expectedArg := dbgen.FindLogicalForeignKeysByPairIDParams{OrgName: "test-org", PairID: "pair-001"}
 	mockQ.On("FindLogicalForeignKeysByPairID", ctx, expectedArg).Return(rows, nil)

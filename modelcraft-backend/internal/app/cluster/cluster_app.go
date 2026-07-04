@@ -48,7 +48,7 @@ func (s *DatabaseClusterAppService) CreateCluster(ctx context.Context, cmd Creat
 	// Check one-to-one constraint: project should not already have a cluster
 	hasCluster, err := s.clusterRepo.ExistsByProjectKey(ctx, cmd.OrgName, cmd.ProjectSlug)
 	if err != nil {
-		logger.Errorf(ctx, "failed to check if project has cluster, err=%v", err)
+		logger.Errorf(ctx, err, "failed to check if project has cluster")
 		return "", bizerrors.Wrapf(err, "failed to check if project has cluster")
 	}
 	if hasCluster {
@@ -99,13 +99,13 @@ func (s *DatabaseClusterAppService) CreateCluster(ctx context.Context, cmd Creat
 
 	// Validate entity
 	if err := entity.Validate(); err != nil {
-		logger.Errorf(ctx, "database cluster validation failed: %v", err)
+		logger.Errorf(ctx, err, "database cluster validation failed")
 		return "", bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, err.Error())
 	}
 
 	// Save to database
 	if err := s.clusterRepo.Create(ctx, entity); err != nil {
-		logger.Errorf(ctx, "failed to create database cluster: %v", err)
+		logger.Errorf(ctx, err, "failed to create database cluster")
 		return "", err
 	}
 
@@ -124,7 +124,7 @@ func (s *DatabaseClusterAppService) UpdateProjectCluster(
 	// Get existing cluster by project key (one-to-one relationship)
 	entity, err := s.clusterRepo.GetByProjectKey(ctx, cmd.OrgName, cmd.ProjectSlug)
 	if err != nil {
-		logger.Error(ctx, "Failed to get cluster by project key", logfacade.Err(err))
+		logger.Errorf(ctx, err, "Failed to get cluster by project key")
 		return nil, bizerrors.Wrapf(err, "failed to get cluster for project")
 	}
 	if entity == nil {
@@ -162,7 +162,7 @@ func (s *DatabaseClusterAppService) UpdateProjectCluster(
 
 	// Validate updated entity
 	if err := entity.Validate(); err != nil {
-		logger.Errorf(ctx, "database cluster validation failed: %v", err)
+		logger.Errorf(ctx, err, "database cluster validation failed")
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, err.Error())
 	}
 
@@ -173,14 +173,14 @@ func (s *DatabaseClusterAppService) UpdateProjectCluster(
 			return nil, err
 		}
 		if err := s.connManager.TestConnection(ctx, connInfo); err != nil {
-			logger.Errorf(ctx, "connection test failed: %v", err)
+			logger.Errorf(ctx, err, "connection test failed")
 			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.DatabaseConnectionFailed, err.Error())
 		}
 	}
 
 	// Persist
 	if err := s.clusterRepo.Update(ctx, cmd.OrgName, cmd.ProjectSlug, entity); err != nil {
-		logger.Error(ctx, "Failed to update database cluster", logfacade.Err(err))
+		logger.Errorf(ctx, err, "Failed to update database cluster")
 		return nil, bizerrors.Wrapf(err, "failed to update cluster")
 	}
 
@@ -203,7 +203,7 @@ func (s *DatabaseClusterAppService) GetCluster(
 
 	entity, err := s.clusterRepo.GetByID(ctx, orgName, id)
 	if err != nil {
-		logger.Errorf(ctx, "failed to get database cluster: %v", err)
+		logger.Errorf(ctx, err, "failed to get database cluster")
 		return nil, err
 	}
 
@@ -252,7 +252,7 @@ func (s *DatabaseClusterAppService) ListClusters(
 
 	entities, err := s.clusterRepo.List(ctx, orgName, projectID)
 	if err != nil {
-		logger.Errorf(ctx, "failed to get database cluster list: %v", err)
+		logger.Errorf(ctx, err, "failed to get database cluster list")
 		return nil, err
 	}
 
@@ -273,7 +273,7 @@ func (s *DatabaseClusterAppService) DeleteCluster(ctx context.Context, projectID
 
 	// Delete cluster
 	if err := s.clusterRepo.Delete(ctx, orgName, projectID, id); err != nil {
-		logger.Errorf(ctx, "failed to delete database cluster: %v", err)
+		logger.Errorf(ctx, err, "failed to delete database cluster")
 		return err
 	}
 
@@ -328,7 +328,7 @@ func (s *DatabaseClusterAppService) TestConnection(
 	}
 	err := s.connManager.TestConnection(ctx, *connInfo)
 	if err != nil {
-		logger.Errorf(ctx, "connection test failed: %v", err)
+		logger.Errorf(ctx, err, "connection test failed")
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.DatabaseConnectionFailed, err.Error())
 	}
 
@@ -351,7 +351,7 @@ func (s *DatabaseClusterAppService) buildConnInfoFromID(
 			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ClusterNotFound,
 				fmt.Sprintf("cluster not found id=%s", id))
 		}
-		logger.Errorf(ctx, "failed to get database cluster: %v", err)
+		logger.Errorf(ctx, err, "failed to get database cluster")
 		return nil, err
 	}
 	if clusterInfo == nil {
@@ -436,7 +436,7 @@ func (s *DatabaseClusterAppService) ListDatabases(
 	// Call connection manager's ListDatabases method with pagination
 	databases, totalCount, err := s.connManager.ListDatabases(ctx, orgName, projectID, search, offset, limit)
 	if err != nil {
-		logger.Errorf(ctx, "failed to list databases: %v", err)
+		logger.Errorf(ctx, err, "failed to list databases")
 		return nil, 0, bizerrors.NewErrorFromContext(ctx, bizerrors.DatabaseConnectionFailed, err.Error())
 	}
 

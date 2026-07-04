@@ -39,12 +39,14 @@ COPY --from=builder --chown=appuser:appgroup /app/.next/static ./.next/static
 
 USER appuser
 
-EXPOSE 3000
+# 端口通过环境变量 PORT 指定（默认 3000，云托管注入 80）
+ARG PORT=3000
+EXPOSE ${PORT}
 
-ENV PORT=3000
+ENV PORT=${PORT}
 ENV HOSTNAME=0.0.0.0
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/ || exit 1
 
 CMD ["node", "server.js"]

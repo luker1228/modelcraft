@@ -83,8 +83,8 @@ func (q *Queries) CountModels(ctx context.Context, arg CountModelsParams) (int64
 }
 
 const createModel = `-- name: CreateModel :exec
-INSERT INTO models (id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_via, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO models (id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, is_read_only, created_via, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateModelParams struct {
@@ -103,6 +103,7 @@ type CreateModelParams struct {
 	DeploymentStatus sql.NullString
 	LastSyncAt       sql.NullTime
 	SyncError        sql.NullString
+	IsReadOnly       bool
 	CreatedVia       ModelsCreatedVia
 }
 
@@ -123,6 +124,7 @@ func (q *Queries) CreateModel(ctx context.Context, arg CreateModelParams) error 
 		arg.DeploymentStatus,
 		arg.LastSyncAt,
 		arg.SyncError,
+		arg.IsReadOnly,
 		arg.CreatedVia,
 	)
 	return err
@@ -138,7 +140,7 @@ func (q *Queries) DeleteModel(ctx context.Context, id string) error {
 }
 
 const findModelsByDeploymentStatus = `-- name: FindModelsByDeploymentStatus :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_via, is_read_only, created_at, updated_at, deleted_at, delete_token FROM models
 WHERE deployment_status IN (/*SLICE:statuses*/?)
   AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
@@ -179,11 +181,12 @@ func (q *Queries) FindModelsByDeploymentStatus(ctx context.Context, statuses []s
 			&i.DeploymentStatus,
 			&i.LastSyncAt,
 			&i.SyncError,
+			&i.CreatedVia,
+			&i.IsReadOnly,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.DeleteToken,
-			&i.CreatedVia,
 		); err != nil {
 			return nil, err
 		}
@@ -199,7 +202,7 @@ func (q *Queries) FindModelsByDeploymentStatus(ctx context.Context, statuses []s
 }
 
 const getAllModels = `-- name: GetAllModels :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models WHERE ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_via, is_read_only, created_at, updated_at, deleted_at, delete_token FROM models WHERE ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
@@ -228,11 +231,12 @@ func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
 			&i.DeploymentStatus,
 			&i.LastSyncAt,
 			&i.SyncError,
+			&i.CreatedVia,
+			&i.IsReadOnly,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.DeleteToken,
-			&i.CreatedVia,
 		); err != nil {
 			return nil, err
 		}
@@ -248,7 +252,7 @@ func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
 }
 
 const getModelByID = `-- name: GetModelByID :one
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models WHERE id = ? AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_via, is_read_only, created_at, updated_at, deleted_at, delete_token FROM models WHERE id = ? AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetModelByID(ctx context.Context, id string) (Model, error) {
@@ -271,17 +275,18 @@ func (q *Queries) GetModelByID(ctx context.Context, id string) (Model, error) {
 		&i.DeploymentStatus,
 		&i.LastSyncAt,
 		&i.SyncError,
+		&i.CreatedVia,
+		&i.IsReadOnly,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.DeleteToken,
-		&i.CreatedVia,
 	)
 	return i, err
 }
 
 const getModelByName = `-- name: GetModelByName :one
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_via, is_read_only, created_at, updated_at, deleted_at, delete_token FROM models
 WHERE org_name = ? AND database_name = ? AND name = ? AND project_slug = ? AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
@@ -317,17 +322,18 @@ func (q *Queries) GetModelByName(ctx context.Context, arg GetModelByNameParams) 
 		&i.DeploymentStatus,
 		&i.LastSyncAt,
 		&i.SyncError,
+		&i.CreatedVia,
+		&i.IsReadOnly,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.DeleteToken,
-		&i.CreatedVia,
 	)
 	return i, err
 }
 
 const getModelMetaByIDs = `-- name: GetModelMetaByIDs :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_via, is_read_only, created_at, updated_at, deleted_at, delete_token FROM models
 WHERE org_name = ?
   AND project_slug = ?
   AND id IN (/*SLICE:ids*/?)
@@ -378,11 +384,12 @@ func (q *Queries) GetModelMetaByIDs(ctx context.Context, arg GetModelMetaByIDsPa
 			&i.DeploymentStatus,
 			&i.LastSyncAt,
 			&i.SyncError,
+			&i.CreatedVia,
+			&i.IsReadOnly,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.DeleteToken,
-			&i.CreatedVia,
 		); err != nil {
 			return nil, err
 		}
@@ -446,7 +453,7 @@ func (q *Queries) ListModelDatabases(ctx context.Context, arg ListModelDatabases
 }
 
 const listModels = `-- name: ListModels :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_via, is_read_only, created_at, updated_at, deleted_at, delete_token FROM models
 WHERE org_name = ?
   AND project_slug = ?
   AND database_name = ?
@@ -513,11 +520,12 @@ func (q *Queries) ListModels(ctx context.Context, arg ListModelsParams) ([]Model
 			&i.DeploymentStatus,
 			&i.LastSyncAt,
 			&i.SyncError,
+			&i.CreatedVia,
+			&i.IsReadOnly,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.DeleteToken,
-			&i.CreatedVia,
 		); err != nil {
 			return nil, err
 		}

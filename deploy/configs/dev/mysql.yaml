@@ -1,0 +1,4 @@
+MYSQL_ROOT_PASSWORD: "modelcraft123"
+MYSQL_DATABASE: "modelcraft"
+MYSQL_USER: "modelcraft"
+MYSQL_PASSWORD: "modelcraft123"

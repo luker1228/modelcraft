@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> Status: historical plan only. Current code keeps `modelcraft_admin_agent` only; `modelcraft_enduser_agent` and `/copilotkit/enduser` are not active.
+
 **Goal:** Split the single `modelcraft_agent` into two independent agents — `modelcraft_admin_agent` (tenant admin) and `modelcraft_enduser_agent` (end user) — each with dedicated tool sets, knowledge bases, and sidebar suggestions.
 
 **Architecture:** Python side splits `agent.py` into `agents/tools.py` (shared tools) + `agents/admin_agent.py` + `agents/enduser_agent.py`, registered separately in `main.py`. Frontend side adds `SharedCopilotActions` (show_toast), `AdminCopilotKnowledge`, `EndUserCopilotKnowledge`, `EndUserCopilotActions`, and wires them into the respective `CopilotProvider`/`EndUserCopilotWrapper` trees.
