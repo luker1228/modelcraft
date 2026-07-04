@@ -20,6 +20,60 @@ interface UseRegisterReturn {
   error: string | null
 }
 
+interface UseDemoLoginReturn {
+  demoLogin: () => Promise<void>
+  isLoading: boolean
+  error: string | null
+}
+
+export function useDemoLogin(): UseDemoLoginReturn {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const demoLogin = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch('/api/auth/demo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+      })
+
+      const data = (await res.json()) as {
+        accessToken?: string
+        orgName?: string
+        expiresIn?: number
+        userName?: string
+        error?: string | { code?: string; message?: string }
+        message?: string
+      }
+
+      if (!res.ok) {
+        setError(extractErrorMessage(data.message ?? data.error, '演示模式暂不可用'))
+        return
+      }
+
+      const accessToken = data.accessToken ?? ''
+      useAuthStore.getState().setAccessToken(accessToken, data.expiresIn ?? 3600)
+      invalidateMembershipsCache()
+
+      const orgName = data.orgName ?? 'demo'
+      localStorage.setItem('defaultOrgName', orgName)
+      localStorage.setItem('defaultUserName', data.userName ?? 'guest')
+      router.push(`/org/${orgName}/dashboard`)
+    } catch {
+      setError('网络错误，请检查网络连接')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return { demoLogin, isLoading, error }
+}
+
 export function useLogin(): UseLoginReturn {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)

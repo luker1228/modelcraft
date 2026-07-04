@@ -13,6 +13,7 @@ import { AICapabilityReadable } from "@web/components/features/copilot/AICapabil
 import { useCopilotReadable } from '@copilotkit/react-core'
 import { OrgCopilotActions } from '@web/components/features/copilot/OrgCopilotActions'
 import "@copilotkit/react-ui/styles.css"
+import { DemoBanner } from '@web/components/common/demo-banner'
 
 function OrgAIContext({ orgName }: { orgName: string }) {
   useCopilotReadable({
@@ -132,6 +133,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
         <OrgAIContext orgName={orgName} />
         {/* Reads org-level capabilities (e.g. create_project on workspace page) */}
         <AICapabilityReadable />
+        {orgName === 'demo' && <DemoBanner />}
         {content}
       </CopilotWrapper>
     </AICapabilityProvider>

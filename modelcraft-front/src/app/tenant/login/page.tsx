@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { loginFormSchema, type LoginFormValues } from '@/shared/validation/auth'
-import { useLogin } from '@/web/hooks/auth/use-auth-form'
+import { useLogin, useDemoLogin } from '@/web/hooks/auth/use-auth-form'
 import { AuthLayout } from '@/web/components/features/auth/auth-layout'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
@@ -25,6 +25,7 @@ export default function TenantLoginPage() {
   const backHref = redirect ? `/?redirect=${encodeURIComponent(redirect)}` : '/'
 
   const { login, isLoading, error } = useLogin()
+  const { demoLogin, isLoading: isDemoLoading, error: demoError } = useDemoLogin()
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -44,7 +45,6 @@ export default function TenantLoginPage() {
     >
       <Form {...form}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {/* Server error banner */}
           {error && (
             <div className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
@@ -53,14 +53,14 @@ export default function TenantLoginPage() {
 
           <FormField
             control={form.control}
-            name="phone"
+            name="userName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>手机号</FormLabel>
+                <FormLabel>用户名</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="请输入手机号"
-                    autoComplete="tel"
+                    placeholder="请输入用户名"
+                    autoComplete="username"
                     {...field}
                   />
                 </FormControl>
@@ -93,6 +93,31 @@ export default function TenantLoginPage() {
           </Button>
         </form>
       </Form>
+
+      <div className="mt-4">
+        <div className="relative my-4 flex items-center gap-4">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted-foreground">或</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        {demoError && (
+          <div className="mb-3 rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {demoError}
+          </div>
+        )}
+
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10 w-full"
+          disabled={isDemoLoading}
+          onClick={demoLogin}
+        >
+          {isDemoLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+          匿名体验 Demo
+        </Button>
+      </div>
     </AuthLayout>
   )
 }
